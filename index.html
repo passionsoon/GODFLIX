@@ -73,7 +73,7 @@ input{outline:none;font-family:'Pretendard Variable','Pretendard',-apple-system,
   color:var(--g2);border-radius:4px;
   padding:5px 12px;font-size:12px;font-weight:600;
   font-family:'Pretendard Variable','Pretendard',-apple-system,sans-serif;
-  transition:all .2s;
+  transition:color .15s,background .15s,border-color .15s,transform .15s;
 }
 .btn-logout:hover{border-color:var(--white);color:var(--white);}
 
@@ -358,7 +358,7 @@ input{outline:none;font-family:'Pretendard Variable','Pretendard',-apple-system,
   background:var(--bg);
   position:sticky;top:0;z-index:100;
 }
-.grade-tab{
+.grade-tab{transition:color .18s cubic-bezier(.4,0,.2,1),border-color .18s cubic-bezier(.4,0,.2,1);
   background:none;border:none;border-bottom:3px solid transparent;
   padding:12px 20px;font-size:14px;font-weight:700;color:var(--g3);
   font-family:'Pretendard Variable','Pretendard',-apple-system,sans-serif;white-space:nowrap;
@@ -518,7 +518,7 @@ input{outline:none;font-family:'Pretendard Variable','Pretendard',-apple-system,
   background:rgba(0,0,0,.96);backdrop-filter:blur(8px);
   overflow-y:auto;padding-bottom:var(--safe-bottom);
 }
-#player-overlay.show{display:block;animation:fadeIn .3s ease;}
+#player-overlay.show{opacity:1;pointer-events:auto;}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 .player-modal{
   max-width:900px;margin:0 auto;
@@ -531,7 +531,7 @@ input{outline:none;font-family:'Pretendard Variable','Pretendard',-apple-system,
   background:rgba(0,0,0,.8);border:1.5px solid rgba(255,255,255,.25);
   color:var(--white);border-radius:50%;width:48px;height:48px;
   font-size:18px;display:flex;align-items:center;justify-content:center;
-  transition:all .2s;
+  transition:color .15s,background .15s,border-color .15s,transform .15s;
   /* 모바일 탭 타겟 확보 */
   -webkit-tap-highlight-color:transparent;
   touch-action:manipulation;
@@ -647,7 +647,7 @@ input{outline:none;font-family:'Pretendard Variable','Pretendard',-apple-system,
   color:var(--g3);border-radius:6px;
   padding:6px 14px;font-size:12px;font-weight:600;
   font-family:'Pretendard Variable','Pretendard',-apple-system,sans-serif;
-  cursor:pointer;margin-top:8px;transition:all .2s;width:100%;
+  cursor:pointer;margin-top:8px;transition:background .15s,transform .1s,box-shadow .15s;width:100%;
 }
 .complete-cancel:hover{border-color:rgba(255,255,255,.3);color:var(--g1);}
 
@@ -787,7 +787,7 @@ input{outline:none;font-family:'Pretendard Variable','Pretendard',-apple-system,
   background:rgba(0,0,0,.6);border:1.5px solid rgba(255,255,255,.25);
   color:var(--white);border-radius:50%;width:36px;height:36px;
   font-size:16px;display:flex;align-items:center;justify-content:center;
-  transition:all .2s;
+  transition:color .15s,background .15s,border-color .15s,transform .15s;
 }
 .detail-close:hover{background:var(--red);border-color:var(--red);}
 .detail-body{padding:20px 28px 28px;}
@@ -901,7 +901,7 @@ input{outline:none;font-family:'Pretendard Variable','Pretendard',-apple-system,
 
   /* ── 과정 탭 ── */
   .grade-tabs{padding:0 3%;}
-  .grade-tab{padding:11px 14px;font-size:13px;}
+  .grade-tab{transition:color .18s cubic-bezier(.4,0,.2,1),border-color .18s cubic-bezier(.4,0,.2,1);padding:11px 14px;font-size:13px;}
 
   /* ── 행 헤더 ── */
   .nf-row-header{padding:20px 4% 10px;}
@@ -1088,7 +1088,7 @@ input{outline:none;font-family:'Pretendard Variable','Pretendard',-apple-system,
   flex:1;padding:14px 0;font-size:14px;font-weight:700;
   color:var(--g3);background:none;border:none;
   border-bottom:3px solid transparent;
-  font-family:var(--font);transition:all .2s;
+  font-family:var(--font);transition:color .15s,background .15s,border-color .15s;
   display:flex;align-items:center;justify-content:center;gap:6px;
 }
 .mode-tab.active{color:var(--white);border-bottom-color:var(--red);}
@@ -1209,8 +1209,25 @@ input{outline:none;font-family:'Pretendard Variable','Pretendard',-apple-system,
   .mode-tab{font-size:13px;padding:12px 0;}
   .short-title{font-size:14px;}
 }
+
+/* ═══════════════════════════════
+   전역 성능 최적화
+═══════════════════════════════ */
+*{-webkit-tap-highlight-color:transparent;}
+html{-webkit-overflow-scrolling:touch;}
+.v-card,.nf-slider,.detail-box,.player-modal,
+.complete-alert,.short-item,.grade-tab,
+.btn-play,.btn-info,.hero-content{
+  -webkit-backface-visibility:hidden;
+  backface-visibility:hidden;
+  transform:translateZ(0);
+}
+.v-card{will-change:transform;}
+.v-card:hover{will-change:auto;}
+#player-overlay,#detail-modal{will-change:opacity;}
+
+/* ── 검색 ── */
 .search-bar-wrap{
-  padding:16px 4% 0;
   animation:fadeInDown .35s cubic-bezier(.16,1,.3,1) both;
 }
 @keyframes fadeInDown{
@@ -1258,7 +1275,7 @@ input{outline:none;font-family:'Pretendard Variable','Pretendard',-apple-system,
   color:var(--g2);border-radius:6px;
   padding:6px 14px;font-size:12px;font-weight:600;
   font-family:'Pretendard Variable','Pretendard',-apple-system,sans-serif;
-  transition:all .2s;white-space:nowrap;
+  transition:color .15s,background .15s,border-color .15s;white-space:nowrap;
 }
 .btn-tool:hover{background:rgba(255,255,255,.13);color:var(--white);}
 .btn-tool.active{background:rgba(229,9,20,.15);border-color:rgba(229,9,20,.3);color:var(--white);}
@@ -1699,21 +1716,25 @@ function shareShort(idx) {
     navigator.clipboard?.writeText(text).then(() => showToast('링크가 복사됐습니다!'));
   }
 }
+let _searchTimer = null;
 function onSearch(q) {
   currentSearchQuery = q.trim();
   const clearBtn = document.getElementById('search-clear');
   if (clearBtn) clearBtn.classList.toggle('show', currentSearchQuery.length > 0);
-  renderCatalog();
-  // 검색 결과 수 표시
-  const countEl = document.getElementById('search-count');
-  if (countEl) {
-    if (currentSearchQuery) {
-      const hits = filteredVideos().length;
-      countEl.textContent = hits > 0 ? `"${currentSearchQuery}" 검색 결과 ${hits}개` : `"${currentSearchQuery}"에 대한 결과가 없습니다.`;
-    } else {
-      countEl.textContent = '';
+  // debounce 150ms — 타이핑 중 불필요한 렌더 방지
+  clearTimeout(_searchTimer);
+  _searchTimer = setTimeout(() => {
+    renderCatalog();
+    const countEl = document.getElementById('search-count');
+    if (countEl) {
+      if (currentSearchQuery) {
+        const hits = filteredVideos().length;
+        countEl.textContent = hits > 0
+          ? `"${currentSearchQuery}" 검색 결과 ${hits}개`
+          : `"${currentSearchQuery}"에 대한 결과가 없습니다.`;
+      } else { countEl.textContent = ''; }
     }
-  }
+  }, 150);
 }
 
 function clearSearch() {
@@ -2116,8 +2137,12 @@ function closePlayer(){
   clearInterval(_autoPlayTimer);
   const nb = document.getElementById('complete-next-btn');
   if (nb) nb.classList.remove('counting');
-  document.getElementById('player-overlay').classList.remove('show');
-  document.getElementById('vimeo-player').src='';
+  const overlay = document.getElementById('player-overlay');
+  overlay.classList.remove('show');
+  // opacity 전환 후 정리 (250ms — transition 시간과 동일)
+  setTimeout(() => {
+    document.getElementById('vimeo-player').src='';
+  }, 250);
   document.body.style.overflow='';
   if(currentVideo&&maxReachedSec>5){saveRecord(true);saveProgress();}
   clearInterval(progressSaveInterval);
