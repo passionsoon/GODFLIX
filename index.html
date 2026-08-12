@@ -1548,18 +1548,18 @@ const isMobile=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
 /* ─ HELPERS ─ */
 function parseTitle(t){
-  const m=t.match(/^((?:초등|중등|고등)\s*\d+과)\s+(.+)$/);if(m)return{sub:m[1],main:m[2]};
+  const m=t.match(/^((?:기초|응용|심화)\s*\d+과)\s+(.+)$/);if(m)return{sub:m[1],main:m[2]};
   const m2=t.match(/^(\d+과)\s+(.+)$/);if(m2)return{sub:m2[1],main:m2[2]};
   return{sub:'',main:t};
 }
 function detectGrade(v){
   if(v.grade)return v.grade;
-  if(/초등/.test(v.title))return'초등';
-  if(/중등/.test(v.title))return'중등';
-  if(/고등/.test(v.title))return'고등';
+  if(/기초/.test(v.title))return'기초';
+  if(/응용/.test(v.title))return'응용';
+  if(/심화/.test(v.title))return'심화';
   return'기타';
 }
-function gradeClass(g){return g==='초등'?'elem':g==='중등'?'mid':'high';}
+function gradeClass(g){return g==='기초'?'elem':g==='응용'?'mid':'high';}
 function extractVimeoId(url){
   if(!url)return'';
   const s=url.trim();
@@ -1822,12 +1822,12 @@ document.getElementById('pw-input').addEventListener('keydown',e=>{if(e.key==='E
 function buildGradeTabs(){
   const grades=['전체'];
   const found=new Set(VIDEOS.map(v=>detectGrade(v)));
-  ['초등','중등','고등'].forEach(g=>{if(found.has(g))grades.push(g);});
+  ['기초','응용','심화'].forEach(g=>{if(found.has(g))grades.push(g);});
   if(found.has('기타'))grades.push('기타');
   const c=document.getElementById('grade-tabs');c.innerHTML='';
   grades.forEach(g=>{
     const count=g==='전체'?VIDEOS.length:VIDEOS.filter(v=>detectGrade(v)===g).length;
-    const label=g==='전체'?'전체':g==='초등'?'초등 과정':g==='중등'?'중등 과정':g==='고등'?'고등 과정':g;
+    const label=g==='전체'?'전체':g==='기초'?'기초 과정':g==='응용'?'응용 과정':g==='심화'?'심화 과정':g;
     const btn=document.createElement('button');
     btn.className='grade-tab'+(g===currentGrade?' active':'');
     btn.dataset.grade=g;
@@ -1904,7 +1904,7 @@ function updateFeatured(index){
     bg.style.backgroundImage=`url('${v.thumbnail}')`;
     bg.style.backgroundPosition='center 20%';
   }else{
-    const colors={초등:'#051525',중등:'#051a0f',고등:'#1a0505',전체:'#0a0505',기타:'#0a0505'};
+    const colors={기초:'#051525',응용:'#051a0f',심화:'#1a0505',전체:'#0a0505',기타:'#0a0505'};
     bg.style.backgroundImage=`radial-gradient(ellipse at 70% 40%, ${colors[grade]||'#141414'} 0%, #141414 70%)`;
   }
 
@@ -2032,17 +2032,17 @@ function renderCatalog(){
 
   if(currentGrade==='전체'){
     // 전체 탭: 과정별로 행 분리
-    const gradeOrder=['고등','중등','초등','기타'];
+    const gradeOrder=['심화','응용','기초','기타'];
     const found=new Set(videos.map(v=>detectGrade(v)));
     gradeOrder.filter(g=>found.has(g)).forEach(g=>{
       const gVideos=videos.filter(v=>detectGrade(v)===g);
-      const labels={고등:'고등 과정',중등:'중등 과정',초등:'초등 과정',기타:'기타'};
+      const labels={심화:'심화 과정',응용:'응용 과정',기초:'기초 과정',기타:'기타'};
       const row=makeRow(labels[g]||g, gVideos, globalIdx);
       if(row) container.appendChild(row);
     });
   } else {
     // 특정 과정 탭: 단일 행
-    const labelMap={초등:'초등 과정',중등:'중등 과정',고등:'고등 과정'};
+    const labelMap={기초:'기초 과정',응용:'응용 과정',심화:'심화 과정'};
     const row=makeRow(
       userName?`<em>${userName}</em> 님의 ${labelMap[currentGrade]||currentGrade} 강의`
               :`${labelMap[currentGrade]||currentGrade} 강의`,
@@ -2334,7 +2334,7 @@ function openDetail(index) {
     thumb.style.backgroundSize = 'cover';
     thumb.style.backgroundPosition = 'center';
   } else {
-    const colors = {초등:'#051525',중등:'#051a0f',고등:'#1a0505'};
+    const colors = {기초:'#051525',응용:'#051a0f',심화:'#1a0505'};
     const g = detectGrade(v);
     thumb.style.backgroundImage = `radial-gradient(ellipse at 60% 40%, ${colors[g]||'#1a1a1a'} 0%, #141414 100%)`;
   }
