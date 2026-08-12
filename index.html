@@ -1075,7 +1075,140 @@ input{outline:none;font-family:'Pretendard Variable','Pretendard',-apple-system,
 }
 .hero-dot.active{background:var(--white);transform:scale(1.2);}
 
-/* ── 강의 검색 ── */
+/* ═══════════════════════════════════
+   SHORTS (쇼츠)
+═══════════════════════════════════ */
+/* 상단 모드 전환 탭 */
+.mode-tabs{
+  display:flex;background:var(--black);
+  border-bottom:1px solid rgba(255,255,255,.08);
+  position:sticky;top:60px;z-index:200;
+}
+.mode-tab{
+  flex:1;padding:14px 0;font-size:14px;font-weight:700;
+  color:var(--g3);background:none;border:none;
+  border-bottom:3px solid transparent;
+  font-family:var(--font);transition:all .2s;
+  display:flex;align-items:center;justify-content:center;gap:6px;
+}
+.mode-tab.active{color:var(--white);border-bottom-color:var(--red);}
+.mode-tab:hover{color:var(--g1);}
+
+/* 쇼츠 컨테이너 */
+#shorts-view{display:none;}
+#shorts-view.active{display:block;}
+#catalog-view.hidden{display:none;}
+
+/* 쇼츠 피드 — 세로 스크롤 */
+.shorts-feed{
+  height:calc(100dvh - 120px);
+  overflow-y:scroll;
+  scroll-snap-type:y mandatory;
+  -webkit-overflow-scrolling:touch;
+  scrollbar-width:none;
+}
+.shorts-feed::-webkit-scrollbar{display:none;}
+
+/* 개별 쇼츠 아이템 */
+.short-item{
+  height:calc(100dvh - 120px);
+  scroll-snap-align:start;
+  position:relative;
+  background:#000;
+  display:flex;align-items:center;justify-content:center;
+  overflow:hidden;
+}
+
+/* Vimeo 임베드 */
+.short-player{
+  position:absolute;inset:0;
+  width:100%;height:100%;
+}
+.short-player iframe{
+  width:100%;height:100%;
+  border:none;
+}
+
+/* 쇼츠 오버레이 (하단 정보) */
+.short-overlay{
+  position:absolute;bottom:0;left:0;right:0;
+  padding:20px 16px 30px;
+  background:linear-gradient(to top, rgba(0,0,0,.85) 0%, rgba(0,0,0,.4) 60%, transparent 100%);
+  z-index:10;pointer-events:none;
+}
+.short-title{
+  font-size:15px;font-weight:700;color:var(--white);
+  margin-bottom:6px;line-height:1.4;
+}
+.short-meta{
+  font-size:12px;color:rgba(255,255,255,.7);
+  display:flex;align-items:center;gap:8px;
+}
+.short-badge{
+  background:var(--red);color:var(--white);
+  font-size:10px;font-weight:700;
+  padding:2px 7px;border-radius:3px;
+}
+
+/* 오른쪽 액션 버튼들 */
+.short-actions{
+  position:absolute;right:14px;bottom:80px;
+  display:flex;flex-direction:column;align-items:center;gap:18px;
+  z-index:10;
+}
+.short-action-btn{
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  background:none;border:none;color:var(--white);
+  font-family:var(--font);cursor:pointer;
+}
+.short-action-icon{
+  width:44px;height:44px;border-radius:50%;
+  background:rgba(255,255,255,.15);backdrop-filter:blur(8px);
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;
+}
+.short-action-label{font-size:11px;color:rgba(255,255,255,.8);}
+
+/* 스와이프 힌트 */
+.swipe-hint{
+  position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  display:flex;flex-direction:column;align-items:center;gap:8px;
+  animation:swipeHint 2s ease-in-out 1s both;
+  pointer-events:none;z-index:20;
+}
+@keyframes swipeHint{
+  0%{opacity:0;transform:translate(-50%,-50%) translateY(10px);}
+  20%{opacity:1;}
+  80%{opacity:1;}
+  100%{opacity:0;transform:translate(-50%,-50%) translateY(-10px);}
+}
+.swipe-hint-icon{font-size:36px;}
+.swipe-hint-text{font-size:13px;color:rgba(255,255,255,.8);font-weight:600;}
+
+/* 쇼츠 빈 화면 */
+.shorts-empty{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  height:calc(100dvh - 160px);gap:16px;
+  color:var(--g3);
+}
+.shorts-empty-icon{font-size:52px;}
+.shorts-empty-text{font-size:16px;font-weight:700;color:var(--g2);}
+.shorts-empty-sub{font-size:13px;text-align:center;line-height:1.6;max-width:260px;}
+
+/* 쇼츠 카운터 */
+.shorts-counter{
+  position:absolute;top:14px;right:16px;
+  background:rgba(0,0,0,.5);backdrop-filter:blur(8px);
+  border-radius:20px;padding:4px 12px;
+  font-size:12px;font-weight:700;color:var(--white);
+  z-index:10;
+}
+
+@media(max-width:700px){
+  .mode-tab{font-size:13px;padding:12px 0;}
+  .short-title{font-size:14px;}
+}
 .search-bar-wrap{
   padding:16px 4% 0;
   animation:fadeInDown .35s cubic-bezier(.16,1,.3,1) both;
@@ -1204,7 +1337,18 @@ input{outline:none;font-family:'Pretendard Variable','Pretendard',-apple-system,
 <!-- ══ MAIN APP ══ -->
 <div id="app">
 
-  <!-- HERO BANNER -->
+  <!-- 모드 전환 탭 (강의 / 쇼츠) -->
+  <div class="mode-tabs" id="mode-tabs">
+    <button class="mode-tab active" id="mode-lecture" onclick="switchMode('lecture')">
+      🎬 강의
+    </button>
+    <button class="mode-tab" id="mode-shorts" onclick="switchMode('shorts')">
+      ⚡ 쇼츠
+    </button>
+  </div>
+
+  <!-- 강의 뷰 -->
+  <div id="catalog-view">
   <div class="hero-banner" id="hero-banner">
     <div class="hero-bg-img" id="hero-bg"></div>
     <div class="hero-vignette"></div>
@@ -1282,9 +1426,14 @@ input{outline:none;font-family:'Pretendard Variable','Pretendard',-apple-system,
     </div>
     <div id="rows-container"></div>
   </div>
-</div>
+  </div><!-- /catalog-view -->
 
-<!-- ══ 4. 비밀번호 변경 모달 ══ -->
+  <!-- ══ 쇼츠 뷰 ══ -->
+  <div id="shorts-view">
+    <div class="shorts-feed" id="shorts-feed"></div>
+  </div>
+
+</div><!-- /app -->
 <div id="pw-modal" onclick="if(this===event.target)closePwModal()">
   <div class="pw-box">
     <h3>🔑 비밀번호 변경</h3>
@@ -1440,7 +1589,116 @@ function showToast(msg){
 
 let currentSearchQuery = '';
 
-/* ─ 검색 ─ */
+/* ════════════════════════════════════
+   ⚡ 쇼츠 (SHORTS)
+════════════════════════════════════ */
+let SHORTS = [];
+let _shortsLoaded = false;
+let _currentShortIdx = 0;
+let _currentMode = 'lecture'; // 'lecture' | 'shorts'
+
+/* 모드 전환 */
+function switchMode(mode) {
+  _currentMode = mode;
+  document.getElementById('mode-lecture').classList.toggle('active', mode === 'lecture');
+  document.getElementById('mode-shorts').classList.toggle('active', mode === 'shorts');
+  document.getElementById('catalog-view').classList.toggle('hidden', mode === 'shorts');
+  document.getElementById('shorts-view').style.display = mode === 'shorts' ? 'block' : 'none';
+
+  if (mode === 'shorts') {
+    if (!_shortsLoaded) loadShorts();
+    // 스크롤 맨 위로
+    window.scrollTo(0, 0);
+  }
+}
+
+/* GAS에서 쇼츠 목록 로드 */
+async function loadShorts() {
+  const feed = document.getElementById('shorts-feed');
+  feed.innerHTML = '<div class="shorts-empty"><div class="shorts-empty-icon">⏳</div><div class="shorts-empty-text">쇼츠 불러오는 중…</div></div>';
+  try {
+    const r = await gasApi({ action: 'getShorts' });
+    SHORTS = (r.shorts || r.videos || r.items || []).filter(v => v.id);
+    _shortsLoaded = true;
+    if (!SHORTS.length) {
+      feed.innerHTML = `<div class="shorts-empty">
+        <div class="shorts-empty-icon">⚡</div>
+        <div class="shorts-empty-text">아직 쇼츠가 없습니다</div>
+        <div class="shorts-empty-sub">관리자가 쇼츠를 등록하면<br>여기서 바로 볼 수 있습니다.</div>
+      </div>`;
+      return;
+    }
+    renderShortsFeed();
+  } catch(e) {
+    feed.innerHTML = `<div class="shorts-empty">
+      <div class="shorts-empty-icon">⚠️</div>
+      <div class="shorts-empty-text">불러오기 실패</div>
+      <div class="shorts-empty-sub">네트워크를 확인하고<br>다시 시도해주세요.</div>
+    </div>`;
+  }
+}
+
+/* 쇼츠 피드 렌더링 */
+function renderShortsFeed() {
+  const feed = document.getElementById('shorts-feed');
+  feed.innerHTML = SHORTS.map((v, i) => {
+    const vimeoId = extractVimeoId(v.url || v.vimeoId || '');
+    const parsed = parseTitle(v.title || '');
+    return `
+    <div class="short-item" id="short-${i}" data-idx="${i}">
+      <!-- Vimeo 임베드 (세로 영상) -->
+      <div class="short-player">
+        <iframe
+          src="https://player.vimeo.com/video/${vimeoId}?autoplay=0&loop=0&title=0&byline=0&portrait=0&dnt=1&responsive=1"
+          allow="autoplay; fullscreen; picture-in-picture"
+          allowfullscreen
+          loading="lazy"
+          id="short-frame-${i}">
+        </iframe>
+      </div>
+      <!-- 카운터 -->
+      <div class="shorts-counter">${i + 1} / ${SHORTS.length}</div>
+      <!-- 하단 정보 오버레이 -->
+      <div class="short-overlay">
+        ${parsed.sub ? `<div style="font-size:11px;color:rgba(255,255,255,.6);margin-bottom:4px;">${parsed.sub}</div>` : ''}
+        <div class="short-title">${parsed.main || v.title}</div>
+        <div class="short-meta">
+          ${v.lecturer ? `<span>👤 ${v.lecturer}</span>` : ''}
+          ${v.date ? `<span>📅 ${v.date}</span>` : ''}
+        </div>
+      </div>
+      <!-- 스와이프 힌트 (첫 번째만) -->
+      ${i === 0 ? `<div class="swipe-hint">
+        <div class="swipe-hint-icon">👆</div>
+        <div class="swipe-hint-text">위로 스와이프</div>
+      </div>` : ''}
+    </div>`;
+  }).join('');
+
+  // 스크롤 감지 → 현재 인덱스 업데이트
+  feed.addEventListener('scroll', onShortsScroll, { passive: true });
+}
+
+/* 스크롤 시 현재 쇼츠 추적 */
+function onShortsScroll() {
+  const feed = document.getElementById('shorts-feed');
+  const itemH = feed.clientHeight;
+  const idx = Math.round(feed.scrollTop / itemH);
+  _currentShortIdx = idx;
+}
+
+/* 공유하기 */
+function shareShort(idx) {
+  const v = SHORTS[idx];
+  if (!v) return;
+  const text = `🎬 ${v.title}\n갓플릭스에서 시청하세요\nhttps://passionsoon.github.io/GODFLIX/`;
+  if (navigator.share) {
+    navigator.share({ title: v.title, text, url: 'https://passionsoon.github.io/GODFLIX/' })
+      .catch(() => {});
+  } else {
+    navigator.clipboard?.writeText(text).then(() => showToast('링크가 복사됐습니다!'));
+  }
+}
 function onSearch(q) {
   currentSearchQuery = q.trim();
   const clearBtn = document.getElementById('search-clear');
