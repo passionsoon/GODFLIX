@@ -1063,6 +1063,28 @@ input{outline:none;font-family:'Pretendard Variable','Pretendard',-apple-system,
 .pw-box-btns{display:flex;gap:8px;margin-top:4px;}
 .pw-box-btns button{flex:1;}
 
+/* ── 자동로그인 / 생체인증 ── */
+.login-auto-row{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+.login-auto-check{display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--g2);user-select:none;flex:1;}
+.login-auto-check input{width:16px;height:16px;accent-color:var(--red);cursor:pointer;}
+.btn-biometric{
+  display:none;align-items:center;justify-content:center;gap:6px;
+  background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);
+  color:var(--white);border-radius:8px;padding:10px 14px;font-size:13px;font-weight:700;
+  font-family:var(--font);cursor:pointer;transition:background .15s,border-color .15s;white-space:nowrap;
+}
+.btn-biometric:hover{background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.28);}
+.btn-biometric.show{display:flex;}
+.auto-login-overlay{
+  position:fixed;inset:0;background:var(--black);z-index:9999;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
+  opacity:0;pointer-events:none;transition:opacity .3s;
+}
+.auto-login-overlay.show{opacity:1;pointer-events:auto;}
+.auto-login-logo{font-size:36px;font-weight:900;color:var(--red);letter-spacing:3px;}
+.auto-login-msg{font-size:14px;color:var(--g2);}
+.auto-login-spinner{width:32px;height:32px;border:3px solid rgba(255,255,255,.1);border-top-color:var(--red);border-radius:50%;animation:spin .75s linear infinite;}
+
 /* ── 5. 히어로 자동전환 도트 ── */
 .hero-dots{
   position:absolute;bottom:6%;left:50%;transform:translateX(-50%);
@@ -1423,6 +1445,13 @@ html{-webkit-overflow-scrolling:touch;}
   </div>
 </header>
 
+<!-- ══ 자동로그인 오버레이 ══ -->
+<div class="auto-login-overlay" id="auto-login-overlay">
+  <div class="auto-login-logo">GODFLIX</div>
+  <div class="auto-login-spinner"></div>
+  <div class="auto-login-msg" id="auto-login-msg">자동 로그인 중…</div>
+</div>
+
 <!-- ══ LOGIN ══ -->
 <div id="login-screen">
   <div class="login-bg-grid"></div>
@@ -1437,6 +1466,17 @@ html{-webkit-overflow-scrolling:touch;}
         autocomplete="username" autocorrect="off" autocapitalize="off" enterkeyhint="next">
       <input type="password" class="nf-input" id="pw-input" placeholder="비밀번호"
         autocomplete="current-password" enterkeyhint="done">
+      <!-- 자동로그인 + 생체인증 -->
+      <div class="login-auto-row">
+        <label class="login-auto-check">
+          <input type="checkbox" id="auto-login-check">
+          자동 로그인
+        </label>
+        <button class="btn-biometric" id="btn-biometric" onclick="loginWithBiometric()">
+          <span id="biometric-icon">🔐</span>
+          <span id="biometric-label">생체 인증</span>
+        </button>
+      </div>
       <button class="btn-enter" id="confirm-btn" onclick="confirmLogin()">입장하기</button>
       <div class="login-err" id="error-msg"></div>
     </div>
@@ -1863,8 +1903,190 @@ function clearSearch() {
   renderCatalog();
 }
 /* ═══════════════════════════════════════
-   📊 내 학습 분석
+   🔐 자동로그인 + 생체인증 (WebAuthn)
 ═══════════════════════════════════════ */
+const AUTO_KEY    = 'gf_auto_login';
+const CRED_KEY    = 'gf_biometric_cred';
+
+/* ── 초기화: 페이지 로드 시 자동로그인 시도 ── */
+async function initAutoLogin() {
+  // 1. 자동로그인 저장 데이터 확인
+  const saved = JSON.parse(localStorage.getItem(AUTO_KEY) || 'null');
+  if (saved && saved.id && saved.pw) {
+    showAutoLoginOverlay('자동 로그인 중…');
+    // 수강생 목록 먼저 로드
+    try {
+      const j = await gasApi({ action: 'getAllUsers' });
+      studentList = j.userObjects || j.users || [];
+    } catch(e) { studentList = []; }
+    // 저장된 정보로 로그인 시도
+    const matched = findUser(saved.id, saved.pw);
+    if (matched) {
+      await doLogin(matched, saved.id);
+      hideAutoLoginOverlay();
+      return;
+    }
+    // 저장 정보가 만료됐으면 삭제
+    localStorage.removeItem(AUTO_KEY);
+    hideAutoLoginOverlay();
+  }
+
+  // 2. 생체인증 등록 여부 확인 → 버튼 표시
+  checkBiometricAvailable();
+}
+
+function showAutoLoginOverlay(msg) {
+  const el = document.getElementById('auto-login-overlay');
+  document.getElementById('auto-login-msg').textContent = msg;
+  el.classList.add('show');
+}
+function hideAutoLoginOverlay() {
+  document.getElementById('auto-login-overlay').classList.remove('show');
+}
+
+/* ── 수강생 찾기 공통 함수 ── */
+function findUser(idVal, pwVal) {
+  if (!studentList.length) return { name: idVal };
+  if (typeof studentList[0] === 'object') {
+    return studentList.find(s => s.id === idVal && String(s.password) === pwVal)
+        || studentList.find(s => s.name === idVal && String(s.password) === pwVal);
+  }
+  return studentList.includes(idVal) ? { name: idVal } : null;
+}
+
+/* ── 실제 로그인 처리 (confirmLogin과 공유) ── */
+async function doLogin(matched, idVal) {
+  userName = matched.name || idVal;
+  const g = String(matched.grade || '');
+  userRole = g === '인섬교' ? '인섬교' : g === '관리자' ? '관리자' : '수강생';
+  const roleArea = document.getElementById('header-role-badge');
+  if (roleArea) {
+    if (userRole === '인섬교') {
+      roleArea.textContent = '⚡ 인섬교';
+      roleArea.style.cssText = 'display:inline-flex;align-items:center;background:rgba(74,158,255,.15);color:#4a9eff;border:1px solid rgba(74,158,255,.3);border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700;margin-left:6px;';
+    } else if (userRole === '관리자') {
+      roleArea.textContent = '👑 관리자';
+      roleArea.style.cssText = 'display:inline-flex;align-items:center;background:rgba(245,197,24,.15);color:#f5c518;border:1px solid rgba(245,197,24,.3);border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700;margin-left:6px;';
+    } else {
+      roleArea.style.display = 'none';
+    }
+  }
+  try { const j = await gasApi({ action:'getAllProgress', name:userName }); progressMap = j.data || {}; }
+  catch(e) { progressMap = {}; }
+  document.getElementById('header-name').textContent = userName + ' 님';
+  document.getElementById('header-user-area').style.display = 'flex';
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').classList.add('show');
+  document.getElementById('stats-row').style.display = 'block';
+  const hint = document.getElementById('stats-row-hint');
+  if (hint) hint.style.display = 'block';
+  document.getElementById('search-bar-wrap').style.display = 'block';
+  renderCatalog(); updateStats(); updateFeatured(0); renderRecentRow();
+  initHeroCarousel(); loadNotice();
+  setTimeout(showPwaPrompt, 3000);
+  showToast('환영합니다, ' + userName + ' 님!');
+}
+
+/* ── 생체인증 지원 확인 ── */
+async function checkBiometricAvailable() {
+  const credId = localStorage.getItem(CRED_KEY);
+  const btn = document.getElementById('btn-biometric');
+  const icon = document.getElementById('biometric-icon');
+  const label = document.getElementById('biometric-label');
+  if (!btn) return;
+
+  // WebAuthn 지원 + 등록된 자격증명 있을 때만 버튼 표시
+  if (window.PublicKeyCredential && credId) {
+    const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable().catch(()=>false);
+    if (available) {
+      btn.classList.add('show');
+      // 기기별 아이콘
+      const isIOS = /iPhone|iPad/.test(navigator.userAgent);
+      icon.textContent = isIOS ? '👤' : '🔐';
+      label.textContent = isIOS ? 'Face ID' : '지문 인증';
+    }
+  }
+}
+
+/* ── 생체인증으로 로그인 ── */
+async function loginWithBiometric() {
+  const credId = localStorage.getItem(CRED_KEY);
+  const savedUser = JSON.parse(localStorage.getItem(AUTO_KEY) || 'null');
+  if (!credId || !savedUser) { showToast('먼저 아이디/비밀번호로 로그인 후 자동 로그인을 설정하세요.'); return; }
+
+  try {
+    showAutoLoginOverlay('생체 인증 중…');
+    const assertion = await navigator.credentials.get({
+      publicKey: {
+        challenge: new Uint8Array(32),
+        allowCredentials: [{ id: base64ToBuffer(credId), type: 'public-key' }],
+        userVerification: 'required',
+        timeout: 60000,
+      }
+    });
+    if (assertion) {
+      // 인증 성공 → 저장된 정보로 로그인
+      if (!studentList.length) {
+        const j = await gasApi({ action: 'getAllUsers' });
+        studentList = j.userObjects || j.users || [];
+      }
+      const matched = findUser(savedUser.id, savedUser.pw);
+      if (matched) {
+        await doLogin(matched, savedUser.id);
+        hideAutoLoginOverlay();
+        return;
+      }
+    }
+  } catch(e) {
+    // 취소하거나 실패 시
+    if (e.name !== 'NotAllowedError') showToast('생체 인증 실패. 아이디/비밀번호로 로그인하세요.');
+  }
+  hideAutoLoginOverlay();
+}
+
+/* ── 생체인증 등록 (최초 로그인 후) ── */
+async function registerBiometric(idVal, pwVal) {
+  if (!window.PublicKeyCredential) return;
+  const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable().catch(()=>false);
+  if (!available) return;
+
+  try {
+    const cred = await navigator.credentials.create({
+      publicKey: {
+        challenge: new Uint8Array(32),
+        rp: { name: 'GODFLIX', id: location.hostname },
+        user: {
+          id: new TextEncoder().encode(idVal),
+          name: idVal,
+          displayName: idVal,
+        },
+        pubKeyCredParams: [{ type: 'public-key', alg: -7 }, { type: 'public-key', alg: -257 }],
+        authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'required' },
+        timeout: 60000,
+      }
+    });
+    if (cred) {
+      localStorage.setItem(CRED_KEY, bufferToBase64(cred.rawId));
+      // 버튼 표시
+      const btn = document.getElementById('btn-biometric');
+      if (btn) {
+        btn.classList.add('show');
+        const isIOS = /iPhone|iPad/.test(navigator.userAgent);
+        document.getElementById('biometric-icon').textContent = isIOS ? '👤' : '🔐';
+        document.getElementById('biometric-label').textContent = isIOS ? 'Face ID' : '지문 인증';
+      }
+      showToast('✅ 생체 인증이 등록됐습니다!');
+    }
+  } catch(e) { /* 사용자 취소 or 미지원 — 무시 */ }
+}
+
+function bufferToBase64(buf) {
+  return btoa(String.fromCharCode(...new Uint8Array(buf)));
+}
+function base64ToBuffer(b64) {
+  const bin = atob(b64);
+  return Uint8Array.from(bin, c => c.charCodeAt(0)).buffer;
+}
 function openMyStats() {
   const modal = document.getElementById('my-stats-modal');
   document.getElementById('my-stats-body').innerHTML = buildMyStats();
@@ -1955,7 +2177,7 @@ function gasApi(params){
 }
 
 /* ─ INIT ─ */
-async function init(){await Promise.all([loadStudents(),loadVideos()]);}
+async function init(){await Promise.all([loadStudents(),loadVideos()]); await initAutoLogin();}
 
 async function loadStudents(){
   try{const j=await gasApi({action:'getAllUsers'});studentList=j.userObjects||j.users||[];}
@@ -1985,59 +2207,46 @@ async function confirmLogin(){
   if(!idVal||!pwVal){showToast('아이디와 비밀번호를 입력해 주세요');return;}
   err.style.display='none';btn.disabled=true;btn.textContent='확인 중…';
 
-  let matched=null;
-  if(studentList.length===0){matched={name:idVal};}
-  else if(typeof studentList[0]==='object'){
-    matched=studentList.find(s=>s.id===idVal&&String(s.password)===pwVal);
-    if(!matched)matched=studentList.find(s=>s.name===idVal&&String(s.password)===pwVal);
-  }else{
-    matched=studentList.includes(idVal)?{name:idVal}:null;
+  if(!studentList.length){
+    try{const j=await gasApi({action:'getAllUsers'});studentList=j.userObjects||j.users||[];}
+    catch(e){studentList=[];}
   }
 
+  const matched=findUser(idVal,pwVal);
   if(!matched){
     err.textContent='❌ 등록된 수강생 명단에 없는 아이디입니다.';
     err.style.display='block';btn.disabled=false;btn.textContent='입장하기';return;
   }
-  userName = matched.name || idVal;
-  // 역할 감지 (grade 컬럼 활용)
-  const g = String(matched.grade || '');
-  userRole = g === '인섬교' ? '인섬교' : g === '관리자' ? '관리자' : '수강생';
 
-  // 역할 배지 표시
-  const roleArea = document.getElementById('header-role-badge');
-  if (roleArea) {
-    if (userRole === '인섬교') {
-      roleArea.textContent = '⚡ 인섬교';
-      roleArea.style.cssText = 'display:inline-flex;align-items:center;background:rgba(74,158,255,.15);color:#4a9eff;border:1px solid rgba(74,158,255,.3);border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700;margin-left:6px;';
-    } else if (userRole === '관리자') {
-      roleArea.textContent = '👑 관리자';
-      roleArea.style.cssText = 'display:inline-flex;align-items:center;background:rgba(245,197,24,.15);color:#f5c518;border:1px solid rgba(245,197,24,.3);border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700;margin-left:6px;';
-    } else {
-      roleArea.style.display = 'none';
-    }
+  // 자동로그인 체크 시 저장
+  const autoCheck=document.getElementById('auto-login-check');
+  if(autoCheck?.checked){
+    localStorage.setItem(AUTO_KEY,JSON.stringify({id:idVal,pw:pwVal}));
   }
-  try{const j=await gasApi({action:'getAllProgress',name:userName});progressMap=j.data||{};}
-  catch(e){progressMap={};}
 
   btn.disabled=false;btn.textContent='입장하기';
-  document.getElementById('header-name').textContent=userName+' 님';
-  document.getElementById('header-user-area').style.display='flex';
-  document.getElementById('login-screen').style.display='none';
-  document.getElementById('app').classList.add('show');
-  document.getElementById('stats-row').style.display='block';
-  const hint=document.getElementById('stats-row-hint');
-  if(hint)hint.style.display='block';
-  document.getElementById('search-bar-wrap').style.display='block'; // ③ 검색창 표시
-  renderCatalog(); updateStats(); updateFeatured(0); renderRecentRow();
-  initHeroCarousel(); loadNotice();
-  // B. PWA 설치 유도 (3초 후)
-  setTimeout(showPwaPrompt, 3000);
-  showToast('환영합니다, '+userName+' 님!');
+  await doLogin(matched,idVal);
+
+  // 생체인증 등록 제안 (자동로그인 체크 + 미등록 시)
+  if(autoCheck?.checked&&window.PublicKeyCredential&&!localStorage.getItem(CRED_KEY)){
+    setTimeout(()=>{
+      if(confirm('다음부터 지문/Face ID로 바로 로그인할 수 있습니다.\n생체 인증을 등록하시겠어요?')){
+        registerBiometric(idVal,pwVal);
+      }
+    },1500);
+  }
 }
 
 function goToLogin(){
   if(currentVideo&&maxReachedSec>5){saveRecord(true);saveProgress();}
   clearInterval(progressSaveInterval);closePlayer();
+  // 자동로그인 해제 여부 확인
+  if(localStorage.getItem(AUTO_KEY)){
+    if(confirm('자동 로그인을 해제하시겠어요?')){
+      localStorage.removeItem(AUTO_KEY);
+      localStorage.removeItem(CRED_KEY);
+    }
+  }
   document.getElementById('app').classList.remove('show');
   document.getElementById('stats-row').style.display='none';
   document.getElementById('search-bar-wrap').style.display='none';
