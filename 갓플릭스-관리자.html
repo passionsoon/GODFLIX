@@ -1,0 +1,2189 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>갓플릭스 관리자</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#141414;--black:#000;--surface:#1f1f1f;--surface2:#2a2a2a;--surface3:#333;
+  --red:#E50914;--red-h:#b20710;--red-glow:rgba(229,9,20,.4);
+  --white:#fff;--g1:#e5e5e5;--g2:#b3b3b3;--g3:#808080;--g4:#404040;
+  --green:#46d369;--gold:#f5c518;--blue:#4a9eff;
+  --font:'Pretendard Variable','Pretendard',-apple-system,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{font-family:var(--font);background:var(--bg);color:var(--white);min-height:100vh;-webkit-font-smoothing:antialiased;}
+button,a,[onclick]{-webkit-tap-highlight-color:transparent;cursor:pointer;}
+input,textarea,select{font-family:var(--font);outline:none;}
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:var(--g4);border-radius:3px;}
+
+/* ── LOGIN ── */
+#login-screen{position:fixed;inset:0;background:var(--black);z-index:9999;display:flex;align-items:center;justify-content:center;}
+.login-bg{position:absolute;inset:0;background:radial-gradient(ellipse at 30% 50%,rgba(229,9,20,.15) 0%,transparent 60%),radial-gradient(ellipse at 70% 50%,rgba(229,9,20,.07) 0%,transparent 60%);}
+.login-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(229,9,20,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(229,9,20,.04) 1px,transparent 1px);background-size:60px 60px;opacity:.6;}
+.login-box{position:relative;z-index:2;text-align:center;padding:40px 36px;max-width:400px;width:100%;background:rgba(20,20,20,.9);border:1px solid rgba(255,255,255,.08);border-radius:8px;box-shadow:0 8px 60px rgba(0,0,0,.8);animation:fadeUp .6s cubic-bezier(.16,1,.3,1) both;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
+.login-logo{font-family:'Bebas Neue',sans-serif;font-size:52px;color:var(--red);letter-spacing:4px;text-shadow:0 0 40px var(--red-glow);margin-bottom:4px;line-height:1;}
+.login-sub{font-size:11px;letter-spacing:3px;color:var(--g3);text-transform:uppercase;margin-bottom:32px;display:block;}
+.gf-input{width:100%;background:rgba(255,255,255,.08);border:2px solid rgba(255,255,255,.12);border-radius:6px;padding:14px 18px;font-size:16px;color:var(--white);font-family:var(--font);transition:border-color .2s;margin-bottom:12px;-webkit-appearance:none;}
+.gf-input:focus{border-color:var(--red);}
+.gf-input::placeholder{color:var(--g4);}
+.btn-login{width:100%;background:var(--red);color:var(--white);border:none;border-radius:6px;padding:15px;font-size:16px;font-weight:700;font-family:var(--font);transition:background .2s,transform .1s;}
+.btn-login:hover{background:var(--red-h);}
+.btn-login:active{transform:scale(.98);}
+.login-err{color:#ff6b6b;font-size:13px;margin-top:10px;display:none;}
+
+/* ── MAIN APP ── */
+#admin-app{display:none;}
+
+/* ── HEADER ── */
+.adm-header{position:sticky;top:0;z-index:200;background:rgba(20,20,20,.97);border-bottom:1px solid rgba(255,255,255,.07);padding:0 4%;display:flex;align-items:center;justify-content:space-between;height:60px;backdrop-filter:blur(8px);}
+.adm-logo{font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--red);letter-spacing:2px;user-select:none;}
+.adm-logo span{color:var(--white);font-size:22px;}
+.adm-badge{font-size:10px;font-weight:700;letter-spacing:2px;color:var(--g3);background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:4px;padding:3px 8px;margin-left:10px;}
+.adm-actions{display:flex;align-items:center;gap:8px;}
+.adm-btn{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:var(--g1);border-radius:6px;padding:7px 14px;font-size:12px;font-weight:600;font-family:var(--font);transition:color .15s,background .15s,border-color .15s,transform .15s;white-space:nowrap;}
+.adm-btn:hover{background:rgba(255,255,255,.14);color:var(--white);}
+.adm-btn.danger{border-color:rgba(229,9,20,.3);color:#ff6b6b;}
+.adm-btn.danger:hover{background:rgba(229,9,20,.15);}
+
+/* ── TABS ── */
+.adm-tabs{
+  display:flex;background:rgba(20,20,20,.95);
+  border-bottom:1px solid rgba(255,255,255,.07);
+  padding:0 4%;overflow-x:auto;position:sticky;top:60px;z-index:100;
+  scrollbar-width:none;
+}
+.adm-tabs::-webkit-scrollbar{display:none;}
+.adm-tab{
+  background:none;border:none;border-bottom:3px solid transparent;
+  padding:14px 16px;font-size:13px;font-weight:700;color:var(--g3);
+  font-family:var(--font);white-space:nowrap;transition:color .15s,background .15s,border-color .15s,transform .15s;margin-bottom:-1px;
+  display:flex;align-items:center;gap:6px;
+}
+.adm-tab:hover{color:var(--g1);}
+.adm-tab.active{color:var(--white);border-bottom-color:var(--red);}
+.adm-tab .tab-icon{font-size:15px;}
+.adm-tab .tab-text{font-size:13px;}
+/* 모바일: 아이콘만 표시 */
+@media(max-width:640px){
+  .adm-tabs{padding:0 2%;}
+  .adm-tab{padding:12px 10px;}
+  .adm-tab .tab-text{display:none;}
+  .adm-tab .tab-icon{font-size:18px;}
+  .adm-tab.active .tab-icon{filter:drop-shadow(0 0 4px rgba(229,9,20,.6));}
+}
+
+/* ── TAB SECTIONS ── */
+.tab-section{display:none;padding:28px 4% 60px;min-height:calc(100vh - 120px);}
+.tab-section.active{display:block;}
+
+/* ── SUB TABS ── */
+.sub-tabs{display:flex;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:4px;gap:4px;margin-bottom:24px;flex-wrap:wrap;}
+.sub-tab{background:none;border:none;border-radius:6px;padding:9px 16px;font-size:12px;font-weight:700;color:var(--g3);font-family:var(--font);transition:color .15s,background .15s,border-color .15s,transform .15s;white-space:nowrap;}
+.sub-tab.active{background:var(--surface2);color:var(--white);}
+.sub-tab:hover:not(.active){color:var(--g1);}
+
+/* ── SECTION TITLE ── */
+.sec-title{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;color:var(--g1);margin-bottom:20px;}
+.sec-title em{color:var(--red);font-style:normal;}
+
+/* ── PANEL ── */
+.panel{background:var(--surface);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:22px;margin-bottom:16px;}
+.panel-title{font-size:15px;font-weight:700;color:var(--white);margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+
+/* ── FORM ── */
+.form-row{display:grid;gap:14px;margin-bottom:14px;}
+.form-row.cols2{grid-template-columns:1fr 1fr;}
+.form-row.cols3{grid-template-columns:1fr 1fr 1fr;}
+@media(max-width:640px){.form-row.cols2,.form-row.cols3{grid-template-columns:1fr;}}
+.field label{font-size:12px;font-weight:700;color:var(--g2);display:block;margin-bottom:7px;letter-spacing:.5px;}
+.field input,.field textarea,.field select{width:100%;background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.1);border-radius:6px;padding:12px 16px;font-size:14px;color:var(--white);font-family:var(--font);transition:border-color .2s;}
+.field input:focus,.field textarea:focus,.field select:focus{border-color:var(--red);}
+.field input::placeholder,.field textarea::placeholder{color:var(--g4);}
+.field select option{background:var(--surface2);}
+.field textarea{resize:vertical;min-height:80px;}
+
+/* ── BUTTONS ── */
+.btn-primary{background:var(--red);color:var(--white);border:none;border-radius:6px;padding:13px 24px;font-size:14px;font-weight:700;font-family:var(--font);transition:color .15s,background .15s,border-color .15s,transform .15s;}
+.btn-primary:hover{background:var(--red-h);}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed;}
+.btn-secondary{background:rgba(255,255,255,.08);color:var(--g1);border:1px solid rgba(255,255,255,.12);border-radius:6px;padding:13px 20px;font-size:14px;font-weight:600;font-family:var(--font);transition:color .15s,background .15s,border-color .15s,transform .15s;}
+.btn-secondary:hover{background:rgba(255,255,255,.14);}
+.btn-danger{background:rgba(229,9,20,.12);color:#ff6b6b;border:1px solid rgba(229,9,20,.2);border-radius:6px;padding:7px 14px;font-size:12px;font-weight:700;font-family:var(--font);transition:color .15s,background .15s,border-color .15s,transform .15s;}
+.btn-danger:hover{background:rgba(229,9,20,.25);}
+.btn-icon{background:rgba(255,255,255,.07);color:var(--g2);border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:6px 12px;font-size:12px;font-weight:600;font-family:var(--font);transition:color .15s,background .15s,border-color .15s,transform .15s;}
+.btn-icon:hover{background:rgba(255,255,255,.13);color:var(--white);}
+.msg{font-size:13px;margin-top:10px;padding:10px 14px;border-radius:6px;display:none;}
+.msg.ok{background:rgba(70,211,105,.12);border:1px solid rgba(70,211,105,.2);color:#a5f3c4;}
+.msg.err{background:rgba(229,9,20,.12);border:1px solid rgba(229,9,20,.2);color:#ff8a80;}
+
+/* ── KPI CARDS ── */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:24px;}
+.kpi-card{background:var(--surface);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:20px 18px;position:relative;overflow:hidden;transition:border-color .2s,transform .2s;}
+.kpi-card:hover{border-color:rgba(255,255,255,.15);transform:translateY(-2px);}
+.kpi-card::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;border-radius:10px 10px 0 0;}
+.kpi-card.red::before{background:var(--red);}
+.kpi-card.green::before{background:var(--green);}
+.kpi-card.blue::before{background:var(--blue);}
+.kpi-card.gold::before{background:var(--gold);}
+.kpi-card.purple::before{background:#a78bfa;}
+.kpi-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;}
+.kpi-icon{font-size:20px;line-height:1;}
+.kpi-badge{font-size:9px;font-weight:700;letter-spacing:.5px;padding:2px 7px;border-radius:10px;}
+.kpi-card.red .kpi-badge{background:rgba(229,9,20,.25);color:#ff8a80;}
+.kpi-card.green .kpi-badge{background:rgba(70,211,105,.2);color:var(--green);}
+.kpi-card.blue .kpi-badge{background:rgba(74,158,255,.2);color:var(--blue);}
+.kpi-card.gold .kpi-badge{background:rgba(245,197,24,.2);color:var(--gold);}
+.kpi-card.purple .kpi-badge{background:rgba(167,139,250,.2);color:#a78bfa;}
+.kpi-num{font-family:"Bebas Neue",sans-serif;font-size:38px;line-height:1;margin-bottom:3px;}
+.kpi-card.red .kpi-num{color:var(--red);}
+.kpi-card.green .kpi-num{color:var(--green);}
+.kpi-card.blue .kpi-num{color:var(--blue);}
+.kpi-card.gold .kpi-num{color:var(--gold);}
+.kpi-card.purple .kpi-num{color:#a78bfa;}
+.kpi-label{font-size:12px;font-weight:600;color:var(--g2);margin-bottom:8px;}
+.kpi-sub{font-size:11px;color:var(--g3);padding-top:8px;border-top:1px solid rgba(255,255,255,.06);line-height:1.5;}
+.kpi-sub strong{color:var(--g1);font-weight:600;}
+
+/* ── VIDEO LIST — 넓은 카드 ── */
+.vid-list{display:flex;flex-direction:column;gap:8px;}
+.vid-card{
+  background:var(--surface);border:1px solid rgba(255,255,255,.07);border-radius:10px;
+  overflow:hidden;transition:border-color .2s,box-shadow .2s;
+}
+.vid-card:hover{border-color:rgba(255,255,255,.15);box-shadow:0 4px 20px rgba(0,0,0,.3);}
+.vid-card-inner{display:flex;align-items:stretch;gap:0;}
+.vid-thumb-lg{
+  width:160px;height:90px;flex-shrink:0;
+  background:var(--surface2);overflow:hidden;
+  display:flex;align-items:center;justify-content:center;
+  position:relative;border-radius:10px 0 0 10px;
+}
+.vid-thumb-lg img{width:100%;height:100%;object-fit:cover;}
+.vid-thumb-lg .no-thumb{font-family:'Bebas Neue';font-size:22px;color:var(--g4);}
+.vid-num-badge{position:absolute;top:6px;left:6px;background:rgba(0,0,0,.7);color:var(--white);font-size:10px;font-weight:700;padding:2px 7px;border-radius:3px;}
+.vid-grade-pill{position:absolute;bottom:6px;left:6px;font-size:9px;font-weight:700;padding:2px 7px;border-radius:10px;color:var(--white);}
+.vid-body{flex:1;padding:12px 16px;min-width:0;display:flex;flex-direction:column;justify-content:center;}
+.vid-body-title-sub{font-size:10px;color:var(--g3);font-weight:600;letter-spacing:.5px;margin-bottom:2px;}
+.vid-body-title{font-size:15px;font-weight:700;color:var(--white);margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.vid-body-meta{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--g3);}
+/* 시청 통계 바 */
+.vid-stats-bar{
+  padding:10px 16px;
+  background:rgba(255,255,255,.03);
+  border-top:1px solid rgba(255,255,255,.05);
+  display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+}
+.vid-stat-item{display:flex;align-items:center;gap:6px;font-size:12px;}
+.vid-stat-item .val{font-weight:700;color:var(--white);}
+.vid-stat-item .lbl{color:var(--g3);}
+.vid-watch-bar{flex:1;min-width:120px;height:4px;background:rgba(255,255,255,.08);border-radius:2px;overflow:hidden;}
+.vid-watch-fill{height:100%;border-radius:2px;transition:width .5s;}
+.vid-actions{display:flex;gap:6px;padding:12px 16px;align-items:center;flex-shrink:0;border-left:1px solid rgba(255,255,255,.05);}
+
+/* ── 편집 폼 인라인 ── */
+.vid-edit-form{
+  border-top:1px solid rgba(255,255,255,.07);
+  padding:16px;
+  background:rgba(255,255,255,.02);
+  display:none;
+}
+.vid-edit-form.open{display:block;animation:fadeDown .2s ease;}
+@keyframes fadeDown{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+/* 편집 중 카드 강조 */
+.vid-card.editing{border-color:rgba(229,9,20,.4);box-shadow:0 0 0 1px rgba(229,9,20,.2);}
+.btn-icon.editing{background:rgba(229,9,20,.15);border-color:rgba(229,9,20,.35);color:#ff8a80;}
+
+/* ── STATS / SUMMARY ── */
+.summary-banner{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;}
+.sum-card{border-radius:8px;padding:14px 20px;display:flex;align-items:center;gap:10px;}
+.sum-card.green{background:rgba(70,211,105,.1);border:1.5px solid rgba(70,211,105,.3);}
+.sum-card.blue{background:rgba(74,158,255,.1);border:1.5px solid rgba(74,158,255,.3);}
+.sum-card.gray{background:rgba(255,255,255,.04);border:1.5px solid rgba(255,255,255,.1);}
+.sum-card.gold{background:rgba(245,197,24,.08);border:1.5px solid rgba(245,197,24,.25);}
+.sum-card .sc-val{font-size:20px;font-weight:700;line-height:1;}
+.sum-card .sc-label{font-size:11px;color:var(--g3);margin-top:2px;}
+.total-rate-card{background:rgba(255,255,255,.04);border:1.5px solid rgba(255,255,255,.1);border-radius:8px;padding:14px 20px;margin-left:auto;text-align:center;}
+.total-rate-card .tr-val{font-size:28px;font-weight:700;line-height:1;}
+.total-rate-card .tr-label{font-size:11px;color:var(--g3);margin-top:3px;}
+
+/* ── MATRIX ── */
+.matrix-wrap{overflow-x:auto;border-radius:8px;border:1px solid rgba(255,255,255,.07);}
+table.matrix{border-collapse:collapse;width:100%;font-size:13px;}
+table.matrix th{
+  padding:12px 16px;
+  background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.07);
+  font-weight:700;text-align:center;
+  white-space:normal;word-break:keep-all;
+  min-width:130px;max-width:180px;
+  line-height:1.4;color:var(--g2);
+  font-size:12px;
+}
+table.matrix th.sticky-col{
+  position:sticky;left:0;z-index:10;
+  background:var(--surface2);
+  text-align:left;min-width:120px;
+  border-right:2px solid rgba(255,255,255,.1);
+}
+table.matrix td{
+  padding:10px 8px;
+  border:1px solid rgba(255,255,255,.06);
+  text-align:center;vertical-align:middle;
+}
+table.matrix td.sticky-col{
+  position:sticky;left:0;background:var(--surface2);z-index:5;
+  font-weight:700;text-align:left;padding:10px 16px;color:var(--g1);
+  border-right:2px solid rgba(255,255,255,.1);
+  font-size:13px;
+}
+.cell-done{background:rgba(70,211,105,.08);border-color:rgba(70,211,105,.15)!important;}
+.cell-ing{background:rgba(74,158,255,.08);border-color:rgba(74,158,255,.15)!important;}
+.cell-none{background:rgba(255,255,255,.02);}
+.cell-badge{
+  display:inline-flex;flex-direction:column;align-items:center;
+  gap:3px;border-radius:6px;padding:6px 10px;min-width:80px;
+}
+.cell-badge .cb-pct{font-size:14px;font-weight:700;line-height:1;}
+.cell-badge .cb-time{font-size:10px;color:var(--g3);margin-top:1px;}
+/* 완료 셀 아이콘 크게 */
+.cell-done .cell-badge{padding:8px;}
+/* 수강생 행 hover */
+table.matrix tbody tr:hover td{background:rgba(255,255,255,.04);}
+table.matrix tbody tr:hover td.sticky-col{background:var(--surface3);}
+table.matrix tbody tr:hover td.cell-done{background:rgba(70,211,105,.14);}
+table.matrix tbody tr:hover td.cell-ing{background:rgba(74,158,255,.14);}
+
+/* ── STUDENT CARDS ── */
+.stu-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;}
+.stu-card{background:var(--surface);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:18px;transition:border-color .2s;}
+.stu-card:hover{border-color:rgba(255,255,255,.15);}
+.stu-header{display:flex;align-items:center;gap:12px;margin-bottom:14px;}
+.stu-avatar{width:44px;height:44px;border-radius:8px;background:var(--red);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;flex-shrink:0;}
+.stu-name{font-size:15px;font-weight:700;}
+.stu-sub{font-size:12px;color:var(--g3);margin-top:2px;}
+.stu-progress-bar{height:6px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden;margin-bottom:12px;}
+.stu-progress-fill{height:100%;border-radius:3px;transition:width .5s,background .3s;}
+/* 완료율별 색상 — JS에서 인라인으로 적용 */
+.stu-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.stu-stat{background:rgba(255,255,255,.04);border-radius:6px;padding:10px;text-align:center;cursor:pointer;transition:background .2s;}
+.stu-stat:hover{background:rgba(255,255,255,.08);}
+.stu-stat .ss-val{font-size:20px;font-weight:700;margin-bottom:2px;}
+.stu-stat .ss-label{font-size:10px;color:var(--g3);}
+
+/* ── POPUP ── */
+.popup-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9000;display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px);}
+.popup-overlay.show{display:flex;}
+.popup-box{background:var(--surface);border:1px solid rgba(255,255,255,.1);border-radius:10px;max-width:420px;width:100%;max-height:80vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.6);}
+.popup-head{padding:16px 20px;border-bottom:1px solid rgba(255,255,255,.07);display:flex;justify-content:space-between;align-items:center;}
+.popup-head h3{font-size:15px;font-weight:700;}
+.popup-close{background:none;border:none;color:var(--g3);font-size:20px;transition:color .2s;}
+.popup-close:hover{color:var(--white);}
+.popup-body{overflow-y:auto;padding:8px 20px 16px;}
+.popup-item{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.06);}
+.popup-item:last-child{border-bottom:none;}
+.popup-avatar{width:32px;height:32px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;color:var(--g1);}
+
+/* ── MISC ── */
+.spinner{width:32px;height:32px;border:3px solid rgba(255,255,255,.1);border-top-color:var(--red);border-radius:50%;animation:spin .8s linear infinite;margin:2rem auto;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty{text-align:center;color:var(--g3);font-size:14px;padding:3rem 0;}
+.legend{display:flex;gap:16px;font-size:11px;color:var(--g3);margin-top:8px;flex-wrap:wrap;}
+.legend span{display:flex;align-items:center;gap:5px;}
+.legend-dot{width:10px;height:10px;border-radius:2px;}
+.toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(80px);background:rgba(30,30,30,.96);border:1px solid rgba(255,255,255,.12);color:var(--white);padding:12px 24px;border-radius:30px;font-size:14px;font-weight:500;box-shadow:0 8px 32px rgba(0,0,0,.5);transition:transform .3s cubic-bezier(.16,1,.3,1);z-index:9500;white-space:nowrap;max-width:90vw;text-align:center;}
+.toast.show{transform:translateX(-50%) translateY(0);}
+.hidden{display:none!important;}
+.active-btn{background:rgba(70,211,105,.15)!important;border-color:rgba(70,211,105,.35)!important;color:var(--green)!important;}
+
+/* ═══════════════════════════════
+   ② 대시보드 2단 레이아웃
+═══════════════════════════════ */
+.dash-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+  margin-bottom:12px;
+}
+@media(max-width:900px){
+  .dash-grid{grid-template-columns:1fr;}
+}
+
+/* ═══════════════════════════════
+   ③ 영상카드 순서 버튼 — 왼쪽 사이드
+═══════════════════════════════ */
+.vid-order-btns{
+  display:flex;flex-direction:column;
+  justify-content:center;align-items:center;
+  gap:4px;padding:0 10px;
+  border-right:1px solid rgba(255,255,255,.05);
+  flex-shrink:0;
+}
+.vid-order-btn{
+  background:none;border:1px solid rgba(255,255,255,.1);
+  color:var(--g3);border-radius:5px;
+  width:28px;height:28px;font-size:13px;
+  display:flex;align-items:center;justify-content:center;
+  transition:color .15s,background .15s,border-color .15s,transform .15s;
+}
+.vid-order-btn:hover:not(:disabled){
+  background:rgba(255,255,255,.1);color:var(--white);
+  border-color:rgba(255,255,255,.25);
+}
+.vid-order-btn:disabled{opacity:.2;cursor:not-allowed;}
+/* 편집/삭제는 우측에만 */
+.vid-actions{
+  display:flex;flex-direction:column;gap:6px;
+  padding:12px 14px;align-items:stretch;
+  flex-shrink:0;border-left:1px solid rgba(255,255,255,.05);
+}
+.vid-actions .btn-icon,
+.vid-actions .btn-danger{
+  padding:7px 12px;font-size:12px;text-align:center;
+}
+
+/* ═══════════════════════════════
+   ① 모바일 최적화
+═══════════════════════════════ */
+@media(max-width:768px){
+  /* 헤더 */
+  .adm-header{padding:0 3%;height:54px;}
+  .adm-logo{font-size:22px;}
+  .adm-badge{display:none;}
+  .adm-actions .adm-btn:not(.danger){display:none;} /* CSV,새로고침 숨김 */
+  .adm-actions{gap:6px;}
+
+  /* 탭 */
+  .adm-tabs{padding:0 3%;}
+  .adm-tab{padding:12px 12px;font-size:12px;}
+
+  /* 탭 섹션 */
+  .tab-section{padding:20px 3% 50px;}
+
+  /* KPI 그리드: 2열 */
+  .kpi-grid{grid-template-columns:repeat(2,1fr);}
+  .kpi-num{font-size:30px;}
+  .kpi-card{padding:14px 12px;}
+
+  /* 영상 카드 */
+  .vid-thumb-lg{width:110px;height:62px;}
+  .vid-body-title{font-size:13px;}
+  .vid-body-title-sub{display:none;}
+  .vid-order-btns{padding:0 6px;}
+  .vid-order-btn{width:24px;height:24px;font-size:11px;}
+  .vid-actions{padding:10px 10px;}
+  .vid-actions .btn-icon,
+  .vid-actions .btn-danger{padding:6px 8px;font-size:11px;}
+
+  /* 폼 */
+  .form-row.cols3{grid-template-columns:1fr;}
+
+  /* 매트릭스 */
+  table.matrix th{min-width:100px;font-size:11px;padding:8px 10px;}
+  table.matrix td{padding:7px 5px;}
+  table.matrix td.sticky-col{padding:7px 10px;min-width:80px;font-size:12px;}
+  .cell-badge{min-width:60px;padding:4px 6px;}
+  .cell-badge .cb-pct{font-size:12px;}
+
+  /* 수강생 그리드 */
+  .stu-grid{grid-template-columns:1fr;}
+
+  /* 팝업 */
+  .popup-box{max-width:100%;border-radius:12px 12px 0 0;margin-top:auto;}
+  .popup-overlay{align-items:flex-end;padding:0;}
+
+  /* summary */
+  .summary-banner{gap:6px;}
+  .sum-card{padding:10px 14px;}
+  .sum-card .sc-val{font-size:16px;}
+
+  /* 버튼 */
+  .btn-primary,.btn-secondary{padding:11px 18px;font-size:13px;}
+}
+
+/* ═══ 관리자 성능 최적화 ═══ */
+*{-webkit-tap-highlight-color:transparent;}
+.vid-card,.stu-card,.kpi-card,.panel,
+.popup-box,.adm-tab{
+  -webkit-backface-visibility:hidden;
+  backface-visibility:hidden;
+}
+.vid-card,.stu-card{will-change:transform;}
+.popup-overlay{will-change:opacity;}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-bg"></div>
+  <div class="login-grid"></div>
+  <div class="login-box">
+    <div class="login-logo">GODFLIX</div>
+    <span class="login-sub">Admin Dashboard</span>
+    <input type="password" class="gf-input" id="pw-in" placeholder="관리자 비밀번호"
+      autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="btn-login" onclick="doLogin()">입장하기</button>
+    <p class="login-err" id="login-err">❌ 비밀번호가 맞지 않습니다.</p>
+  </div>
+</div>
+
+<!-- ADMIN APP -->
+<div id="admin-app">
+  <header class="adm-header">
+    <div style="display:flex;align-items:center;">
+      <div class="adm-logo">G<span>ODFLIX</span></div>
+      <span class="adm-badge">Admin</span>
+    </div>
+    <div class="adm-actions">
+      <button class="adm-btn" onclick="smartRefresh()">↻ 새로고침</button>
+      <button class="adm-btn" onclick="exportCSV()">⬇ CSV</button>
+      <button class="adm-btn danger" onclick="doLogout()">로그아웃</button>
+    </div>
+  </header>
+
+  <nav class="adm-tabs">
+    <button class="adm-tab active" id="mt-dashboard" onclick="switchTab('dashboard')"><span class="tab-icon">📊</span><span class="tab-text">대시보드</span></button>
+    <button class="adm-tab" id="mt-videos"    onclick="switchTab('videos')"><span class="tab-icon">🎬</span><span class="tab-text">영상 관리</span></button>
+    <button class="adm-tab" id="mt-students"  onclick="switchTab('students')"><span class="tab-icon">👥</span><span class="tab-text">수강생별</span></button>
+    <button class="adm-tab" id="mt-matrix"    onclick="switchTab('matrix')"><span class="tab-icon">📋</span><span class="tab-text">출석 현황</span></button>
+    <button class="adm-tab" id="mt-notice"    onclick="switchTab('notice')"><span class="tab-icon">📢</span><span class="tab-text">공지사항</span></button>
+    <button class="adm-tab" id="mt-shorts"    onclick="switchTab('shorts')"><span class="tab-icon">⚡</span><span class="tab-text">쇼츠</span></button>
+    <button class="adm-tab" id="mt-settings"  onclick="switchTab('settings')"><span class="tab-icon">⚙️</span><span class="tab-text">설정</span></button>
+  </nav>
+
+  <!-- ═══ 대시보드 ═══ -->
+  <div class="tab-section active" id="ts-dashboard">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:8px;">
+      <div class="sec-title" style="margin:0;">📊 전체 <em>대시보드</em></div>
+      <div style="display:flex;gap:8px;">
+        <button class="adm-btn" id="auto-refresh-btn" onclick="toggleAutoRefresh()">⏱ 자동갱신 OFF</button>
+        <button class="adm-btn" onclick="forceRefreshData()">↻ 강제 갱신</button>
+      </div>
+    </div>
+    <div class="kpi-grid" id="dash-kpi">
+      <div class="kpi-card blue">
+        <div class="kpi-top"><div class="kpi-icon">👥</div><span class="kpi-badge" id="dk-students-badge">-명</span></div>
+        <div class="kpi-num" id="dk-students">-</div>
+        <div class="kpi-label">수강생</div>
+        <div class="kpi-sub" id="dk-students-sub">데이터 로드 후 표시</div>
+      </div>
+      <div class="kpi-card red">
+        <div class="kpi-top"><div class="kpi-icon">🎬</div><span class="kpi-badge" id="dk-videos-badge">-개</span></div>
+        <div class="kpi-num" id="dk-videos">-</div>
+        <div class="kpi-label">강의 수</div>
+        <div class="kpi-sub" id="dk-videos-sub">등록된 전체 강의</div>
+      </div>
+      <div class="kpi-card green">
+        <div class="kpi-top"><div class="kpi-icon">✅</div><span class="kpi-badge" id="dk-done-badge">-건</span></div>
+        <div class="kpi-num" id="dk-done">-</div>
+        <div class="kpi-label">완료 세션</div>
+        <div class="kpi-sub" id="dk-done-sub">수강생 × 강의 기준</div>
+      </div>
+      <div class="kpi-card gold">
+        <div class="kpi-top"><div class="kpi-icon">📈</div><span class="kpi-badge" id="dk-rate-badge">목표 80%</span></div>
+        <div class="kpi-num" id="dk-rate">-%</div>
+        <div class="kpi-label">평균 완주율</div>
+        <div class="kpi-sub" id="dk-rate-sub">전체 강의 평균</div>
+      </div>
+      <div class="kpi-card purple">
+        <div class="kpi-top"><div class="kpi-icon">🎯</div><span class="kpi-badge">90%↑ 기준</span></div>
+        <div class="kpi-num" id="dk-views">-</div>
+        <div class="kpi-label">총 완주 횟수</div>
+        <div class="kpi-sub" id="dk-views-sub">수강생별 완주 합산</div>
+      </div>
+      <div class="kpi-card" style="--c:#22d3ee;" id="kpi-today">
+        <style>#kpi-today::before{background:#22d3ee;}</style>
+        <div class="kpi-top"><div class="kpi-icon">📅</div><span class="kpi-badge" style="background:rgba(34,211,238,.2);color:#22d3ee;" id="dk-today-badge">오늘</span></div>
+        <div class="kpi-num" id="dk-today" style="color:#22d3ee;">-</div>
+        <div class="kpi-label">오늘 시청</div>
+        <div class="kpi-sub" id="dk-today-sub">오늘 강의를 본 수강생</div>
+      </div>
+    </div>
+    <div class="summary-banner" id="dash-summary"></div>
+    <!-- 2단 레이아웃: 강의 현황 + 수강생 랭킹 나란히 -->
+    <!-- 그룹 필터 탭 -->
+    <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
+      <button class="adm-btn active-btn" id="grp-btn-all"   onclick="setGroupFilter('all')"   >전체</button>
+      <button class="adm-btn"            id="grp-btn-stu"   onclick="setGroupFilter('stu')"   >👤 수강생</button>
+      <button class="adm-btn"            id="grp-btn-insem" onclick="setGroupFilter('insem')" >⚡ 인섬교</button>
+      <button class="adm-btn"            id="grp-btn-admin" onclick="setGroupFilter('admin')" >👑 관리자</button>
+      <span id="grp-label" style="font-size:12px;color:var(--g3);align-self:center;margin-left:4px;"></span>
+    </div>
+    <div class="dash-grid">
+      <div class="panel" style="margin-bottom:0;">
+        <div class="panel-title">🎬 강의별 시청 현황 <span style="font-size:11px;color:var(--g3);font-weight:400;margin-left:6px;">클릭하면 수강생 확인</span></div>
+        <div id="dash-vid-bars"><div class="spinner"></div></div>
+      </div>
+      <div class="panel" style="margin-bottom:0;">
+        <div class="panel-title">🏆 수강생 완료 랭킹</div>
+        <div id="dash-ranking"></div>
+      </div>
+    </div>
+    <div class="panel" style="margin-top:12px;">
+      <div class="panel-title">📊 수강생별 완료율 차트</div>
+      <div id="dash-chart"><p class="empty" style="font-size:13px;">출석 현황 탭에서 자동으로 불러옵니다.</p></div>
+    </div>
+  </div>
+
+  <!-- ═══ 영상 관리 ═══ -->
+  <div class="tab-section" id="ts-videos">
+    <div class="sec-title">🎬 <em>영상</em> 관리</div>
+    <div class="panel" id="vid-form-panel" style="margin-bottom:16px;">
+      <!-- 헤더: 클릭하면 폼 접기/펼치기 -->
+      <div class="panel-title" style="cursor:pointer;user-select:none;justify-content:space-between;" onclick="toggleVidForm()">
+        <span>➕ 새 영상 등록</span>
+        <span id="vid-form-toggle-icon" style="font-size:18px;color:var(--g3);transition:transform .2s;display:inline-block;">▾</span>
+      </div>
+      <div id="vid-form-body">
+      <div class="form-row cols3">
+        <div class="field">
+          <label>커리큘럼 과정</label>
+          <select id="vid-grade">
+            <option value="">선택</option>
+            <option value="기초">🌱 기초 과정</option>
+            <option value="응용">📖 응용 과정</option>
+            <option value="심화">🔥 심화 과정</option>
+          </select>
+        </div>
+        <div class="field" style="grid-column:span 2">
+          <label>영상 제목</label>
+          <input type="text" id="vid-title" placeholder="예: 심화 18과 만국을 무너뜨린 사단과의 결혼">
+        </div>
+      </div>
+      <div class="form-row cols2">
+        <div class="field">
+          <label>Vimeo URL 또는 ID</label>
+          <input type="text" id="vid-url" placeholder="https://vimeo.com/123456789">
+        </div>
+        <div class="field">
+          <label>날짜</label>
+          <input type="date" id="vid-date">
+        </div>
+      </div>
+      <div class="form-row cols2">
+        <div class="field">
+          <label>강사명 (선택)</label>
+          <input type="text" id="vid-lecturer" placeholder="강사 이름">
+        </div>
+        <div class="field">
+          <label>설명 (선택)</label>
+          <input type="text" id="vid-desc" placeholder="영상 설명">
+        </div>
+      </div>
+      <div class="field" style="margin-bottom:16px;">
+        <label>썸네일 URL (선택)</label>
+        <div style="display:flex;gap:8px;margin-bottom:8px;">
+          <input type="text" id="vid-thumb-url" placeholder="Drive 공유 링크 붙여넣으면 자동 변환됩니다" oninput="onThumbUrlInput(this.value)" style="flex:1;background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.1);border-radius:6px;padding:12px 16px;font-size:14px;color:var(--white);">
+          <button type="button" onclick="document.getElementById('thumb-file').click()" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:var(--g1);border-radius:6px;padding:0 16px;font-size:13px;font-weight:600;white-space:nowrap;">📁 파일</button>
+        </div>
+        <input type="file" id="thumb-file" accept="image/*" style="display:none" onchange="handleThumbSelect(this)">
+        <div id="thumb-preview-wrap" style="display:none;position:relative;height:120px;border-radius:8px;overflow:hidden;border:1px solid rgba(255,255,255,.1);">
+          <img id="thumb-preview" src="" style="width:100%;height:100%;object-fit:cover;">
+          <button onclick="clearThumb()" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,.7);border:1px solid rgba(255,255,255,.3);color:var(--white);border-radius:50%;width:26px;height:26px;font-size:13px;">✕</button>
+        </div>
+        <div id="thumb-empty" style="border:2px dashed rgba(255,255,255,.1);border-radius:8px;padding:16px;text-align:center;color:var(--g4);font-size:13px;">🖼 썸네일 없음</div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <button class="btn-primary" onclick="saveVideo()">🎬 영상 등록</button>
+        <button class="btn-secondary" onclick="clearVideoForm()">초기화</button>
+        <div class="msg" id="vid-msg"></div>
+      </div>
+      </div><!-- /vid-form-body -->
+    </div><!-- /panel -->
+
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+      <div class="sec-title" style="margin:0;">등록된 영상 <em id="vid-count-label">0</em>개</div>
+      <select id="vid-filter-grade" onchange="renderVideoList()" style="background:var(--surface2);border:1px solid rgba(255,255,255,.1);color:var(--white);border-radius:6px;padding:7px 12px;font-size:13px;font-family:var(--font);">
+        <option value="">전체 과정</option>
+        <option value="기초">🌱 기초 과정</option>
+        <option value="응용">📖 응용 과정</option>
+        <option value="심화">🔥 심화 과정</option>
+      </select>
+    </div>
+    <div class="vid-list" id="vid-list-admin"><div class="spinner"></div></div>
+  </div>
+
+  <!-- ═══ 수강생별 ═══ -->
+  <div class="tab-section" id="ts-students">
+    <div class="sec-title">👥 <em>수강생</em> 관리</div>
+    <div class="sub-tabs">
+      <button class="sub-tab active" id="st-all-btn"    onclick="switchStudentSub('all')">📋 시청 현황</button>
+      <button class="sub-tab"        id="st-mgmt-btn"   onclick="switchStudentSub('mgmt')">➕ 등록/관리</button>
+      <button class="sub-tab"        id="st-detail-btn" onclick="switchStudentSub('detail')">🔍 상세 보기</button>
+    </div>
+    <div id="st-view-all"><div class="stu-grid" id="stu-grid"><div class="spinner"></div></div></div>
+    <div id="st-view-mgmt" style="display:none;">
+      <div class="panel" style="margin-bottom:12px;">
+        <div class="panel-title">➕ 새 수강생 등록</div>
+        <div class="form-row cols2">
+          <div class="field"><label>이름</label><input type="text" id="stu-name" placeholder="홍길동"></div>
+          <div class="field"><label>아이디</label><input type="text" id="stu-id" placeholder="hong123" autocorrect="off" autocapitalize="off"></div>
+        </div>
+        <div class="form-row cols2">
+          <div class="field"><label>비밀번호</label><input type="text" id="stu-pw" placeholder="초기 비밀번호"></div>
+          <div class="field"><label>메모 (선택)</label><input type="text" id="stu-memo" placeholder="반 이름 등"></div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;">
+          <button class="btn-primary" onclick="addStudent()">👤 등록</button>
+          <div class="msg" id="stu-msg"></div>
+        </div>
+      </div>
+
+      <!-- ⑤ 일괄 CSV 등록 -->
+      <div class="panel" style="margin-bottom:12px;">
+        <div class="panel-title">📂 수강생 일괄 등록 <span style="font-size:12px;color:var(--g3);font-weight:400;">(CSV 파일 업로드)</span></div>
+        <div style="font-size:12px;color:var(--g3);line-height:1.7;margin-bottom:14px;">
+          CSV 형식: <code style="background:rgba(255,255,255,.08);padding:2px 8px;border-radius:4px;font-size:12px;">이름,아이디,비밀번호,메모</code><br>
+          첫 줄이 헤더이면 자동으로 건너뜁니다. 중복 아이디는 자동 제외됩니다.
+        </div>
+        <!-- 드래그 앤 드롭 영역 -->
+        <div id="csv-drop-zone"
+          style="border:2px dashed rgba(255,255,255,.15);border-radius:8px;padding:24px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;"
+          onclick="document.getElementById('csv-file-input').click()"
+          ondragover="event.preventDefault();this.style.borderColor='var(--red)';this.style.background='rgba(229,9,20,.05)'"
+          ondragleave="this.style.borderColor='rgba(255,255,255,.15)';this.style.background=''"
+          ondrop="handleCsvDrop(event)">
+          <div style="font-size:28px;margin-bottom:8px;">📂</div>
+          <div style="font-size:14px;font-weight:600;color:var(--g1);">CSV 파일을 드래그하거나 클릭해서 선택</div>
+          <div style="font-size:12px;color:var(--g3);margin-top:4px;">.csv 파일만 지원</div>
+        </div>
+        <input type="file" id="csv-file-input" accept=".csv" style="display:none" onchange="handleCsvFile(this)">
+        <!-- 미리보기 -->
+        <div id="csv-preview" style="display:none;margin-top:12px;">
+          <div style="font-size:13px;font-weight:700;margin-bottom:8px;color:var(--g2);" id="csv-preview-label"></div>
+          <div style="max-height:200px;overflow-y:auto;border:1px solid rgba(255,255,255,.08);border-radius:6px;" id="csv-preview-table"></div>
+          <div style="display:flex;gap:10px;align-items:center;margin-top:12px;">
+            <button class="btn-primary" onclick="bulkRegisterStudents()">👥 일괄 등록</button>
+            <button class="btn-secondary" onclick="cancelCsvUpload()">취소</button>
+            <div class="msg" id="bulk-msg"></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <div class="sec-title" style="margin:0;">등록된 수강생 <em id="stu-count-label">0</em>명</div>
+        <button class="adm-btn" onclick="loadStudentList()">↻ 새로고침</button>
+      </div>
+      <div id="stu-list-admin"><div class="spinner"></div></div>
+    </div>
+    <div id="st-view-detail" style="display:none;">
+      <div class="field" style="margin-bottom:20px;max-width:300px;">
+        <label>수강생 선택</label>
+        <select id="stu-select" onchange="renderStudentDetail()" style="font-family:var(--font);">
+          <option value="">-- 선택 --</option>
+        </select>
+      </div>
+      <div id="stu-detail-content"></div>
+    </div>
+  </div>
+
+  <!-- ═══ 출석 현황 ═══ -->
+  <div class="tab-section" id="ts-matrix">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+      <div class="sec-title" style="margin:0;">📋 <em>출석</em> 현황 매트릭스</div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <select id="matrix-student-filter" onchange="applyMatrixFilter()"
+          style="background:var(--surface2);border:1px solid rgba(255,255,255,.1);color:var(--white);border-radius:6px;padding:7px 12px;font-size:13px;font-family:var(--font);">
+          <option value="">전체 수강생</option>
+        </select>
+        <select id="matrix-grade-filter" onchange="applyMatrixFilter()"
+          style="background:var(--surface2);border:1px solid rgba(255,255,255,.1);color:var(--white);border-radius:6px;padding:7px 12px;font-size:13px;font-family:var(--font);">
+          <option value="">전체 과정</option>
+          <option value="기초">🌱 기초 과정</option>
+          <option value="응용">📖 응용 과정</option>
+          <option value="심화">🔥 심화 과정</option>
+        </select>
+        <button class="btn-primary" onclick="forceRefreshData()">↻ 강제 갱신</button>
+      </div>
+    </div>
+    <div class="summary-banner" id="matrix-summary"></div>
+    <div class="matrix-wrap"><div id="matrix-area"><p class="empty">위 버튼을 눌러 데이터를 불러오세요</p></div></div>
+    <div class="legend">
+      <span><div class="legend-dot" style="background:rgba(70,211,105,.5)"></div>완료</span>
+      <span><div class="legend-dot" style="background:rgba(74,158,255,.5)"></div>시청중</span>
+      <span><div class="legend-dot" style="background:rgba(255,255,255,.1)"></div>미시청</span>
+    </div>
+  </div>
+
+  <!-- ═══ 쇼츠 관리 ═══ -->
+  <div class="tab-section" id="ts-shorts">
+    <div class="sec-title">⚡ <em>쇼츠</em> 관리</div>
+
+    <!-- 등록 폼 -->
+    <div class="panel" id="short-form-panel" style="margin-bottom:16px;">
+      <div class="panel-title" style="cursor:pointer;user-select:none;justify-content:space-between;" onclick="toggleShortForm()">
+        <span>➕ 새 쇼츠 등록</span>
+        <span id="short-form-toggle-icon" style="font-size:18px;color:var(--g3);transition:transform .2s;display:inline-block;">▾</span>
+      </div>
+      <div id="short-form-body" style="display:none;">
+        <div class="form-row cols2">
+          <div class="field"><label>제목 *</label><input type="text" id="short-title" placeholder="쇼츠 제목"></div>
+          <div class="field"><label>Vimeo URL *</label><input type="text" id="short-url" placeholder="https://vimeo.com/..."></div>
+        </div>
+        <div class="form-row cols2">
+          <div class="field"><label>강사</label><input type="text" id="short-lecturer" placeholder="강사명"></div>
+          <div class="field"><label>날짜</label><input type="date" id="short-date"></div>
+        </div>
+        <div class="field" style="margin-bottom:14px;">
+          <label>설명 (선택)</label>
+          <textarea id="short-desc" rows="2" placeholder="간단한 설명" style="width:100%;background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.1);border-radius:6px;padding:12px 16px;font-size:14px;color:var(--white);font-family:var(--font);resize:vertical;"></textarea>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;">
+          <button class="btn-primary" onclick="saveShort()">⚡ 쇼츠 등록</button>
+          <div class="msg" id="short-msg"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 쇼츠 목록 -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <div style="font-size:14px;font-weight:700;color:var(--g2);">등록된 쇼츠 <em id="short-count" style="color:var(--white)">0</em>개</div>
+      <button class="adm-btn" onclick="loadShortsList()">↻ 새로고침</button>
+    </div>
+    <div id="short-list"><div class="spinner"></div></div>
+  </div>
+
+  <!-- ═══ 공지사항 ═══ -->
+  <div class="tab-section" id="ts-notice">
+    <div class="sec-title">📢 <em>공지사항</em> 관리</div>
+    <div class="panel" style="margin-bottom:16px;">
+      <div class="panel-title">✏️ 공지 등록/수정</div>
+      <div class="field" style="margin-bottom:14px;">
+        <label>공지 내용</label>
+        <textarea id="notice-input" rows="3" placeholder="수강생에게 표시할 공지사항을 입력하세요." style="width:100%;background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.1);border-radius:6px;padding:12px 16px;font-size:14px;color:var(--white);font-family:var(--font);resize:vertical;min-height:80px;"></textarea>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <button class="btn-primary" onclick="saveNotice()">📢 등록</button>
+        <button class="btn-danger" onclick="deleteNotice()" style="padding:12px 18px;">삭제</button>
+        <div class="msg" id="notice-msg"></div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">👀 현재 활성 공지 미리보기</div>
+      <div id="notice-preview" style="padding:12px 16px;background:linear-gradient(90deg,rgba(229,9,20,.12),rgba(229,9,20,.06));border:1px solid rgba(229,9,20,.2);border-radius:8px;font-size:14px;color:var(--g1);">불러오는 중…</div>
+    </div>
+  </div>
+
+  <!-- ═══ 설정 ═══ -->
+  <div class="tab-section" id="ts-settings">
+    <div class="sec-title">⚙️ <em>설정</em></div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+
+      <!-- 관리자 비밀번호 변경 -->
+      <div class="panel">
+        <div class="panel-title">🔐 관리자 비밀번호 변경</div>
+        <div class="field" style="margin-bottom:10px;">
+          <label>현재 비밀번호</label>
+          <input type="password" id="adm-pw-current" placeholder="현재 비밀번호" class="gf-input" style="margin-bottom:0;">
+        </div>
+        <div class="field" style="margin-bottom:10px;">
+          <label>새 비밀번호</label>
+          <input type="password" id="adm-pw-new" placeholder="새 비밀번호 (4자 이상)" class="gf-input" style="margin-bottom:0;">
+        </div>
+        <div class="field" style="margin-bottom:14px;">
+          <label>새 비밀번호 확인</label>
+          <input type="password" id="adm-pw-confirm" placeholder="새 비밀번호 재입력" class="gf-input" style="margin-bottom:0;">
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;">
+          <button class="btn-primary" onclick="changeAdminPw()">🔐 변경하기</button>
+          <div class="msg" id="adm-pw-msg"></div>
+        </div>
+        <div style="margin-top:14px;padding:10px 12px;background:rgba(245,197,24,.07);border:1px solid rgba(245,197,24,.18);border-radius:6px;font-size:12px;color:var(--gold);line-height:1.6;">
+          ⚠️ 변경 후 HTML 파일의 <code style="background:rgba(255,255,255,.1);padding:1px 4px;border-radius:3px;">ADMIN_PW</code> 값도 동일하게 수정하세요.
+        </div>
+      </div>
+
+      <!-- 시스템 정보 -->
+      <div class="panel">
+        <div class="panel-title">📌 시스템 정보</div>
+        <div style="display:flex;flex-direction:column;gap:0;font-size:13px;border:1px solid rgba(255,255,255,.07);border-radius:8px;overflow:hidden;">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 14px;border-bottom:1px solid rgba(255,255,255,.06);">
+            <span style="color:var(--g3);font-weight:600;">GAS URL</span>
+            <span style="color:var(--g2);font-size:10px;max-width:55%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right;" id="info-gas-url">-</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 14px;border-bottom:1px solid rgba(255,255,255,.06);">
+            <span style="color:var(--g3);font-weight:600;">등록된 강의</span>
+            <span style="color:var(--white);font-weight:700;" id="info-vid-count">-</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 14px;border-bottom:1px solid rgba(255,255,255,.06);">
+            <span style="color:var(--g3);font-weight:600;">마지막 갱신</span>
+            <span style="color:var(--g2);font-size:12px;" id="info-last-refresh">-</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 14px;">
+            <span style="color:var(--g3);font-weight:600;">자동갱신 상태</span>
+            <span style="font-size:12px;font-weight:700;" id="info-auto-refresh">OFF</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 빠른 작업 -->
+    <div class="panel" style="margin-bottom:12px;">
+      <div class="panel-title">⚡ 빠른 작업</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;">
+        <button class="btn-secondary" style="padding:14px;text-align:center;border-radius:8px;" onclick="smartRefresh()">
+          <div style="font-size:22px;margin-bottom:6px;">↻</div>
+          <div style="font-size:13px;font-weight:700;">전체 새로고침</div>
+          <div style="font-size:11px;color:var(--g3);margin-top:2px;">영상+수강생 목록</div>
+        </button>
+        <button class="btn-secondary" style="padding:14px;text-align:center;border-radius:8px;" onclick="forceRefreshData()">
+          <div style="font-size:22px;margin-bottom:6px;">📊</div>
+          <div style="font-size:13px;font-weight:700;">출석 데이터 갱신</div>
+          <div style="font-size:11px;color:var(--g3);margin-top:2px;">진도·완료율 재계산</div>
+        </button>
+        <button class="btn-secondary" style="padding:14px;text-align:center;border-radius:8px;" onclick="exportCSV()">
+          <div style="font-size:22px;margin-bottom:6px;">⬇</div>
+          <div style="font-size:13px;font-weight:700;">CSV 내보내기</div>
+          <div style="font-size:11px;color:var(--g3);margin-top:2px;">수강생 진도 전체</div>
+        </button>
+        <button class="btn-secondary" style="padding:14px;text-align:center;border-radius:8px;" onclick="switchTab('notice')">
+          <div style="font-size:22px;margin-bottom:6px;">📢</div>
+          <div style="font-size:13px;font-weight:700;">공지사항 관리</div>
+          <div style="font-size:11px;color:var(--g3);margin-top:2px;">등록·수정·삭제</div>
+        </button>
+      </div>
+    </div>
+
+    <!-- 갓플릭스 정보 -->
+    <div class="panel">
+      <div class="panel-title">💡 갓플릭스 정보</div>
+      <div style="display:flex;gap:20px;align-items:center;flex-wrap:wrap;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:36px;color:var(--red);letter-spacing:3px;line-height:1;">GODFLIX</div>
+        <div style="flex:1;min-width:200px;">
+          <div style="font-size:13px;color:var(--g2);line-height:1.7;">
+            말씀을 스트리밍하다<br>
+            <span style="color:var(--g4);">Google Apps Script + Google Sheets 기반</span>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+            <span style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:3px 10px;font-size:11px;color:var(--g2);">Vimeo 호스팅</span>
+            <span style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:3px 10px;font-size:11px;color:var(--g2);">Pretendard 폰트</span>
+            <span style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:3px 10px;font-size:11px;color:var(--g2);">JSONP API</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- POPUP -->
+<div class="popup-overlay" id="popup-overlay" onclick="if(this===event.target)closePopup()">
+  <div class="popup-box">
+    <div class="popup-head"><h3 id="popup-title"></h3><button class="popup-close" onclick="closePopup()">✕</button></div>
+    <div class="popup-body" id="popup-body"></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const SHEET_URL = 'https://script.google.com/macros/s/AKfycbxygUx-v4SAwg_MSa6SmZJNqjZZFRFWNkyvRtWgFa8k70_fHeVOD-0x2xYvoJyolJhC/exec';
+const ADMIN_URL  = SHEET_URL;
+const ADMIN_PW   = '0314';
+
+let allVideos = [], vdData = null, thumbDataUrl = '', _popupData = {};
+
+/* ── LOGIN ── */
+function doLogin() {
+  if (document.getElementById('pw-in').value === ADMIN_PW) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('admin-app').style.display = 'block';
+    loadAll();
+  } else {
+    document.getElementById('login-err').style.display = 'block';
+  }
+}
+document.getElementById('pw-in').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+function doLogout() {
+  if (!confirm('로그아웃하시겠습니까?')) return;
+  document.getElementById('admin-app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('pw-in').value = '';
+}
+
+/* ── JSONP API ── */
+function api(params) {
+  return new Promise((resolve, reject) => {
+    const cb = '_cb_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+    const s  = document.createElement('script');
+    s.src    = SHEET_URL + '?' + new URLSearchParams({ ...params, callback: cb });
+    const t  = setTimeout(() => { cleanup(); reject(new Error('시간 초과')); }, 20000);
+    const cleanup = () => { delete window[cb]; s.parentNode && s.parentNode.removeChild(s); };
+    window[cb] = d => { clearTimeout(t); cleanup(); resolve(d); };
+    s.onerror  = () => { clearTimeout(t); cleanup(); reject(new Error('스크립트 로드 실패')); };
+    document.head.appendChild(s);
+  });
+}
+function postApi(body) {
+  return fetch(SHEET_URL, { method:'POST', mode:'no-cors', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
+}
+
+/* ── TABS ── */
+function switchTab(t) {
+  document.querySelectorAll('.adm-tab').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-section').forEach(s => s.classList.remove('active'));
+  document.getElementById('mt-'+t).classList.add('active');
+  document.getElementById('ts-'+t).classList.add('active');
+  if (t==='students') renderStudentCards();
+  if (t==='matrix')   loadVideoData();
+  if (t==='notice')   loadCurrentNotice();
+  if (t==='settings') initSettings();
+  if (t==='shorts')   loadShortsList();
+}
+
+/* ════════════════════
+   ⚡ 쇼츠 관리
+════════════════════ */
+let _shortFormOpen = false;
+let _shorts = [];
+
+function toggleShortForm(forceOpen) {
+  const body = document.getElementById('short-form-body');
+  const icon = document.getElementById('short-form-toggle-icon');
+  if (!body) return;
+  _shortFormOpen = forceOpen !== undefined ? forceOpen : !_shortFormOpen;
+  body.style.display = _shortFormOpen ? 'block' : 'none';
+  if (icon) {
+    icon.style.transform = _shortFormOpen ? 'rotate(180deg)' : 'rotate(0deg)';
+    icon.style.color = _shortFormOpen ? 'var(--red)' : 'var(--g3)';
+  }
+}
+
+async function loadShortsList() {
+  const el = document.getElementById('short-list');
+  el.innerHTML = '<div class="spinner"></div>';
+  try {
+    const r = await api({ action: 'getShorts' });
+    _shorts = r.shorts || [];
+    document.getElementById('short-count').textContent = _shorts.length;
+    if (!_shorts.length) {
+      el.innerHTML = '<p class="empty">등록된 쇼츠가 없습니다. 위에서 등록해보세요!</p>';
+      return;
+    }
+    el.innerHTML = _shorts.map((v, i) => {
+      const vimeoId = v.url ? v.url.match(/\d{6,}/) ?.[0] : '';
+      return `<div class="vid-card" id="shortc-${v.id}" style="margin-bottom:10px;">
+        <div class="vid-card-inner">
+          <div class="vid-order-btns">
+            <span style="font-size:10px;color:var(--g4);font-weight:700;padding:0 6px;">${i+1}</span>
+          </div>
+          <div class="vid-thumb-lg" style="background:#0A0A1A;">
+            <span style="font-size:28px;display:flex;align-items:center;justify-content:center;height:100%;">⚡</span>
+          </div>
+          <div class="vid-body">
+            <div class="vid-body-title">${v.title}</div>
+            <div class="vid-body-meta">
+              ${v.date?`<span>📅 ${v.date}</span>`:''}
+              ${v.lecturer?`<span>👤 ${v.lecturer}</span>`:''}
+              ${vimeoId?`<span>🎬 ${vimeoId}</span>`:''}
+            </div>
+          </div>
+          <div class="vid-actions">
+            <button class="btn-danger" onclick="deleteShort('${v.id}','${(v.title||'').replace(/'/g,"\\'")}')">🗑 삭제</button>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    el.innerHTML = '<p class="empty" style="color:var(--red)">불러오기 실패</p>';
+  }
+}
+
+async function saveShort() {
+  const title    = document.getElementById('short-title').value.trim();
+  const rawUrl   = document.getElementById('short-url').value.trim();
+  const lecturer = document.getElementById('short-lecturer').value.trim();
+  const date     = document.getElementById('short-date').value;
+  const desc     = document.getElementById('short-desc').value.trim();
+  const msg      = document.getElementById('short-msg');
+  if (!title || !rawUrl) { showMsg(msg, '제목과 Vimeo URL을 입력해 주세요.', 'err'); return; }
+  const vimeoId  = extractVimeoId(rawUrl);
+  showMsg(msg, '⏳ 등록 중…', 'ok');
+  try {
+    const r = await api({ action:'save_short', pw:ADMIN_PW, data:JSON.stringify({title, url:vimeoId, lecturer, date, description:desc}) });
+    if (r && r.success) {
+      showMsg(msg, '✅ 쇼츠가 등록됐습니다!', 'ok');
+      ['short-title','short-url','short-lecturer','short-date','short-desc'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+      });
+      toggleShortForm(false);
+      await loadShortsList();
+      showToast('✅ 쇼츠 등록 완료');
+    } else {
+      showMsg(msg, '❌ '+(r&&r.error||'등록 실패'), 'err');
+    }
+  } catch(e) { showMsg(msg, '❌ '+e.message, 'err'); }
+}
+
+async function deleteShort(id, title) {
+  if (!confirm(`"${title}" 쇼츠를 삭제하시겠습니까?`)) return;
+  showToast('⏳ 삭제 중…');
+  try {
+    const r = await api({ action:'delete_short', pw:ADMIN_PW, id });
+    if (r && r.success) { showToast('✅ 삭제됐습니다.'); loadShortsList(); }
+    else showToast('❌ '+(r&&r.error||'삭제 실패'));
+  } catch(e) { showToast('❌ '+e.message); }
+}
+
+/* ════════════════════════════
+   그룹 필터 (수강생/인섬교/관리자)
+════════════════════════════ */
+let _currentGroup = 'all'; // 'all' | 'stu' | 'insem' | 'admin'
+
+function setGroupFilter(group) {
+  _currentGroup = group;
+  // 버튼 활성화
+  ['all','stu','insem','admin'].forEach(g => {
+    const btn = document.getElementById('grp-btn-'+g);
+    if (btn) btn.classList.toggle('active-btn', g === group);
+  });
+  // 라벨
+  const labelMap = { all:'전체', stu:'수강생', insem:'인섬교', admin:'관리자' };
+  const lbl = document.getElementById('grp-label');
+  if (lbl) lbl.textContent = group === 'all' ? '' : labelMap[group]+' 그룹만 표시 중';
+
+  if (!vdData) return;
+
+  // 그룹별 students 선택
+  const groupedStudents = getGroupStudents(group);
+
+  // vdData.students를 임시 교체 후 렌더
+  const saved = vdData.students;
+  vdData.students = groupedStudents;
+  renderDashboard();
+  renderStudentCards();
+  if (window.innerWidth <= 768) renderMatrixCards(vdData);
+  else renderMatrix(vdData);
+  vdData.students = saved;
+}
+
+function getGroupStudents(group) {
+  if (!vdData) return [];
+  const { students=[], stuGroup=[], insemGroup=[], adminGroup=[] } = vdData;
+  if (group === 'stu')   return stuGroup.length   ? stuGroup   : students;
+  if (group === 'insem') return insemGroup;
+  if (group === 'admin') return adminGroup;
+  return students; // all
+}
+
+/* 기존 vdData 로드 후 그룹 정보 보존 */
+function populateStudentFilter() {
+  const sel = document.getElementById('matrix-student-filter');
+  if (!sel || !vdData) return;
+  const students = vdData.students || [];
+  sel.innerHTML = '<option value="">전체 수강생</option>' +
+    students.map(n => `<option value="${n}">${n}</option>`).join('');
+}
+
+function applyMatrixFilter() {
+  if (!vdData) return;
+  const grade   = document.getElementById('matrix-grade-filter').value;
+  const student = document.getElementById('matrix-student-filter')?.value || '';
+
+  const savedVideos   = allVideos;
+  const savedStudents = vdData.students;
+  if (grade)   allVideos      = allVideos.filter(v => detectGrade(v) === grade);
+  if (student) vdData.students = [student];
+
+  // ③ 모바일이면 카드 뷰, 아니면 테이블
+  if (window.innerWidth <= 768) renderMatrixCards(vdData);
+  else                           renderMatrix(vdData);
+
+  allVideos      = savedVideos;
+  vdData.students = savedStudents;
+}
+
+/* ③ 모바일 매트릭스 카드 뷰 */
+function renderMatrixCards(r) {
+  const { students=[], rawProgress:rawP={} } = r;
+  const area = document.getElementById('matrix-area');
+  if (!students.length || !allVideos.length) {
+    area.innerHTML = '<p class="empty">데이터가 없습니다.</p>'; return;
+  }
+  area.innerHTML = students.map(n => {
+    const done = allVideos.filter(v => getStatus(rawP[n]?.[v.id])==='done').length;
+    const ing  = allVideos.filter(v => getStatus(rawP[n]?.[v.id])==='ing').length;
+    const pct  = allVideos.length>0 ? Math.round(done/allVideos.length*100) : 0;
+    const col  = pct>=80?'var(--green)':pct>=40?'var(--gold)':'var(--red)';
+    const rows = allVideos.map(v => {
+      const p  = rawP[n]?.[v.id], st = getStatus(p), vp = getPct(p);
+      const pp = parseTitle(v.title);
+      const ic = st==='done'?'✅':st==='ing'?'▶':'○';
+      const vc = st==='done'?'var(--green)':st==='ing'?'var(--blue)':'var(--g4)';
+      return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05);">
+        <span style="font-size:16px;flex-shrink:0">${ic}</span>
+        <div style="flex:1;min-width:0">
+          ${pp.sub?`<div style="font-size:10px;color:var(--g3)">${pp.sub}</div>`:''}
+          <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${pp.main||v.title}</div>
+          ${st==='ing'?`<div style="margin-top:4px;height:3px;background:rgba(255,255,255,.08);border-radius:2px;overflow:hidden"><div style="width:${vp}%;height:100%;background:var(--blue);border-radius:2px"></div></div>`:''}
+        </div>
+        <span style="font-size:12px;font-weight:700;color:${vc};flex-shrink:0">${st==='done'?'완료':st==='ing'?vp+'%':'미시청'}</span>
+      </div>`;
+    }).join('');
+    return `<div style="background:var(--surface);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:16px;margin-bottom:10px;">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+        <div style="width:40px;height:40px;border-radius:8px;background:var(--red);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;flex-shrink:0">${n.slice(0,1)}</div>
+        <div style="flex:1"><div style="font-size:15px;font-weight:700">${n}</div><div style="font-size:12px;color:var(--g3)">${done}개 완료 · ${ing}개 시청중</div></div>
+        <div style="font-size:22px;font-weight:700;color:${col}">${pct}%</div>
+      </div>
+      <div style="height:5px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden;margin-bottom:14px">
+        <div style="width:${pct}%;height:100%;background:${col};border-radius:3px;transition:width .5s"></div>
+      </div>
+      ${rows}
+    </div>`;
+  }).join('');
+}
+
+/* ════════════════════
+   ⑤ 수강생 일괄 CSV 등록
+════════════════════ */
+let _csvParsed = [];
+
+function handleCsvDrop(e) {
+  e.preventDefault();
+  const zone = document.getElementById('csv-drop-zone');
+  zone.style.borderColor = 'rgba(255,255,255,.15)';
+  zone.style.background = '';
+  const file = e.dataTransfer.files[0];
+  if (file) parseCsvFile(file);
+}
+
+function handleCsvFile(input) {
+  const file = input.files[0];
+  if (file) parseCsvFile(file);
+  input.value = '';
+}
+
+function parseCsvFile(file) {
+  if (!file.name.endsWith('.csv')) { showToast('❌ .csv 파일만 업로드 가능합니다.'); return; }
+  const reader = new FileReader();
+  reader.onload = e => {
+    const text = e.target.result;
+    const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+    if (!lines.length) { showToast('❌ 파일이 비어있습니다.'); return; }
+
+    // 헤더 감지 (첫 줄에 이름/name/아이디/id 같은 단어 있으면 헤더로 판단)
+    const firstLine = lines[0].toLowerCase();
+    const isHeader = firstLine.includes('이름') || firstLine.includes('name') || firstLine.includes('아이디') || firstLine.includes('id');
+    const dataLines = isHeader ? lines.slice(1) : lines;
+
+    _csvParsed = dataLines.map(l => {
+      const cols = l.split(',').map(c => c.trim().replace(/^"|"$/g, ''));
+      return {
+        name:     cols[0] || '',
+        id:       cols[1] || cols[0] || '',
+        password: cols[2] || '0000',
+        memo:     cols[3] || ''
+      };
+    }).filter(u => u.name);
+
+    if (!_csvParsed.length) { showToast('❌ 유효한 데이터가 없습니다.'); return; }
+
+    // 미리보기 표시
+    const label = document.getElementById('csv-preview-label');
+    const table = document.getElementById('csv-preview-table');
+    const preview = document.getElementById('csv-preview');
+
+    label.textContent = `${_csvParsed.length}명 감지됨 — 등록 전 확인하세요`;
+    table.innerHTML = `
+      <table style="width:100%;border-collapse:collapse;font-size:12px;">
+        <thead><tr style="background:rgba(255,255,255,.05);">
+          <th style="padding:8px 10px;text-align:left;color:var(--g3);font-weight:600;">이름</th>
+          <th style="padding:8px 10px;text-align:left;color:var(--g3);font-weight:600;">아이디</th>
+          <th style="padding:8px 10px;text-align:left;color:var(--g3);font-weight:600;">비밀번호</th>
+          <th style="padding:8px 10px;text-align:left;color:var(--g3);font-weight:600;">메모</th>
+        </tr></thead>
+        <tbody>
+          ${_csvParsed.slice(0, 20).map(u => `
+            <tr style="border-top:1px solid rgba(255,255,255,.05);">
+              <td style="padding:7px 10px;color:var(--g1);font-weight:600;">${u.name}</td>
+              <td style="padding:7px 10px;color:var(--g2);">${u.id}</td>
+              <td style="padding:7px 10px;color:var(--g3);">${u.password}</td>
+              <td style="padding:7px 10px;color:var(--g3);">${u.memo||'-'}</td>
+            </tr>`).join('')}
+          ${_csvParsed.length > 20 ? `<tr><td colspan="4" style="padding:8px 10px;color:var(--g3);text-align:center;">… 외 ${_csvParsed.length-20}명</td></tr>` : ''}
+        </tbody>
+      </table>`;
+    preview.style.display = 'block';
+    document.getElementById('bulk-msg').style.display = 'none';
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
+async function bulkRegisterStudents() {
+  if (!_csvParsed.length) return;
+  const msg = document.getElementById('bulk-msg');
+  showMsg(msg, `⏳ ${_csvParsed.length}명 등록 중…`, 'ok');
+  try {
+    const r = await api({
+      action: 'bulk_add_students',
+      pw: ADMIN_PW,
+      data: JSON.stringify(_csvParsed)
+    });
+    if (r && r.success) {
+      showMsg(msg, `✅ ${r.added}명 등록 완료! (${r.skipped}명 중복 제외)`, 'ok');
+      _csvParsed = [];
+      document.getElementById('csv-preview').style.display = 'none';
+      loadStudentList();
+      showToast(`✅ ${r.added}명이 일괄 등록됐습니다.`);
+    } else {
+      showMsg(msg, '❌ ' + (r && r.error || '오류'), 'err');
+    }
+  } catch(e) { showMsg(msg, '❌ ' + e.message, 'err'); }
+}
+
+function cancelCsvUpload() {
+  _csvParsed = [];
+  document.getElementById('csv-preview').style.display = 'none';
+  document.getElementById('bulk-msg').style.display = 'none';
+}
+async function resetStudentProgress(name, videoId, videoTitle) {
+  if (!confirm(`"${name}" 님의 "${videoTitle}" 진도를 초기화하시겠습니까?\n시청 기록은 삭제되지 않습니다.`)) return;
+  showToast('⏳ 초기화 중…');
+  try {
+    const r = await api({ action: 'reset_progress', pw: ADMIN_PW, name, videoId });
+    if (r && r.success) {
+      // 로컬 캐시 업데이트
+      if (vdData && vdData.rawProgress[name]) {
+        delete vdData.rawProgress[name][videoId];
+      }
+      showToast(`✅ "${name}" 님의 진도가 초기화됐습니다.`);
+      renderStudentDetail();
+    } else {
+      showToast('❌ ' + (r && r.error || '초기화 실패'));
+    }
+  } catch(e) { showToast('❌ ' + e.message); }
+}
+
+/* ════════════════════
+   A. 오늘 시청 카운터
+════════════════════ */
+function calcTodayWatchers() {
+  if (!vdData) return;
+  const { students=[], rawProgress:rawP={} } = vdData;
+  const todayStr = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+  // updatedAt이 오늘인 진도 기록 찾기
+  // rawProgress에는 updatedAt이 없으므로 시청기록(records)에서 파악 불가
+  // → GAS의 videostats에 today 정보 추가 필요. 지금은 최근 30분 이내 세션 수로 근사
+  // 실용적 대안: 오늘 날짜 기준으로 GAS에서 따로 받아오기
+  loadTodayCount();
+}
+
+async function loadTodayCount() {
+  try {
+    const r = await api({ action: 'getTodayStats', pw: ADMIN_PW });
+    if (r && r.count !== undefined) {
+      document.getElementById('dk-today').textContent = r.count;
+      document.getElementById('dk-today-sub').innerHTML =
+        `오늘 <strong>${r.count}명</strong>이 강의 시청`;
+      document.getElementById('dk-today-badge').textContent =
+        new Date().toLocaleDateString('ko-KR',{month:'numeric',day:'numeric'});
+    }
+  } catch(e) {
+    document.getElementById('dk-today').textContent = '-';
+  }
+}
+
+/* ════════════════════
+   D. 관리자 비밀번호 변경
+════════════════════ */
+function initSettings() {
+  const urlEl = document.getElementById('info-gas-url');
+  if (urlEl) urlEl.textContent = SHEET_URL.slice(0,48)+'…';
+  const vcEl = document.getElementById('info-vid-count');
+  if (vcEl) vcEl.textContent = allVideos.length+'개';
+  const lrEl = document.getElementById('info-last-refresh');
+  if (lrEl) lrEl.textContent = vdData ? new Date().toLocaleString('ko-KR') : '미갱신';
+  const arEl = document.getElementById('info-auto-refresh');
+  if (arEl) {
+    arEl.textContent = _autoRefreshOn ? '🟢 ON (30초)' : '⚫ OFF';
+    arEl.style.color = _autoRefreshOn ? 'var(--green)' : 'var(--g3)';
+  }
+  // 설정 탭 grid 반응형
+  const settingsGrid = document.querySelector('#ts-settings > div:first-of-type');
+  if (settingsGrid && window.innerWidth <= 768) {
+    settingsGrid.style.gridTemplateColumns = '1fr';
+  }
+}
+
+function changeAdminPw() {
+  const cur    = document.getElementById('adm-pw-current').value.trim();
+  const nw     = document.getElementById('adm-pw-new').value.trim();
+  const cf     = document.getElementById('adm-pw-confirm').value.trim();
+  const msg    = document.getElementById('adm-pw-msg');
+  if (!cur || !nw || !cf) { showMsg(msg, '모든 항목을 입력해 주세요.', 'err'); return; }
+  if (cur !== ADMIN_PW)   { showMsg(msg, '현재 비밀번호가 올바르지 않습니다.', 'err'); return; }
+  if (nw !== cf)          { showMsg(msg, '새 비밀번호가 일치하지 않습니다.', 'err'); return; }
+  if (nw.length < 4)      { showMsg(msg, '비밀번호는 4자 이상이어야 합니다.', 'err'); return; }
+  // 런타임 ADMIN_PW 업데이트 (현재 세션)
+  // Note: HTML 파일 자체는 수정 안 됨 — 사용자가 직접 ADMIN_PW 상수 수정 필요
+  // GAS에 저장해서 서버 측 비번 관리
+  api({ action: 'change_admin_pw', pw: ADMIN_PW, newpw: nw })
+    .then(r => {
+      if (r && r.success) {
+        showMsg(msg, '✅ 비밀번호가 변경됐습니다! HTML 파일의 ADMIN_PW도 동일하게 수정해 주세요.', 'ok');
+        document.getElementById('adm-pw-current').value = '';
+        document.getElementById('adm-pw-new').value = '';
+        document.getElementById('adm-pw-confirm').value = '';
+      } else {
+        showMsg(msg, '❌ ' + (r && r.error || '변경 실패'), 'err');
+      }
+    })
+    .catch(e => showMsg(msg, '❌ ' + e.message, 'err'));
+}
+
+/* ── LOAD ALL ── */
+async function loadAll() {
+  try {
+    const r = await api({ action:'videos' });
+    allVideos = r.videos || r.items || [];
+    renderVideoList();
+    renderDashboard();
+    updateStudentSelect();
+  } catch(e) { showToast('목록 로드 실패: ' + e.message); }
+}
+async function smartRefresh() {
+  showToast('새로고침 중...');
+  await loadAll();
+  if (vdData) await loadVideoData();
+  showToast('✅ 완료');
+}
+
+/* ── HELPERS ── */
+function detectGrade(v) {
+  if (v.grade) return v.grade;
+  if (/기초/.test(v.title)) return '기초';
+  if (/응용/.test(v.title)) return '응용';
+  if (/심화/.test(v.title)) return '심화';
+  return '기타';
+}
+function gradeColor(g) { return g==='기초'?'var(--blue)':g==='응용'?'var(--green)':'var(--red)'; }
+function gradeBg(g)    { return g==='기초'?'rgba(74,158,255,.2)':g==='응용'?'rgba(70,211,105,.2)':'rgba(229,9,20,.2)'; }
+function parseTitle(t) {
+  const m=t.match(/^((?:기초|응용|심화)\s*\d+과)\s+(.+)$/);if(m)return{sub:m[1],main:m[2]};
+  const m2=t.match(/^(\d+과)\s+(.+)$/);if(m2)return{sub:m2[1],main:m2[2]};
+  return{sub:'',main:t};
+}
+function extractVimeoId(url) {
+  if (!url) return '';
+  const m = url.match(/vimeo\.com\/(\d+)/); if (m) return m[1];
+  if (/^\d+$/.test(url.trim())) return url.trim();
+  return url;
+}
+function getStatus(p) {
+  if (!p || p.maxReached < 10) return 'none';
+  if (p.completed) return 'done';
+  if (p.duration > 0 && p.maxReached / p.duration >= 0.9) return 'done';
+  return 'ing';
+}
+function getPct(p) {
+  if (!p) return 0;
+  if (p.duration > 0) return Math.min(Math.round(p.maxReached/p.duration*100), 100);
+  return p.maxReached > 0 ? Math.min(Math.round(p.maxReached/3600*100), 99) : 0;
+}
+function fmtSec(sec) {
+  const s=Math.floor(sec||0),m=Math.floor(s/60),ss=s%60;
+  return m>0?m+'분'+String(ss).padStart(2,'0')+'초':s+'초';
+}
+
+/* ── VIDEO LIST (넓은 카드 + 시청 통계) ── */
+function renderVideoList() {
+  const gf = document.getElementById('vid-filter-grade').value;
+  const vids = gf ? allVideos.filter(v => detectGrade(v)===gf) : allVideos;
+  document.getElementById('vid-count-label').textContent = allVideos.length;
+  const c = document.getElementById('vid-list-admin');
+  if (!vids.length) { c.innerHTML = '<p class="empty">등록된 영상이 없습니다.</p>'; return; }
+
+  c.innerHTML = vids.map((v, i) => {
+    const grade = detectGrade(v);
+    const parsed = parseTitle(v.title);
+    const vimeoId = extractVimeoId(v.url || v.id || '');
+    // 시청 통계 (vdData 있으면)
+    let statHtml = '';
+    if (vdData) {
+      const rawP = vdData.rawProgress || {};
+      const students = vdData.students || [];
+      let viewCount=0, doneCount=0, watchedMin=0;
+      students.forEach(n => {
+        const p = rawP[n]?.[v.id];
+        if (!p || p.maxReached < 10) return;
+        viewCount++;
+        watchedMin += (p.maxReached||0)/60;
+        const pct = p.duration>0 ? p.maxReached/p.duration : 0;
+        if (p.completed || pct>=0.9) doneCount++;
+      });
+      const viewRate = students.length>0 ? Math.round(viewCount/students.length*100) : 0;
+      const doneRate = students.length>0 ? Math.round(doneCount/students.length*100) : 0;
+      const avgMin   = viewCount>0 ? Math.round(watchedMin/viewCount) : 0;
+      const barColor = doneRate>=70?'var(--green)':doneRate>=40?'var(--gold)':'var(--red)';
+      statHtml = `
+        <div class="vid-stats-bar">
+          <div class="vid-stat-item"><span class="val" style="color:var(--blue)">${viewRate}%</span><span class="lbl">시청률</span></div>
+          <div class="vid-stat-item"><span class="val" style="color:var(--green)">${doneRate}%</span><span class="lbl">완주율(90%↑)</span></div>
+          <div class="vid-stat-item"><span class="val" style="color:var(--gold)">${doneCount}</span><span class="lbl">완주 인원</span></div>
+          <div class="vid-stat-item"><span class="val">${avgMin}분</span><span class="lbl">평균 시청</span></div>
+          <div class="vid-watch-bar"><div class="vid-watch-fill" style="width:${doneRate}%;background:${barColor}"></div></div>
+          <span style="font-size:12px;font-weight:700;color:${barColor}">${doneCount}/${students.length}명</span>
+        </div>`;
+    }
+    return `
+    <div class="vid-card" id="vidc-${v.id}">
+      <div class="vid-card-inner">
+        <!-- 순서 버튼 — 왼쪽 사이드 -->
+        <div class="vid-order-btns">
+          <button class="vid-order-btn" title="위로" onclick="moveVideo('${v.id}',-1)" ${i===0?'disabled':''}>▲</button>
+          <span style="font-size:9px;color:var(--g4);font-weight:700;">${i+1}</span>
+          <button class="vid-order-btn" title="아래로" onclick="moveVideo('${v.id}',1)" ${i===vids.length-1?'disabled':''}>▼</button>
+        </div>
+        <div class="vid-thumb-lg">
+          ${v.thumbnail ? `<img src="${v.thumbnail}" alt="">` : `<span class="no-thumb">▶</span>`}
+          <span class="vid-grade-pill" style="background:${gradeBg(grade)};color:${gradeColor(grade)}">${grade}</span>
+        </div>
+        <div class="vid-body">
+          ${parsed.sub?`<div class="vid-body-title-sub">${parsed.sub}</div>`:''}
+          <div class="vid-body-title">${parsed.main||v.title}</div>
+          <div class="vid-body-meta">
+            ${v.date?`<span>📅 ${v.date}</span>`:''}
+            ${v.lecturer?`<span>👤 ${v.lecturer}</span>`:''}
+            ${vimeoId?`<span>🎬 ${vimeoId}</span>`:''}
+          </div>
+        </div>
+        <!-- 편집/삭제 — 오른쪽 -->
+        <div class="vid-actions">
+          <button class="btn-icon" onclick="toggleEditForm('${v.id}')">✏️ 편집</button>
+          <button class="btn-danger" onclick="deleteVideo('${v.id}')">🗑 삭제</button>
+        </div>
+      </div>
+      ${statHtml}
+      <!-- 인라인 편집 폼 -->
+      <div class="vid-edit-form" id="edit-${v.id}">
+        <div style="font-size:13px;font-weight:700;color:var(--g2);margin-bottom:12px;">✏️ 정보 수정</div>
+        <div class="form-row cols3" style="margin-bottom:10px;">
+          <div class="field">
+            <label>과정</label>
+            <select id="e-grade-${v.id}" style="font-family:var(--font);">
+              <option value="">선택</option>
+              <option value="기초" ${grade==='기초'?'selected':''}>기초</option>
+              <option value="응용" ${grade==='응용'?'selected':''}>응용</option>
+              <option value="심화" ${grade==='심화'?'selected':''}>심화</option>
+            </select>
+          </div>
+          <div class="field" style="grid-column:span 2">
+            <label>제목</label>
+            <input type="text" id="e-title-${v.id}" value="${(v.title||'').replace(/"/g,'&quot;')}">
+          </div>
+        </div>
+        <div class="form-row cols2" style="margin-bottom:10px;">
+          <div class="field"><label>날짜</label><input type="date" id="e-date-${v.id}" value="${v.date||''}"></div>
+          <div class="field"><label>강사</label><input type="text" id="e-lecturer-${v.id}" value="${v.lecturer||''}"></div>
+        </div>
+        <div class="field" style="margin-bottom:12px;">
+          <label>썸네일 URL</label>
+          <input type="text" id="e-thumb-${v.id}" value="${v.thumbnail||''}"
+            placeholder="Drive 링크 붙여넣으면 자동 변환"
+            oninput="(function(el){const c=convertDriveUrl(el.value);if(c!==el.value)el.value=c;})(this)">
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn-primary" style="padding:10px 20px;font-size:13px;" onclick="saveEdit('${v.id}')">저장</button>
+          <button class="btn-secondary" style="padding:10px 20px;font-size:13px;" onclick="toggleEditForm('${v.id}')">취소</button>
+          <div class="msg" id="edit-msg-${v.id}" style="margin-top:0;align-self:center;"></div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ── 영상 등록 폼 토글 ── */
+let _vidFormOpen = false;
+function toggleVidForm(forceOpen) {
+  const body = document.getElementById('vid-form-body');
+  const icon = document.getElementById('vid-form-toggle-icon');
+  if (!body) return;
+  _vidFormOpen = forceOpen !== undefined ? forceOpen : !_vidFormOpen;
+  body.style.display = _vidFormOpen ? 'block' : 'none';
+  if (icon) {
+    icon.style.transform = _vidFormOpen ? 'rotate(180deg)' : 'rotate(0deg)';
+    icon.style.color = _vidFormOpen ? 'var(--red)' : 'var(--g3)';
+  }
+}
+// 초기 상태: 접힘
+document.addEventListener('DOMContentLoaded', () => toggleVidForm(false));
+
+function toggleEditForm(id) {
+  const f    = document.getElementById('edit-'+id);
+  const card = document.getElementById('vidc-'+id);
+  const btn  = card ? card.querySelector('.btn-icon') : null;
+  if (!f) return;
+  const isOpen = f.classList.contains('open');
+  // 다른 열린 폼 먼저 닫기
+  document.querySelectorAll('.vid-edit-form.open').forEach(el => {
+    el.classList.remove('open');
+    const c = el.closest('.vid-card');
+    if (c) { c.classList.remove('editing'); c.querySelector('.btn-icon')?.classList.remove('editing'); }
+  });
+  if (!isOpen) {
+    f.classList.add('open');
+    if (card) { card.classList.add('editing'); if (btn) { btn.classList.add('editing'); btn.textContent='✕ 닫기'; } }
+  }
+}
+
+async function saveEdit(id) {
+  const v = allVideos.find(v => v.id===id); if (!v) return;
+  const msg = document.getElementById('edit-msg-'+id);
+  const data = {
+    id,
+    title:     document.getElementById('e-title-'+id).value.trim(),
+    grade:     document.getElementById('e-grade-'+id).value,
+    date:      document.getElementById('e-date-'+id).value,
+    lecturer:  document.getElementById('e-lecturer-'+id).value.trim(),
+    thumbnail: document.getElementById('e-thumb-'+id).value.trim(),
+    url: v.url || ''
+  };
+  if (!data.title) { showMsg(msg,'제목을 입력하세요.','err'); return; }
+  showMsg(msg,'⏳ 저장 중…','ok');
+  try {
+    const r = await api({ action:'update_video', pw:ADMIN_PW, data:JSON.stringify(data) });
+    if (r && r.success) {
+      showMsg(msg,'✅ 저장됐습니다!','ok');
+      Object.assign(v, data);
+      renderVideoList();
+      showToast('✅ 영상 정보 수정 완료');
+    } else { showMsg(msg,'❌ '+(r&&r.error||'오류'),'err'); }
+  } catch(e) { showMsg(msg,'❌ '+e.message,'err'); }
+}
+
+/* ── SAVE / DELETE VIDEO ── */
+async function saveVideo() {
+  const title    = document.getElementById('vid-title').value.trim();
+  const rawUrl   = document.getElementById('vid-url').value.trim();
+  const grade    = document.getElementById('vid-grade').value;
+  const date     = document.getElementById('vid-date').value;
+  const lecturer = document.getElementById('vid-lecturer').value.trim();
+  const desc     = document.getElementById('vid-desc').value.trim();
+  const msg      = document.getElementById('vid-msg');
+  if (!title||!rawUrl) { showMsg(msg,'제목과 Vimeo URL을 입력해 주세요.','err'); return; }
+  const vimeoId = extractVimeoId(rawUrl);
+  showMsg(msg,'⏳ 등록 중…','ok');
+  const btn = document.querySelector('button[onclick="saveVideo()"]');
+  if (btn) btn.disabled=true;
+  try {
+    let thumb = thumbDataUrl||'';
+    if (thumb.startsWith('data:')) thumb = await resizeThumb(thumb,400,225);
+    // JSONP로 등록 — 응답으로 성공/실패 확인 가능
+    const r = await api({
+      action:'save_video', pw:ADMIN_PW,
+      data:JSON.stringify({title,url:vimeoId,grade,date,lecturer,description:desc,thumbnail:thumb})
+    });
+    if (r && r.success) {
+      showMsg(msg,'✅ 등록됐습니다!','ok');
+      clearVideoForm();
+      toggleVidForm(false);
+      // 등록 직후 목록 새로고침 — 방금 등록된 항목 포함 확인
+      showMsg(msg,'✅ 등록 완료! 목록 갱신 중…','ok');
+      let retries = 0;
+      const refreshAndCheck = async () => {
+        try {
+          const r2 = await api({action:'videos'});
+          const newList = r2.videos || r2.items || [];
+          // 새 목록에 방금 등록한 제목이 있는지 확인
+          if (newList.some(v => v.title === title) || retries >= 2) {
+            allVideos = newList;
+            renderVideoList();
+            showMsg(msg,'✅ 등록 완료!','ok');
+            showToast('✅ 영상 등록 완료');
+          } else {
+            retries++;
+            // 아직 반영 안 됐으면 1.5초 후 재시도
+            setTimeout(refreshAndCheck, 1500);
+          }
+        } catch(e2) { renderVideoList(); }
+      };
+      setTimeout(refreshAndCheck, 1000);
+    } else {
+      showMsg(msg,'❌ '+(r&&r.error||'GAS 응답 없음 — GAS 재배포 여부를 확인하세요.'),'err');
+    }
+  } catch(e) {
+    showMsg(msg,'❌ '+e.message,'err');
+  }
+  if (btn) btn.disabled=false;
+}
+async function deleteVideo(id) {
+  if (!confirm('삭제하시겠습니까?')) return;
+  showToast('⏳ 삭제 중…');
+  try {
+    try { await api({action:'delete_video',pw:ADMIN_PW,id}); } catch(e1) { await postApi({action:'delete_video',pw:ADMIN_PW,id}); await new Promise(r=>setTimeout(r,1500)); }
+    try{const r2=await api({action:'videos'});allVideos=r2.videos||r2.items||[];}catch(e2){allVideos=allVideos.filter(v=>v.id!==id);}
+    renderVideoList(); showToast('🗑 삭제됐습니다.');
+  } catch(e) { showToast('❌ '+e.message); }
+}
+function clearVideoForm() {
+  ['vid-title','vid-url','vid-date','vid-lecturer','vid-desc','vid-thumb-url'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('vid-grade').value=''; thumbDataUrl=''; clearThumb();
+}
+function resizeThumb(dataUrl,maxW,maxH){return new Promise(resolve=>{const img=new Image();img.onload=()=>{const s=Math.min(maxW/img.width,maxH/img.height,1),c=document.createElement('canvas');c.width=Math.round(img.width*s);c.height=Math.round(img.height*s);c.getContext('2d').drawImage(img,0,0,c.width,c.height);resolve(c.toDataURL('image/jpeg',.7));};img.onerror=()=>resolve('');img.src=dataUrl;});}
+
+/* ── THUMBNAIL ── */
+function convertDriveUrl(url) {
+  if (!url) return url;
+  // 패턴 1: https://drive.google.com/file/d/{ID}/view...
+  const m1 = url.match(/drive\.google\.com\/file\/d\/([^/?#]+)/);
+  if (m1) return `https://drive.google.com/thumbnail?id=${m1[1]}&sz=w1280`;
+  // 패턴 2: https://drive.google.com/open?id={ID}
+  const m2 = url.match(/drive\.google\.com\/open\?id=([^&]+)/);
+  if (m2) return `https://drive.google.com/thumbnail?id=${m2[1]}&sz=w1280`;
+  // 패턴 3: id= 파라미터만 있는 경우
+  const m3 = url.match(/[?&]id=([a-zA-Z0-9_-]{20,})/);
+  if (m3) return `https://drive.google.com/thumbnail?id=${m3[1]}&sz=w1280`;
+  return url;
+}
+
+function onThumbUrlInput(url) {
+  const converted = convertDriveUrl(url);
+  // Drive 링크가 변환된 경우 입력창도 자동으로 바꿔줌
+  if (converted !== url) {
+    const inp = document.getElementById('vid-thumb-url');
+    if (inp) inp.value = converted;
+  }
+  if (converted && converted.startsWith('http')) {
+    thumbDataUrl = converted;
+    showThumbPreview(converted);
+  } else {
+    thumbDataUrl = '';
+    clearThumb();
+  }
+}
+function handleThumbSelect(input){const f=input.files[0];if(!f)return;const r=new FileReader();r.onload=e=>{thumbDataUrl=e.target.result;showThumbPreview(e.target.result);};r.readAsDataURL(f);}
+function showThumbPreview(src){document.getElementById('thumb-preview').src=src;document.getElementById('thumb-preview-wrap').style.display='block';document.getElementById('thumb-empty').style.display='none';}
+function clearThumb(){thumbDataUrl='';document.getElementById('thumb-preview-wrap').style.display='none';document.getElementById('thumb-empty').style.display='block';document.getElementById('thumb-preview').src='';const u=document.getElementById('vid-thumb-url');if(u)u.value='';}
+
+/* ── DASHBOARD ── */
+function renderDashboard() {
+  if (!vdData) {
+    document.getElementById('dash-vid-bars').innerHTML='<p class="empty" style="font-size:13px;">출석 현황 탭에서 자동으로 불러옵니다.</p>';
+    document.getElementById('dash-ranking').innerHTML='<p class="empty" style="font-size:13px;">출석 현황 탭에서 자동으로 불러옵니다.</p>';
+    document.getElementById('dk-students').textContent=allVideos.length?'?':'0';
+    document.getElementById('dk-videos').textContent=allVideos.length;
+    document.getElementById('dk-done').textContent='?';
+    document.getElementById('dk-rate').textContent='?%';
+    document.getElementById('dk-views').textContent='?';
+    return;
+  }
+  const {students=[],videoStats:vids=[],studentStats:ss={},rawProgress:rawP={}}=vdData;
+
+  // KPI
+  const totalDone=Object.values(ss).reduce((s,v)=>s+(v.completed||0),0);
+  const avgRate=vids.length>0?Math.round(vids.reduce((s,v)=>s+v.avgCompletionPct,0)/vids.length):0;
+  // 총 시청 횟수 (90% 이상)
+  let totalViews=0;
+  students.forEach(n=>allVideos.forEach(v=>{
+    const p=rawP[n]?.[v.id];
+    if(!p)return;
+    const pct=p.duration>0?p.maxReached/p.duration:0;
+    if(p.completed||pct>=0.9)totalViews++;
+  }));
+
+  document.getElementById('dk-students').textContent=students.length;
+  document.getElementById('dk-videos').textContent=vids.length||allVideos.length;
+  document.getElementById('dk-done').textContent=totalDone;
+  document.getElementById('dk-rate').textContent=avgRate+'%';
+  document.getElementById('dk-views').textContent=totalViews;
+  // 서브텍스트 업데이트
+  const unwatched = students.filter(n=>!(ss[n]&&ss[n].completed>0)).length;
+  document.getElementById('dk-students-badge').textContent=students.length+'명';
+  // 그룹별 수 표시
+  const stuG   = (vdData.stuGroup||[]).length;
+  const insemG = (vdData.insemGroup||[]).length;
+  const adminG = (vdData.adminGroup||[]).length;
+  document.getElementById('dk-students-sub').innerHTML=
+    `<span style="color:var(--g2)">수강생 <b>${stuG}</b></span> · ` +
+    `<span style="color:#4a9eff">인섬교 <b>${insemG}</b></span> · ` +
+    `<span style="color:var(--gold)">관리자 <b>${adminG}</b></span>`;
+  document.getElementById('dk-videos-badge').textContent=(vids.length||allVideos.length)+'개';
+  document.getElementById('dk-videos-sub').innerHTML=`기초 ${allVideos.filter(v=>detectGrade(v)==='기초').length} · 응용 ${allVideos.filter(v=>detectGrade(v)==='응용').length} · 심화 ${allVideos.filter(v=>detectGrade(v)==='심화').length}`;
+  document.getElementById('dk-done-badge').textContent=totalDone+'건';
+  document.getElementById('dk-done-sub').innerHTML=`전체 <strong>${students.length*allVideos.length}건</strong> 중 완료`;
+  document.getElementById('dk-rate-badge').textContent=avgRate>=80?'🟢 목표 달성':'목표 80%';
+  document.getElementById('dk-rate-sub').innerHTML=avgRate>=80?`<strong style="color:var(--green)">목표 달성!</strong>`:`<strong>${80-avgRate}%p</strong> 부족`;
+  document.getElementById('dk-views-sub').innerHTML=`수강생 1인당 평균 <strong>${students.length>0?Math.round(totalViews/students.length*10)/10:0}개</strong>`;
+
+  // Summary
+  let dc=0,ic=0,nc=0;
+  students.forEach(n=>allVideos.forEach(v=>{const st=getStatus(rawP[n]?.[v.id]);if(st==='done')dc++;else if(st==='ing')ic++;else nc++;}));
+  const tot=students.length*allVideos.length||1;
+  const dr=Math.round(dc/tot*100);
+  const rc=dr>=70?'var(--green)':dr>=40?'var(--gold)':'var(--red)';
+  document.getElementById('dash-summary').innerHTML=`
+    <div class="sum-card green"><div><div class="sc-val" style="color:var(--green)">${dc}</div><div class="sc-label">✅ 완료</div></div></div>
+    <div class="sum-card blue"><div><div class="sc-val" style="color:var(--blue)">${ic}</div><div class="sc-label">▶ 시청중</div></div></div>
+    <div class="sum-card gray"><div><div class="sc-val">${nc}</div><div class="sc-label">○ 미시청</div></div></div>
+    <div class="sum-card gold"><div><div class="sc-val" style="color:var(--gold)">${totalViews}</div><div class="sc-label">🎯 완주 횟수</div></div></div>
+    <div class="total-rate-card" style="margin-left:auto"><div class="tr-val" style="color:${rc}">${dr}%</div><div class="tr-label">전체 완료율</div></div>`;
+
+  // 강의별 바 (클릭하면 수강생 목록 팝업)
+  document.getElementById('dash-vid-bars').innerHTML=allVideos.map(v=>{
+    const pct=vids.find(vv=>vv.videoId===v.id)?.avgCompletionPct||0;
+    const watchedCount=students.filter(n=>{const p=rawP[n]?.[v.id];return p&&p.maxReached>10;}).length;
+    const watchRate=students.length>0?Math.round(watchedCount/students.length*100):0;
+    const doneList=students.filter(n=>{const p=rawP[n]?.[v.id];if(!p)return false;return p.completed||(p.duration>0&&p.maxReached/p.duration>=0.9);});
+    const ingList=students.filter(n=>{const p=rawP[n]?.[v.id];return p&&p.maxReached>10&&!doneList.includes(n);});
+    const noneList=students.filter(n=>!doneList.includes(n)&&!ingList.includes(n));
+    const doneCount=doneList.length;
+    const col=pct>=80?'var(--green)':pct>=40?'var(--gold)':'var(--red)';
+    const parsed=parseTitle(v.title);
+    // 팝업 데이터 등록
+    regPopup('vd-done-'+v.id, (parsed.main||v.title)+' — 완료',
+      doneList.map(n=>({icon:'✅',name:n,sub:'완료'})));
+    regPopup('vd-ing-'+v.id, (parsed.main||v.title)+' — 시청중',
+      ingList.map(n=>{const p=rawP[n]?.[v.id];return{icon:'▶',name:n,sub:getPct(p)+'% ('+fmtSec(p?.maxReached)+')'}}));
+    regPopup('vd-none-'+v.id, (parsed.main||v.title)+' — 미시청',
+      noneList.map(n=>({icon:'○',name:n,sub:'미시청'})));
+    return `<div style="padding:14px 0;border-bottom:1px solid rgba(255,255,255,.05);cursor:pointer;" onclick="showVidDetailPopup('${v.id}','${(parsed.main||v.title).replace(/'/g,"\\'")}')">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+        <div style="flex:1;min-width:0;">
+          ${parsed.sub?`<div style="font-size:10px;color:var(--g3)">${parsed.sub}</div>`:''}
+          <div style="font-size:13px;font-weight:700;color:var(--g1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${parsed.main||v.title}</div>
+        </div>
+        <div style="display:flex;gap:10px;flex-shrink:0;font-size:12px;align-items:center;">
+          <span style="cursor:pointer;color:var(--green)" onclick="event.stopPropagation();showPopup('vd-done-${v.id}')">완주 <b>${doneCount}명</b></span>
+          <span style="cursor:pointer;color:var(--blue)" onclick="event.stopPropagation();showPopup('vd-ing-${v.id}')">시청중 <b>${ingList.length}명</b></span>
+          <span style="cursor:pointer;color:var(--g3)" onclick="event.stopPropagation();showPopup('vd-none-${v.id}')">미시청 <b>${noneList.length}명</b></span>
+          <span style="color:${col};font-weight:700;font-size:14px;">${pct}%</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <div style="flex:1;height:6px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden">
+          <div style="width:${pct}%;height:100%;background:${col};border-radius:3px;"></div>
+        </div>
+        <span style="font-size:10px;color:var(--g3);white-space:nowrap">시청률 ${watchRate}%</span>
+      </div>
+    </div>`;
+  }).join('')||'<p class="empty">데이터 없음</p>';
+
+  // 랭킹
+  const ranking=students.map(n=>{
+    const done=allVideos.filter(v=>{const p=rawP[n]?.[v.id];return p&&(p.completed||(p.duration>0&&p.maxReached/p.duration>=0.9));}).length;
+    const pct=allVideos.length>0?Math.round(done/allVideos.length*100):0;
+    return{name:n,pct,done};
+  }).sort((a,b)=>b.pct-a.pct);
+  document.getElementById('dash-ranking').innerHTML=ranking.map((r,i)=>{
+    const col=r.pct>=80?'var(--green)':r.pct>=40?'var(--gold)':'var(--red)';
+    const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':'#'+(i+1);
+    return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.05);">
+      <span style="width:24px;font-size:14px;text-align:center">${medal}</span>
+      <div style="width:36px;height:36px;border-radius:8px;background:var(--red);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;flex-shrink:0">${r.name.slice(0,1)}</div>
+      <div style="width:80px;flex-shrink:0"><div style="font-size:14px;font-weight:700">${r.name}</div><div style="font-size:11px;color:var(--g3)">${r.done}개 완주</div></div>
+      <div style="flex:1;height:5px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden"><div style="width:${r.pct}%;height:100%;background:${col};border-radius:3px;"></div></div>
+      <div style="width:44px;text-align:right;font-size:14px;font-weight:700;color:${col}">${r.pct}%</div>
+    </div>`;
+  }).join('')||'<p class="empty">데이터 없음</p>';
+
+  // C. 차트 렌더링
+  renderChart();
+  // A. 오늘 시청 카운터
+  loadTodayCount();
+}
+
+/* ── VIDEO DATA LOAD (출석 현황 탭 진입 시 자동 로드) ── */
+async function loadVideoData() {
+  if (vdData) { renderMatrix(vdData); return; } // 이미 로드됐으면 재사용
+  document.getElementById('matrix-area').innerHTML='<div class="spinner"></div>';
+  document.getElementById('matrix-summary').innerHTML='';
+  try {
+    const r=await api({action:'videostats',pw:ADMIN_PW});
+    if (!r||r.error) { document.getElementById('matrix-area').innerHTML=`<p class="empty">오류: ${r?r.error:'응답 없음'}</p>`; return; }
+    vdData=r;
+    populateStudentFilter(); // ② 수강생 필터 드롭다운 채우기
+    // ③ 모바일이면 카드 뷰
+    if (window.innerWidth <= 768) renderMatrixCards(r);
+    else renderMatrix(r);
+    renderStudentCards(); renderDashboard(); updateStudentSelect();
+    // 영상 목록도 갱신 (시청 통계 표시)
+    renderVideoList();
+    showToast('✅ 데이터 불러오기 완료');
+  } catch(e) {
+    document.getElementById('matrix-area').innerHTML=`<div style="padding:2rem;text-align:center"><p style="color:var(--red);font-size:15px;font-weight:700;margin-bottom:8px">⚠️ 불러오기 실패</p><p style="color:var(--g3);font-size:13px">${e.message}</p></div>`;
+  }
+}
+
+/* ── MATRIX ── */
+function renderMatrix(r) {
+  const{students=[],videoStats:vids=[],rawProgress:rawP={}}=r;
+  if(!students.length||!allVideos.length){document.getElementById('matrix-area').innerHTML='<p class="empty">데이터가 없습니다.</p>';return;}
+  let dc=0,ic=0,nc=0;
+  students.forEach(n=>allVideos.forEach(v=>{const st=getStatus(rawP[n]?.[v.id]);if(st==='done')dc++;else if(st==='ing')ic++;else nc++;}));
+  const tot=students.length*allVideos.length||1,dr=Math.round(dc/tot*100),rc=dr>=70?'var(--green)':dr>=40?'var(--gold)':'var(--red)';
+  document.getElementById('matrix-summary').innerHTML=`
+    <div class="sum-card green"><div><div class="sc-val" style="color:var(--green)">${dc}</div><div class="sc-label">✅ 완료</div></div></div>
+    <div class="sum-card blue"><div><div class="sc-val" style="color:var(--blue)">${ic}</div><div class="sc-label">▶ 시청중</div></div></div>
+    <div class="sum-card gray"><div><div class="sc-val">${nc}</div><div class="sc-label">○ 미시청</div></div></div>
+    <div class="total-rate-card" style="margin-left:auto"><div class="tr-val" style="color:${rc}">${dr}%</div><div class="tr-label">전체 완료율</div></div>`;
+  let tbl=`<table class="matrix"><thead><tr><th class="sticky-col" style="position:sticky;left:0;z-index:11;background:var(--surface2);">수강생</th>`;
+  allVideos.forEach(v=>{const p=parseTitle(v.title);tbl+=`<th>${p.sub?`<div style="font-size:9px;color:var(--g3);font-weight:400">${p.sub}</div>`:''}<div>${p.main||v.title}</div></th>`;});
+  tbl+=`<th>완료율</th></tr></thead><tbody>`;
+  students.forEach(n=>{
+    let done=0;tbl+=`<tr><td class="sticky-col">${n}</td>`;
+    allVideos.forEach(v=>{
+      const p=rawP[n]?.[v.id],st=getStatus(p),pct=getPct(p);
+      const cls=st==='done'?'cell-done':st==='ing'?'cell-ing':'cell-none';
+      if(st==='done')done++;
+      if(st==='done')tbl+=`<td class="${cls}"><div class="cell-badge"><span style="font-size:15px">✅</span></div></td>`;
+      else if(st==='ing')tbl+=`<td class="${cls}"><div class="cell-badge"><span class="cb-pct" style="color:var(--blue)">${pct}%</span><span class="cb-time">${fmtSec(p?.maxReached)}</span></div></td>`;
+      else tbl+=`<td class="${cls}"><div class="cell-badge"><span style="font-size:17px;color:var(--g4)">○</span></div></td>`;
+    });
+    const sp=allVideos.length>0?Math.round(done/allVideos.length*100):0;
+    const sc=sp>=80?'var(--green)':sp>=40?'var(--gold)':'var(--red)';
+    tbl+=`<td style="text-align:center;font-weight:700;color:${sc}">${sp}%</td></tr>`;
+  });
+  // 합계
+  tbl+=`<tr style="background:rgba(255,255,255,.04)"><td class="sticky-col" style="background:rgba(255,255,255,.04);">합계</td>`;
+  allVideos.forEach(v=>{
+    const done=students.filter(n=>getStatus(rawP[n]?.[v.id])==='done').length;
+    const rt=students.length>0?Math.round(done/students.length*100):0;
+    const c=rt>=70?'var(--green)':rt>=40?'var(--gold)':'var(--red)';
+    tbl+=`<td style="text-align:center;border-top:1px solid rgba(255,255,255,.1)"><div style="font-size:13px;font-weight:700;color:${c}">${done}/${students.length}</div><div style="font-size:10px;color:${c}">${rt}%</div></td>`;
+  });
+  tbl+=`<td></td></tr></tbody></table>`;
+  document.getElementById('matrix-area').innerHTML=tbl;
+}
+
+/* ── STUDENT CARDS ── */
+function renderStudentCards() {
+  const c=document.getElementById('stu-grid');
+  if (!vdData){c.innerHTML='<p class="empty" style="grid-column:1/-1">출석 현황 탭에서 자동으로 불러옵니다.</p>';return;}
+  const{students=[],studentStats:ss={},rawProgress:rawP={}}=vdData;
+  c.innerHTML=students.map((n,ni)=>{
+    const s=ss[n]||{};
+    const pct=allVideos.length>0?Math.round((s.completed||0)/allVideos.length*100):0;
+    const hasData=Object.keys(rawP[n]||{}).length>0;
+    const col=!hasData?'var(--g4)':pct>=80?'var(--green)':pct>=40?'var(--gold)':'var(--red)';
+    const barBg=!hasData?'rgba(255,255,255,.08)':
+      pct>=80?'linear-gradient(90deg,var(--green),#6ee7a0)':
+      pct>=40?'linear-gradient(90deg,var(--gold),#fde68a)':
+      'linear-gradient(90deg,var(--red),#ff6b35)';
+    const statusText=!hasData?'미시청':pct>=80?'우수':'진행중';
+    const statusColor=!hasData?'var(--g4)':pct>=80?'var(--green)':pct>=40?'var(--gold)':'var(--red)';
+    const avatarColors=['#E50914','#4a9eff','#46d369','#f5c518','#a78bfa','#f97316','#22d3ee'];
+    const avatarBg=avatarColors[ni%avatarColors.length];
+
+    // 역할 배지
+    const insemList = vdData.insemGroup || [];
+    const adminList = vdData.adminGroup || [];
+    const roleBadge = insemList.includes(n)
+      ? `<span style="font-size:10px;font-weight:700;background:rgba(74,158,255,.15);color:#4a9eff;border:1px solid rgba(74,158,255,.3);border-radius:3px;padding:1px 6px;">⚡ 인섬교</span>`
+      : adminList.includes(n)
+      ? `<span style="font-size:10px;font-weight:700;background:rgba(245,197,24,.15);color:#f5c518;border:1px solid rgba(245,197,24,.3);border-radius:3px;padding:1px 6px;">👑 관리자</span>`
+      : '';
+    let done=[],ing=[],none=[];
+    allVideos.forEach(v=>{
+      const p=rawP[n]?.[v.id],st=getStatus(p);
+      const pp=parseTitle(v.title);
+      if(st==='done')done.push({icon:'✅',name:pp.main||v.title,sub:'완료'});
+      else if(st==='ing')ing.push({icon:'▶',name:pp.main||v.title,sub:getPct(p)+'% ('+fmtSec(p?.maxReached)+') 시청중'});
+      else none.push({icon:'○',name:pp.main||v.title,sub:'미시청'});
+    });
+    regPopup('sd'+ni,n+' — 완료',done);
+    regPopup('si'+ni,n+' — 시청중',ing);
+    regPopup('sn'+ni,n+' — 미시청',none);
+    return `<div class="stu-card">
+      <div class="stu-header">
+        <div class="stu-avatar" style="background:${avatarBg}">${n.slice(0,1)}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+            <div class="stu-name">${n}</div>
+            ${roleBadge}
+          </div>
+          <div class="stu-sub">${allVideos.length}개 강의 · <span style="color:${statusColor};font-weight:600">${statusText}</span></div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;">
+          <div style="font-size:24px;font-weight:700;color:${col};line-height:1">${pct}%</div>
+          <div style="font-size:10px;color:var(--g4);margin-top:2px">${done.length}/${allVideos.length} 완료</div>
+        </div>
+      </div>
+      <div class="stu-progress-bar">
+        <div class="stu-progress-fill" style="width:${pct}%;background:${barBg}"></div>
+      </div>
+      <div class="stu-stats">
+        <div class="stu-stat" onclick="showPopup('sd${ni}')"><div class="ss-val" style="color:var(--green)">${done.length}</div><div class="ss-label">✅ 완료</div></div>
+        <div class="stu-stat" onclick="showPopup('si${ni}')"><div class="ss-val" style="color:var(--blue)">${ing.length}</div><div class="ss-label">▶ 시청중</div></div>
+        <div class="stu-stat" onclick="showPopup('sn${ni}')"><div class="ss-val" style="color:var(--g3)">${none.length}</div><div class="ss-label">○ 미시청</div></div>
+      </div>
+    </div>`;
+  }).join('')||'<p class="empty" style="grid-column:1/-1">수강생 없음</p>';
+}
+
+/* ── STUDENT MANAGE ── */
+function updateStudentSelect(){const sel=document.getElementById('stu-select');const students=vdData?(vdData.students||[]):[];sel.innerHTML='<option value="">-- 선택 --</option>'+students.map(n=>`<option value="${n}">${n}</option>`).join('');}
+async function loadStudentList(){
+  const c=document.getElementById('stu-list-admin');if(!c)return;c.innerHTML='<div class="spinner"></div>';
+  try{const r=await api({action:'getAllUsers'});const users=r.userObjects||r.users?.map(n=>({name:n,id:n,password:''}))|| [];
+  document.getElementById('stu-count-label').textContent=users.length;
+  if(!users.length){c.innerHTML='<p class="empty">등록된 수강생이 없습니다.</p>';return;}
+  c.innerHTML=users.map(u=>`
+    <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--surface);border:1px solid rgba(255,255,255,.07);border-radius:8px;margin-bottom:8px;">
+      <div style="width:38px;height:38px;border-radius:8px;background:var(--red);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;flex-shrink:0">${(u.name||u).slice(0,1)}</div>
+      <div style="flex:1"><div style="font-size:14px;font-weight:700">${u.name||u}</div><div style="font-size:12px;color:var(--g3)">ID: ${u.id||'-'} · PW: ${u.password?'••••':'-'}</div></div>
+      <button class="btn-icon" onclick="resetPassword('${(u.name||u).replace(/'/g,"\\'")}')">🔑 비번 초기화</button>
+      <button class="btn-danger" onclick="deleteStudent('${(u.name||u).replace(/'/g,"\\'")}')">삭제</button>
+    </div>`).join('');}
+  catch(e){c.innerHTML=`<p class="empty" style="color:var(--red)">로드 실패: ${e.message}</p>`;}
+}
+async function addStudent(){
+  const name=document.getElementById('stu-name').value.trim(),id=document.getElementById('stu-id').value.trim(),pw=document.getElementById('stu-pw').value.trim(),memo=document.getElementById('stu-memo').value.trim(),msg=document.getElementById('stu-msg');
+  if(!name||!id||!pw){showMsg(msg,'이름, 아이디, 비밀번호를 모두 입력하세요.','err');return;}
+  showMsg(msg,'⏳ 등록 중…','ok');
+  try{const r=await api({action:'add_student',pw:ADMIN_PW,data:JSON.stringify({name,id,password:pw,memo})});
+  if(r&&r.success){showMsg(msg,'✅ '+name+' 님이 등록됐습니다!','ok');['stu-name','stu-id','stu-pw','stu-memo'].forEach(i=>document.getElementById(i).value='');loadStudentList();}
+  else{showMsg(msg,'❌ '+(r&&r.error||'오류'),'err');}}
+  catch(e){showMsg(msg,'❌ '+e.message,'err');}
+}
+async function deleteStudent(name){
+  if(!confirm(`"${name}" 수강생을 삭제하시겠습니까?`))return;
+  showToast('⏳ 삭제 중…');
+  try{await api({action:'delete_student',pw:ADMIN_PW,name});loadStudentList();showToast('🗑 수강생이 삭제됐습니다.');}
+  catch(e){showToast('❌ '+e.message);}
+}
+
+function renderStudentDetail(){
+  const name=document.getElementById('stu-select').value,c=document.getElementById('stu-detail-content');
+  if(!name||!vdData){c.innerHTML='';return;}
+  const{rawProgress:rawP={}}=vdData;
+  const s=vdData.studentStats?.[name]||{};
+  const pct=allVideos.length>0?Math.round((s.completed||0)/allVideos.length*100):0;
+  const col=pct>=80?'var(--green)':pct>=40?'var(--gold)':'var(--red)';
+  c.innerHTML=`<div class="panel">
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px">
+      <div style="width:52px;height:52px;border-radius:10px;background:var(--red);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;">${name.slice(0,1)}</div>
+      <div><div style="font-size:20px;font-weight:700">${name}</div><div style="font-size:13px;color:var(--g3)">총 ${allVideos.length}개 강의 · 완료율 ${pct}%</div></div>
+      <div style="margin-left:auto;font-size:36px;font-weight:700;color:${col}">${pct}%</div>
+    </div>
+    <div style="height:7px;background:rgba(255,255,255,.08);border-radius:4px;overflow:hidden;margin-bottom:22px">
+      <div style="width:${pct}%;height:100%;background:${col};border-radius:4px;transition:width .5s"></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      ${allVideos.map(v=>{
+        const p=rawP[name]?.[v.id],st=getStatus(p),vp=getPct(p),pp=parseTitle(v.title);
+        const vc=st==='done'?'var(--green)':st==='ing'?'var(--blue)':'var(--g4)';
+        return `<div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:12px 14px;display:flex;align-items:center;gap:12px">
+          <div style="font-size:18px">${st==='done'?'✅':st==='ing'?'▶':'○'}</div>
+          <div style="flex:1;min-width:0">
+            ${pp.sub?`<div style="font-size:10px;color:var(--g3)">${pp.sub}</div>`:''}
+            <div style="font-size:14px;font-weight:700;color:var(--g1)">${pp.main||v.title}</div>
+            ${st==='ing'?`<div style="margin-top:5px;height:3px;background:rgba(255,255,255,.08);border-radius:2px;overflow:hidden"><div style="width:${vp}%;height:100%;background:var(--blue);border-radius:2px"></div></div>`:''}
+          </div>
+          <div style="text-align:right;flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
+            <div style="font-size:14px;font-weight:700;color:${vc}">${st==='done'?'완료':st==='ing'?vp+'%':'미시청'}</div>
+            ${st==='ing'?`<div style="font-size:10px;color:var(--g3)">${fmtSec(p?.maxReached)}</div>`:''}
+            ${st!=='none'?`<button onclick="resetStudentProgress('${name}','${v.id}','${(pp.main||v.title).replace(/'/g,"\\'")}')"
+              style="background:rgba(229,9,20,.1);border:1px solid rgba(229,9,20,.2);color:#ff8a80;border-radius:4px;padding:2px 8px;font-size:10px;font-weight:700;cursor:pointer;">초기화</button>`:''}
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+  </div>`;
+}
+
+/* ── NOTICE ── */
+async function loadCurrentNotice(){const el=document.getElementById('notice-preview');if(!el)return;try{const r=await api({action:'getNotice'});el.textContent=(r&&r.text)?r.text:'현재 활성 공지가 없습니다.';if(r&&r.text)document.getElementById('notice-input').value=r.text;}catch(e){el.textContent='불러오기 실패: '+e.message;}}
+async function saveNotice(){const text=document.getElementById('notice-input').value.trim(),msg=document.getElementById('notice-msg');if(!text){showMsg(msg,'공지 내용을 입력해 주세요.','err');return;}showMsg(msg,'⏳ 등록 중…','ok');try{const r=await api({action:'save_notice',pw:ADMIN_PW,text});if(r&&r.success){showMsg(msg,'✅ 등록됐습니다!','ok');loadCurrentNotice();}else{showMsg(msg,'❌ '+(r&&r.error||'오류'),'err');}}catch(e){showMsg(msg,'❌ '+e.message,'err');}}
+async function deleteNotice(){if(!confirm('공지사항을 삭제하시겠습니까?'))return;const msg=document.getElementById('notice-msg');try{await api({action:'delete_notice',pw:ADMIN_PW});showMsg(msg,'✅ 삭제됐습니다.','ok');document.getElementById('notice-input').value='';loadCurrentNotice();}catch(e){showMsg(msg,'❌ '+e.message,'err');}}
+
+/* ── POPUP ── */
+function regPopup(k,t,i){_popupData[k]={title:t,items:i};}
+function showPopup(k){const d=_popupData[k];if(!d)return;document.getElementById('popup-title').textContent=d.title;document.getElementById('popup-body').innerHTML=d.items?.length?d.items.map(item=>`<div class="popup-item"><div class="popup-avatar">${item.icon||item.name.slice(0,1)}</div><div><div style="font-size:14px;font-weight:700">${item.name}</div>${item.sub?`<div style="font-size:12px;color:var(--g3)">${item.sub}</div>`:''}</div></div>`).join(''):'<p style="text-align:center;color:var(--g3);padding:2rem;font-size:14px;">해당 항목 없음</p>';document.getElementById('popup-overlay').classList.add('show');}
+function closePopup(){document.getElementById('popup-overlay').classList.remove('show');}
+
+/* ── STUDENT SUB SWITCH ── */
+function switchStudentSub(s){['all','mgmt','detail'].forEach(m=>{const b=document.getElementById('st-'+m+'-btn');if(b)b.classList.toggle('active',m===s);const v=document.getElementById('st-view-'+m);if(v)v.style.display=m===s?'block':'none';});if(s==='all')renderStudentCards();if(s==='mgmt')loadStudentList();}
+
+/* ── CSV EXPORT ── */
+function exportCSV(){
+  if(!vdData){showToast('출석 현황 탭에서 먼저 데이터를 불러오세요.');return;}
+  const{students=[],rawProgress:rawP={}}=vdData;
+
+  let csv='\uFEFF수강생,역할,'+allVideos.map(v=>'"'+v.title.replace(/"/g,'""')+'"').join(',')
+    +',완료율,완주횟수,마지막시청일\n';
+
+  students.forEach(n=>{
+    const insemList = vdData.insemGroup || [];
+    const adminList = vdData.adminGroup || [];
+    const role = insemList.includes(n) ? '인섬교' : adminList.includes(n) ? '관리자' : '수강생';
+    let done=0;
+    // 강의별 상태 셀
+    const cells=allVideos.map(v=>{
+      const p=rawP[n]?.[v.id], st=getStatus(p);
+      if(st==='done'){done++;return'완료';}
+      if(st==='ing')return getPct(p)+'%';
+      return'미시청';
+    });
+    const pct=allVideos.length>0?Math.round(done/allVideos.length*100):0;
+
+    // 마지막 시청일: rawProgress에서 updatedAt이 가장 최근인 것
+    let lastDate='';
+    Object.values(rawP[n]||{}).forEach(p=>{
+      if(p.updatedAt && (!lastDate || p.updatedAt > lastDate)) lastDate = p.updatedAt;
+    });
+    // 날짜 부분만 (YYYY-MM-DD)
+    const dateStr = lastDate ? lastDate.split(' ')[0] : '-';
+
+    csv+='"'+n+'","'+role+'",'+cells.map(c=>'"'+c+'"').join(',')+','+pct+'%,'+done+',"'+dateStr+'"\n';
+  });
+
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download='갓플릭스_'+new Date().toISOString().split('T')[0]+'.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('📥 CSV 다운로드 완료');
+}
+
+/* ════════════════════════
+   ④ 영상 순서 변경
+════════════════════════ */
+function moveVideo(id, dir) {
+  const idx = allVideos.findIndex(v => v.id === id);
+  if (idx < 0) return;
+  const swapIdx = idx + dir;
+  if (swapIdx < 0 || swapIdx >= allVideos.length) return;
+  // 배열 swap
+  [allVideos[idx], allVideos[swapIdx]] = [allVideos[swapIdx], allVideos[idx]];
+  renderVideoList();
+  // GAS에 순서 저장
+  const order = allVideos.map(v => v.id);
+  api({ action: 'reorder_videos', pw: ADMIN_PW, order: JSON.stringify(order) })
+    .catch(() => {});
+  showToast('순서가 변경됐습니다.');
+}
+
+/* ════════════════════════
+   ⑤ 수강생 비밀번호 초기화
+════════════════════════ */
+async function resetPassword(name) {
+  const newpw = prompt(`"${name}" 님의 새 비밀번호를 입력하세요:`);
+  if (!newpw) return;
+  if (newpw.length < 4) { showToast('❌ 비밀번호는 4자 이상이어야 합니다.'); return; }
+  showToast('⏳ 변경 중…');
+  try {
+    const r = await api({ action: 'reset_password', pw: ADMIN_PW, name, newpw });
+    if (r && r.success) {
+      showToast(`✅ "${name}" 님의 비밀번호가 변경됐습니다.`);
+    } else {
+      showToast('❌ ' + (r && r.error || '변경 실패'));
+    }
+  } catch(e) { showToast('❌ ' + e.message); }
+}
+
+/* ════════════════════════
+   ⑥ 데이터 강제 갱신
+════════════════════════ */
+async function forceRefreshData() {
+  vdData = null; // 캐시 초기화
+  showToast('⏳ 데이터 갱신 중…');
+  await loadVideoData();
+}
+
+/* ════════════════════════
+   B. 강의별 수강생 팝업
+════════════════════════ */
+function showVidDetailPopup(vidId, title) {
+  if (!vdData) return;
+  const { students=[], rawProgress:rawP={} } = vdData;
+  const v = allVideos.find(v => v.id === vidId);
+  if (!v) return;
+  const done=[], ing=[], none=[];
+  students.forEach(n => {
+    const p = rawP[n]?.[vidId];
+    const st = getStatus(p);
+    if (st==='done') done.push({ icon:'✅', name:n, sub:'완료' });
+    else if (st==='ing') ing.push({ icon:'▶', name:n, sub: getPct(p)+'% ('+fmtSec(p?.maxReached)+') 시청중' });
+    else none.push({ icon:'○', name:n, sub:'미시청' });
+  });
+  const items = [...done, ...ing, ...none];
+  document.getElementById('popup-title').textContent = title;
+  document.getElementById('popup-body').innerHTML = `
+    <div style="display:flex;gap:8px;margin:8px 0 14px;flex-wrap:wrap;">
+      <span style="background:rgba(70,211,105,.15);color:var(--green);font-size:12px;font-weight:700;padding:4px 12px;border-radius:20px;">✅ 완료 ${done.length}명</span>
+      <span style="background:rgba(74,158,255,.15);color:var(--blue);font-size:12px;font-weight:700;padding:4px 12px;border-radius:20px;">▶ 시청중 ${ing.length}명</span>
+      <span style="background:rgba(255,255,255,.06);color:var(--g3);font-size:12px;font-weight:700;padding:4px 12px;border-radius:20px;">○ 미시청 ${none.length}명</span>
+    </div>
+    ${items.map(item=>`
+      <div class="popup-item">
+        <div class="popup-avatar" style="${item.icon==='✅'?'background:rgba(70,211,105,.2);color:var(--green)':item.icon==='▶'?'background:rgba(74,158,255,.2);color:var(--blue)':''}">${item.icon}</div>
+        <div><div style="font-size:14px;font-weight:700">${item.name}</div><div style="font-size:12px;color:var(--g3)">${item.sub}</div></div>
+      </div>`).join('') || '<p style="text-align:center;color:var(--g3);padding:2rem;font-size:14px;">수강생 없음</p>'}`;
+  document.getElementById('popup-overlay').classList.add('show');
+}
+
+/* ════════════════════════
+   C. 수강생 완료율 차트
+════════════════════════ */
+function renderChart() {
+  if (!vdData || !allVideos.length) return;
+  const { students=[], rawProgress:rawP={} } = vdData;
+  const data = students.map(n => {
+    const done = allVideos.filter(v => {
+      const p = rawP[n]?.[v.id]; if (!p) return false;
+      return p.completed || (p.duration>0 && p.maxReached/p.duration>=0.9);
+    }).length;
+    return { name:n, pct: allVideos.length>0?Math.round(done/allVideos.length*100):0, done };
+  }).sort((a,b) => b.pct-a.pct);
+
+  const el = document.getElementById('dash-chart');
+  if (!el) return;
+  el.innerHTML = data.map(d => {
+    const col = d.pct>=80?'var(--green)':d.pct>=40?'var(--gold)':'var(--red)';
+    return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+      <div style="width:72px;font-size:12px;font-weight:700;text-align:right;color:var(--g1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0">${d.name}</div>
+      <div style="flex:1;height:20px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden;position:relative;">
+        <div style="width:${d.pct}%;height:100%;background:${col};border-radius:4px;transition:width .6s;display:flex;align-items:center;padding-left:6px;min-width:${d.pct>15?'0':'0'}px;">
+          ${d.pct>18?`<span style="font-size:11px;font-weight:700;color:rgba(0,0,0,.7)">${d.pct}%</span>`:''}
+        </div>
+        ${d.pct<=18?`<span style="position:absolute;left:calc(${d.pct}% + 6px);top:50%;transform:translateY(-50%);font-size:11px;font-weight:700;color:${col}">${d.pct}%</span>`:''}
+      </div>
+      <div style="width:36px;font-size:11px;color:var(--g3);flex-shrink:0">${d.done}/${allVideos.length}</div>
+    </div>`;
+  }).join('') || '<p class="empty">데이터 없음</p>';
+}
+
+/* ════════════════════════
+   D. 자동 새로고침 (30초)
+════════════════════════ */
+let _autoRefreshTimer = null;
+let _autoRefreshOn = false;
+
+function toggleAutoRefresh() {
+  const btn = document.getElementById('auto-refresh-btn');
+  if (_autoRefreshOn) {
+    clearInterval(_autoRefreshTimer);
+    _autoRefreshOn = false;
+    if (btn) { btn.textContent = '⏱ 자동갱신 OFF'; btn.classList.remove('active-btn'); }
+    showToast('자동 새로고침 중지');
+  } else {
+    _autoRefreshOn = true;
+    if (btn) { btn.textContent = '⏱ 자동갱신 ON'; btn.classList.add('active-btn'); }
+    _autoRefreshTimer = setInterval(async () => {
+      if (!_autoRefreshOn) return;
+      vdData = null;
+      await loadVideoData();
+      showToast('🔄 자동 갱신 완료');
+    }, 30000);
+    showToast('✅ 30초마다 자동 새로고침 시작');
+  }
+}
+
+function showMsg(el,msg,type){el.textContent=msg;el.className='msg '+type;el.style.display='block';if(type==='ok')setTimeout(()=>{el.style.display='none';},4000);}
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800);}
+window.addEventListener('keydown',e=>{if(e.key==='Escape')closePopup();});
+</script>
+</body>
+</html>
