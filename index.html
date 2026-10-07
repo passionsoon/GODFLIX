@@ -517,8 +517,10 @@ input{outline:none;font-family:'Pretendard Variable','Pretendard',-apple-system,
   display:none;position:fixed;inset:0;z-index:500;
   background:rgba(0,0,0,.96);backdrop-filter:blur(8px);
   overflow-y:auto;padding-bottom:var(--safe-bottom);
+  opacity:0;pointer-events:none;
+  transition:opacity .25s;
 }
-#player-overlay.show{opacity:1;pointer-events:auto;}
+#player-overlay.show{display:block;opacity:1;pointer-events:auto;}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 .player-modal{
   max-width:900px;margin:0 auto;
@@ -2540,7 +2542,9 @@ async function selectVideo(index){
   window._pendingResume=resumeFrom>10?resumeFrom:0;
   window._pendingMaxReached=maxReachedSec;
 
-  document.getElementById('player-overlay').classList.add('show');
+  const overlayEl = document.getElementById('player-overlay');
+  overlayEl.style.display = 'block';
+  requestAnimationFrame(() => overlayEl.classList.add('show'));
   document.body.style.overflow='hidden';
 
   if(isMobile){openFullscreen(extractVimeoId(currentVideo.url),currentVideo.title);}
@@ -2563,8 +2567,9 @@ function closePlayer(){
   if (nb) nb.classList.remove('counting');
   const overlay = document.getElementById('player-overlay');
   overlay.classList.remove('show');
-  // opacity 전환 후 정리 (250ms — transition 시간과 동일)
+  // opacity 전환 후 display:none (250ms — transition 시간과 동일)
   setTimeout(() => {
+    overlay.style.display = 'none';
     document.getElementById('vimeo-player').src='';
   }, 250);
   document.body.style.overflow='';
