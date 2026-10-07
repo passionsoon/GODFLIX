@@ -1678,14 +1678,21 @@ const SESSION_KEY = 'gf_session'; // 탭 열린 동안만 유지 (sessionStorage
 
 /* ── 초기화: 페이지 로드 시 자동로그인 시도 ── */
 async function initAutoLogin() {
+  // 공통: 수강생 목록 확보 (캐시 우선, 없으면 서버)
+  async function ensureStudents() {
+    if (studentList.length) return; // 캐시에서 이미 로드됨
+    try {
+      const j = await gasApi({ action: 'getAllUsers' });
+      studentList = j.userObjects || j.users || [];
+      if (studentList.length) cacheSet(CACHE_USERS_KEY, studentList);
+    } catch(e) { studentList = []; }
+  }
+
   // 0. 세션 유지 — 새로고침해도 로그인 상태 유지 (탭 닫으면 초기화)
   const sess = JSON.parse(sessionStorage.getItem(SESSION_KEY) || 'null');
   if (sess && sess.id && sess.pw) {
     showAutoLoginOverlay('로그인 정보 확인 중…');
-    try {
-      const j = await gasApi({ action: 'getAllUsers' });
-      studentList = j.userObjects || j.users || [];
-    } catch(e) { studentList = []; }
+    await ensureStudents();
     const matched = findUser(sess.id, sess.pw);
     if (matched) {
       await doLogin(matched, sess.id);
@@ -1700,21 +1707,13 @@ async function initAutoLogin() {
   const saved = JSON.parse(localStorage.getItem(AUTO_KEY) || 'null');
   if (saved && saved.id && saved.pw) {
     showAutoLoginOverlay('자동 로그인 중…');
-    // 수강생 목록 먼저 로드
-    if (!studentList.length) {
-      try {
-        const j = await gasApi({ action: 'getAllUsers' });
-        studentList = j.userObjects || j.users || [];
-      } catch(e) { studentList = []; }
-    }
-    // 저장된 정보로 로그인 시도
+    await ensureStudents();
     const matched = findUser(saved.id, saved.pw);
     if (matched) {
       await doLogin(matched, saved.id);
       hideAutoLoginOverlay();
       return;
     }
-    // 저장 정보가 만료됐으면 삭제
     localStorage.removeItem(AUTO_KEY);
     hideAutoLoginOverlay();
   }
@@ -1734,12 +1733,14 @@ function hideAutoLoginOverlay() {
 
 /* ── 수강생 찾기 공통 함수 ── */
 function findUser(idVal, pwVal) {
-  if (!studentList.length) return null; // 목록 미로드 시 로그인 차단
+  if (!studentList.length) return null;
+  const id = idVal.trim().toLowerCase();
+  const pw = pwVal.trim();
   if (typeof studentList[0] === 'object') {
-    return studentList.find(s => s.id === idVal && String(s.password) === pwVal)
-        || studentList.find(s => s.name === idVal && String(s.password) === pwVal);
+    return studentList.find(s => String(s.id||'').trim().toLowerCase() === id && String(s.password||'').trim() === pw)
+        || studentList.find(s => String(s.name||'').trim().toLowerCase() === id && String(s.password||'').trim() === pw);
   }
-  return studentList.includes(idVal) ? { name: idVal } : null;
+  return studentList.find(s => String(s).trim().toLowerCase() === id) ? { name: idVal.trim() } : null;
 }
 
 /* ── 실제 로그인 처리 (confirmLogin과 공유) ── */
@@ -1957,7 +1958,7 @@ function gasApi(params){
     const cb='_cb_'+Date.now()+'_'+Math.random().toString(36).slice(2);
     const s=document.createElement('script');
     s.src=SHEET_URL+'?'+new URLSearchParams({...params,callback:cb});
-    const t=setTimeout(()=>{cleanup();reject(new Error('서버 응답 시간 초과 (15초)'));},15000);
+    const t=setTimeout(()=>{cleanup();reject(new Error('서버 응답 시간 초과'));},45000);
     const cleanup=()=>{delete window[cb];s.parentNode&&s.parentNode.removeChild(s);};
     window[cb]=d=>{clearTimeout(t);cleanup();resolve(d);};
     s.onerror=()=>{clearTimeout(t);cleanup();reject(new Error('load error'));};
@@ -1965,27 +1966,90 @@ function gasApi(params){
   });
 }
 
-/* ─ INIT ─ */
-async function init(){await Promise.all([loadStudents(),loadVideos()]); await initAutoLogin();}
+/* ─ CACHE KEYS ─ */
+const CACHE_VIDEOS_KEY  = 'gf_cache_videos';
+const CACHE_USERS_KEY   = 'gf_cache_users';
+const CACHE_TTL_MS      = 10 * 60 * 1000; // 10분
 
-async function loadStudents(){
-  try{const j=await gasApi({action:'getAllUsers'});studentList=j.userObjects||j.users||[];}
-  catch(e){studentList=[];}
+function cacheSet(key, data) {
+  try { localStorage.setItem(key, JSON.stringify({ts: Date.now(), data})); } catch(e){}
 }
-async function loadVideos(){
-  renderSkeleton(2,5); // 로딩 중 스켈레톤 표시
+function cacheGet(key) {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    const obj = JSON.parse(raw);
+    if (Date.now() - obj.ts > CACHE_TTL_MS) return null;
+    return obj.data;
+  } catch(e) { return null; }
+}
+
+/* ─ INIT ─ */
+async function init(){
+  // 1. 캐시된 영상 목록 즉시 표시 (서버 응답 기다리지 않음)
+  const cachedVideos = cacheGet(CACHE_VIDEOS_KEY);
+  if (cachedVideos && cachedVideos.length) {
+    VIDEOS = cachedVideos;
+    buildGradeTabs(); renderCatalog(); updateFeatured(0); initHeroCarousel();
+  } else {
+    renderSkeleton(2, 5);
+  }
+
+  // 2. 캐시된 수강생 목록 즉시 사용
+  const cachedUsers = cacheGet(CACHE_USERS_KEY);
+  if (cachedUsers && cachedUsers.length) {
+    studentList = cachedUsers;
+  }
+
+  // 3. 자동로그인 시도 (캐시 있으면 서버 호출 없이 바로 처리)
+  await initAutoLogin();
+
+  // 4. 서버에서 최신 데이터 백그라운드 업데이트
+  loadVideosFromServer();
+  if (!cachedUsers || !cachedUsers.length) {
+    loadStudentsFromServer();
+  } else {
+    // 캐시 있어도 백그라운드에서 조용히 갱신
+    loadStudentsFromServer(true);
+  }
+}
+
+async function loadStudentsFromServer(silent = false) {
+  try {
+    const j = await gasApi({action:'getAllUsers'});
+    const list = j.userObjects || j.users || [];
+    if (list.length) {
+      studentList = list;
+      cacheSet(CACHE_USERS_KEY, list);
+    }
+  } catch(e) { if (!silent && !studentList.length) studentList = []; }
+}
+
+// 하위 호환 — confirmLogin, initAutoLogin에서 직접 호출
+async function loadStudents(){
+  if (studentList.length) return; // 이미 있으면 스킵
+  await loadStudentsFromServer();
+}
+
+async function loadVideosFromServer() {
   try{
     const j=await gasApi({action:'getVideos'});
     if(j.result==='success'&&j.videos?.length){
-      VIDEOS=j.videos;buildGradeTabs();renderCatalog();updateFeatured(0);
+      VIDEOS=j.videos;
+      cacheSet(CACHE_VIDEOS_KEY, j.videos);
+      buildGradeTabs();renderCatalog();updateFeatured(0);
       initHeroCarousel();
-    }else{
+    }else if(!VIDEOS.length){
       document.getElementById('rows-container').innerHTML='<div class="loading-state">등록된 강의가 없습니다.</div>';
     }
   }catch(e){
-    document.getElementById('rows-container').innerHTML='<div class="loading-state">목록을 불러오지 못했습니다.<br><button onclick="loadVideos()" style="margin-top:12px;padding:8px 20px;background:var(--red);color:#fff;border:none;border-radius:4px;font-size:13px;cursor:pointer;">다시 시도</button></div>';
+    if(!VIDEOS.length){
+      document.getElementById('rows-container').innerHTML='<div class="loading-state">목록을 불러오지 못했습니다.<br><button onclick="loadVideosFromServer()" style="margin-top:12px;padding:8px 20px;background:var(--red);color:#fff;border:none;border-radius:4px;font-size:13px;cursor:pointer;">다시 시도</button></div>';
+    }
   }
 }
+// 하위 호환
+async function loadVideos(){ await loadVideosFromServer(); }
 
 /* ─ LOGIN ─ */
 async function confirmLogin(){
@@ -1998,14 +2062,23 @@ async function confirmLogin(){
   btn.disabled=true;btn.classList.add('loading');btn.textContent='로그인 중…';
 
   if(!studentList.length){
-    try{const j=await gasApi({action:'getAllUsers'});studentList=j.userObjects||j.users||[];}
-    catch(e){studentList=[];}
+    btn.textContent='서버 연결 중…';
+    // 최대 2회 재시도
+    for(let attempt=0; attempt<2; attempt++){
+      try{
+        const j=await gasApi({action:'getAllUsers'});
+        studentList=j.userObjects||j.users||[];
+        if(studentList.length){ cacheSet(CACHE_USERS_KEY, studentList); break; }
+      } catch(e){
+        if(attempt===0) btn.textContent='재시도 중…';
+      }
+    }
   }
 
   const resetBtn=()=>{btn.disabled=false;btn.classList.remove('loading');btn.textContent='입장하기';};
 
   if(!studentList.length){
-    err.textContent='⚠️ 수강생 목록을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.';
+    err.textContent='⚠️ 서버 연결 실패. 잠시 후 다시 눌러보세요.';
     err.style.display='block';resetBtn();return;
   }
 
