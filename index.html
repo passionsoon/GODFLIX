@@ -6,7 +6,9 @@
 <meta name="theme-color" content="#141414">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<!-- 미디어 세션 / 오디오 백그라운드 재생 허용 -->
+<meta name="apple-touch-fullscreen" content="yes">
 <meta name="apple-mobile-web-app-title" content="갓플릭스">
 <!-- B. PWA manifest (인라인 base64, 아이콘 포함) -->
 <link rel="manifest" href="manifest.json">
@@ -840,143 +842,139 @@ input{outline:none;font-family:'Pretendard Variable','Pretendard',-apple-system,
   /* ── 헤더 ── */
   .nf-header{height:52px;padding:0 4%;}
   .nf-logo{font-size:24px;letter-spacing:2px;}
-  .user-name{display:none;} /* 이름 숨기고 아이콘만 */
-  .btn-logout{padding:6px 10px;font-size:11px;}
+  .user-name{display:none;}
+  /* 로그아웃 버튼 — 더 탭하기 쉽게 */
+  .btn-logout{padding:8px 12px;font-size:12px;min-height:36px;min-width:44px;}
 
-  /* ── 히어로: 모바일 전용 레이아웃 ──
-     썸네일을 배경 전체로 쓰고 하단에 텍스트 배치 */
+  /* ── 히어로 ── */
   .hero-banner{
-    height:auto;
-    min-height:0;
-    padding-top:56.25vw; /* 16:9 비율 유지 */
+    height:auto;min-height:0;
+    padding-top:56.25vw;
     position:relative;
   }
   .hero-bg-img{
-    position:absolute;
-    top:0;left:0;right:0;
-    height:56.25vw;
-    transform:none; /* 모바일에서 scale 제거 */
+    position:absolute;top:0;left:0;right:0;
+    height:56.25vw;transform:none;
   }
   .hero-vignette{
     background:
-      linear-gradient(to top, #141414 0%, rgba(20,20,20,.98) 20%, rgba(20,20,20,.6) 45%, transparent 65%),
-      linear-gradient(to bottom, rgba(0,0,0,.5) 0%, transparent 12%);
+      linear-gradient(to top,#141414 0%,rgba(20,20,20,.98) 20%,rgba(20,20,20,.6) 45%,transparent 65%),
+      linear-gradient(to bottom,rgba(0,0,0,.5) 0%,transparent 12%);
   }
   .hero-content{
-    position:relative;
-    bottom:auto;left:auto;
-    max-width:100%;
-    padding:16px 4% 20px;
-    z-index:10;
+    position:relative;bottom:auto;left:auto;
+    max-width:100%;padding:16px 4% 20px;z-index:10;
   }
   .hero-badge{font-size:10px;margin-bottom:8px;padding:2px 8px;}
   .hero-title-sub{font-size:13px;font-weight:800;margin-bottom:3px;letter-spacing:.5px;color:var(--g1);}
   .hero-title-main{
-    font-size:clamp(24px,7.5vw,36px);
-    letter-spacing:-1px;
-    margin-bottom:8px;
-    /* 클램프 제거 — 제목 전체 표시 */
-    display:block;
-    overflow:visible;
-    white-space:normal;
+    font-size:clamp(22px,6.5vw,34px);
+    letter-spacing:-.5px;margin-bottom:8px;
+    display:block;overflow:visible;white-space:normal;
   }
   .hero-meta{font-size:12px;gap:8px;margin-bottom:10px;}
-  .hero-desc{
-    font-size:13px;
-    -webkit-line-clamp:2;
-    margin-bottom:16px;
-  }
-  .hero-btns{gap:8px;}
-  .btn-play{
-    padding:10px 20px;font-size:14px;min-height:44px;
-  }
-  .btn-info{
-    padding:10px 16px;font-size:14px;min-height:44px;
-  }
+  .hero-desc{font-size:13px;-webkit-line-clamp:2;margin-bottom:14px;}
+  .hero-btns{gap:8px;flex-wrap:nowrap;}
+  /* 재생 버튼 — 44px 터치 최소 높이 */
+  .btn-play{padding:12px 22px;font-size:15px;min-height:44px;flex:1;}
+  .btn-info{padding:12px 18px;font-size:14px;min-height:44px;}
   .hero-dots{bottom:auto;top:calc(56.25vw - 20px);}
 
-  /* ── 통계 바: 모바일 컴팩트 ── */
+  /* ── 통계 바 ── */
   .stats-row{padding:12px 4%;}
   .stats-row-top{margin-bottom:8px;}
   .stats-row-label{font-size:13px;}
   .stats-row-pct{font-size:22px;}
   .stats-bar-track{margin-bottom:10px;}
   .stat-num{font-size:22px;}
-  .stat-label{font-size:9px;}
+  .stat-label{font-size:9px;letter-spacing:.3px;}
 
   /* ── 검색창 ── */
-  .search-bar-wrap{padding:10px 3% 0;}
+  .search-bar-wrap{padding:10px 4% 0;}
   .search-input{font-size:16px;} /* iOS 자동 zoom 방지 */
   .search-bar{padding:0 12px;}
 
-  /* ── 과정 탭 ── */
+  /* ── 과정 탭 — 터치 영역 확보 ── */
   .grade-tabs{padding:0 3%;}
-  .grade-tab{transition:color .18s cubic-bezier(.4,0,.2,1),border-color .18s cubic-bezier(.4,0,.2,1);padding:11px 14px;font-size:13px;}
+  .grade-tab{
+    padding:12px 14px;font-size:13px;
+    min-height:44px; /* 터치 최소 높이 */
+    transition:color .18s,border-color .18s;
+  }
 
   /* ── 행 헤더 ── */
   .nf-row-header{padding:20px 4% 10px;}
   .nf-row-title{font-size:17px;}
 
-  /* ── 카드: 모바일에서 크게 (2.2개 보이도록) ── */
-  .v-card{
-    flex:0 0 42vw; /* 2.2개 보임 */
-    min-width:0;
-  }
+  /* ── 카드: 2.3개 보이도록 (스와이프 유도) ── */
+  .v-card{flex:0 0 40vw;min-width:0;}
   .nf-slider{
-    padding:4px 4% 12px;
-    gap:8px;
-    /* 모멘텀 스크롤 강화 */
+    padding:4px 4% 14px;gap:8px;
     -webkit-overflow-scrolling:touch;
     scroll-behavior:smooth;
     overscroll-behavior-x:contain;
+    scroll-snap-type:x mandatory; /* 카드 경계에 snap */
   }
-  /* 모바일에서 화살표 숨김 (스와이프로 대체) */
+  .v-card{scroll-snap-align:start;}
   .nf-arrow{display:none;}
 
-  /* 카드 텍스트 모바일 최적화 */
-  .v-info{padding:20px 8px 7px;}
-  .v-info-title{font-size:11px;-webkit-line-clamp:1;}
+  /* 카드 텍스트 */
+  .v-info{padding:22px 8px 8px;}
+  .v-info-title{font-size:11px;-webkit-line-clamp:2;} /* 2줄까지 허용 */
   .v-info-meta{font-size:9px;}
   .v-info-sub{font-size:8px;}
   .v-badge-grade{font-size:8px;padding:2px 5px;}
 
   /* ── 툴바 ── */
   .catalog-toolbar{padding:8px 4% 0;}
-  .btn-tool{padding:8px 12px;font-size:11px;min-height:36px;}
+  .btn-tool{padding:10px 14px;font-size:12px;min-height:44px;}
 
   /* ── 플레이어 모달 ── */
   .player-modal{padding:calc(var(--safe-top)+52px) 4% 32px;}
-  .player-title-main{font-size:22px;}
+  .player-title-main{font-size:20px;line-height:1.3;}
 
   /* ── 상세 모달 ── */
   .detail-thumb{aspect-ratio:16/9;}
   .detail-body{padding:14px 16px 20px;}
-  .detail-title-main{font-size:22px;}
-  .detail-btns .btn-play{min-height:44px;width:100%;justify-content:center;}
+  .detail-title-main{font-size:21px;line-height:1.3;}
+  /* 상세 버튼 — 세로로 쌓기 */
+  .detail-btns{flex-direction:column;gap:8px;}
+  .detail-btns .btn-play,.detail-btns .btn-info{
+    min-height:48px;width:100%;justify-content:center;font-size:15px;
+  }
 
   /* ── 비밀번호 모달 ── */
   .pw-box{padding:20px;}
 
-  /* ── 로그인 ── */
+  /* ── 로그인 — 손가락 입력 최적화 ── */
   .login-content{padding:0 16px;}
   .login-box{padding:24px 20px;}
   .login-title{font-size:22px;}
+  .nf-input{font-size:16px;padding:15px 16px;} /* iOS zoom 방지 */
+  .btn-submit{min-height:48px;font-size:16px;}
+  .login-auto-row{padding:4px 0;min-height:44px;display:flex;align-items:center;}
 
-  /* ── 토스트 ── */
+  /* ── 토스트 — 하단 중앙 */
   .toast{
-    left:4%;right:4%;
+    left:4%;right:4%;bottom:max(24px,var(--safe-bottom));
     transform:translateY(80px);
-    white-space:normal;
-    text-align:center;
-    max-width:none;
+    white-space:normal;text-align:center;max-width:none;
+    font-size:14px;
   }
   .toast.show{transform:translateY(0);}
 }
 
-/* 아주 작은 화면 (SE 등 375px 이하) */
+/* 아주 작은 화면 (iPhone SE 1세대 등 375px 미만) */
 @media(max-width:380px){
-  .v-card{flex:0 0 48vw;}
+  .v-card{flex:0 0 46vw;}
   .hero-title-main{font-size:20px;}
+  .btn-play{font-size:13px;padding:10px 16px;}
+}
+
+/* 태블릿 세로 (701~1024px) — 카드 크기 중간 */
+@media(min-width:701px) and (max-width:1024px){
+  .v-card{flex:0 0 22vw;}
+  .hero-content{max-width:70%;}
 }
 
 /* ════════════════════════════
@@ -1584,6 +1582,7 @@ let replayCount=0,completed=false,isPlaying=false;
 let jumpBlock=false,recordSent=false;
 let progressSaveInterval=null,watchedMinutesSinceLastRecord=0;
 let featuredIndex=0,currentGrade='전체';
+let _wakeLock=null; // Screen Wake Lock 핸들
 const isMobile=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
 /* ─ HELPERS ─ */
@@ -1617,9 +1616,18 @@ function fmtDate(raw){
   if(!raw)return'';
   const D=['일','월','화','수','목','금','토'];
   if(/^\d{4}\.\s*\d{1,2}/.test(raw))return raw;
+  // YYYY-MM-DD 형식이면 로컬 날짜로 직접 파싱 (UTC 변환 오류 방지)
+  const iso=raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if(iso){
+    const y=+iso[1],m=+iso[2]-1,day=+iso[3];
+    const dow=new Date(y,m,day).getDay();
+    return`${y}. ${m+1}. ${day}. (${D[dow]})`;
+  }
+  // GAS가 Date 객체 문자열로 내려보낸 경우 (예: "Tue Sep 29 2026 00:00:00 GMT+0900")
+  // — 로컬 기준으로 파싱해서 로컬 날짜 사용
   const d=new Date(raw);
   if(isNaN(d.getTime()))return raw;
-  return`${d.getUTCFullYear()}. ${d.getUTCMonth()+1}. ${d.getUTCDate()}. (${D[d.getUTCDay()]})`;
+  return`${d.getFullYear()}. ${d.getMonth()+1}. ${d.getDate()}. (${D[d.getDay()]})`;
 }
 function showToast(msg){
   const t=document.getElementById('toast');
@@ -2344,6 +2352,7 @@ async function selectVideo(index){
   else{
     document.getElementById('vimeo-player').src=
       `https://player.vimeo.com/video/${extractVimeoId(currentVideo.url)}?badge=0&autopause=0&app_id=58479&api=1&player_id=vimeo-player&autoplay=1&playsinline=1`;
+    setMediaSession(currentVideo.title,currentVideo.thumbnail||'');
   }
 
   progressSaveInterval=setInterval(()=>{
@@ -2368,9 +2377,61 @@ function closePlayer(){
   document.body.style.overflow='';
   if(currentVideo&&maxReachedSec>5){saveRecord(true);saveProgress();}
   clearInterval(progressSaveInterval);
+  releaseWakeLock();
+  clearMediaSession();
 }
 
 /* ─ MOBILE FS ─ */
+/* ── Wake Lock 요청 / 해제 ── */
+async function requestWakeLock(){
+  if(!navigator.wakeLock)return;
+  try{_wakeLock=await navigator.wakeLock.request('screen');}catch(e){}
+}
+async function releaseWakeLock(){
+  if(_wakeLock){try{await _wakeLock.release();}catch(e){}; _wakeLock=null;}
+}
+// 화면이 다시 켜졌을 때 wake lock 재요청 (iOS 등)
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible'&&isPlaying)requestWakeLock();
+});
+
+/* ── MediaSession API — 잠금 화면 컨트롤 ── */
+function setMediaSession(title,thumbnail){
+  if(!('mediaSession' in navigator))return;
+  navigator.mediaSession.metadata=new MediaMetadata({
+    title:title||'갓플릭스 강의',
+    artist:'갓플릭스',
+    album:'논산교회 성경센터',
+    artwork:thumbnail?[
+      {src:thumbnail,sizes:'512x512',type:'image/jpeg'},
+      {src:thumbnail,sizes:'256x256',type:'image/jpeg'},
+    ]:[{src:'icon-512.png',sizes:'512x512',type:'image/png'}]
+  });
+  navigator.mediaSession.setActionHandler('play',()=>{
+    sendPlayer('play',null,isMobile);
+    navigator.mediaSession.playbackState='playing';
+  });
+  navigator.mediaSession.setActionHandler('pause',()=>{
+    sendPlayer('pause',null,isMobile);
+    navigator.mediaSession.playbackState='paused';
+  });
+  navigator.mediaSession.setActionHandler('seekbackward',(d)=>{
+    sendPlayer('setCurrentTime',Math.max(0,lastPositionSec-(d.seekOffset||10)),isMobile);
+  });
+  navigator.mediaSession.setActionHandler('seekforward',(d)=>{
+    sendPlayer('setCurrentTime',lastPositionSec+(d.seekOffset||10),isMobile);
+  });
+  navigator.mediaSession.playbackState='playing';
+}
+function clearMediaSession(){
+  if(!('mediaSession' in navigator))return;
+  navigator.mediaSession.metadata=null;
+  navigator.mediaSession.playbackState='none';
+  ['play','pause','seekbackward','seekforward'].forEach(a=>{
+    try{navigator.mediaSession.setActionHandler(a,null);}catch(e){}
+  });
+}
+
 function openFullscreen(videoId,title){
   const o=document.getElementById('fs-overlay');
   document.getElementById('fs-title').textContent=title;
@@ -2378,13 +2439,16 @@ function openFullscreen(videoId,title){
   document.getElementById('fs-watch-bar').style.width='0%';
   document.getElementById('fs-complete').style.display='none';
   document.getElementById('vimeo-player').src='';
+  // background=1 → 화면 꺼짐 / PiP 상태에서도 오디오 계속 재생
   document.getElementById('fs-player').src=
-    `https://player.vimeo.com/video/${videoId}?badge=0&autopause=0&app_id=58479&api=1&player_id=fs-player&autoplay=1&quality=auto`;
+    `https://player.vimeo.com/video/${videoId}?badge=0&autopause=0&app_id=58479&api=1&player_id=fs-player&autoplay=1&quality=auto&background=0&playsinline=0`;
   o.classList.add('open');
   if(o.requestFullscreen)o.requestFullscreen().catch(()=>{});
   else if(o.webkitRequestFullscreen)o.webkitRequestFullscreen();
   if(screen.orientation?.lock)screen.orientation.lock('landscape').catch(()=>{});
-  if(navigator.wakeLock)navigator.wakeLock.request('screen').catch(()=>{});
+  requestWakeLock();
+  // 잠금 화면 컨트롤 등록
+  if(currentVideo)setMediaSession(title,currentVideo.thumbnail||'');
 }
 function closeFullscreen(){
   document.getElementById('fs-overlay').classList.remove('open');
@@ -2392,6 +2456,8 @@ function closeFullscreen(){
   if(screen.orientation?.unlock)screen.orientation.unlock();
   if(document.exitFullscreen)document.exitFullscreen().catch(()=>{});
   else if(document.webkitExitFullscreen)document.webkitExitFullscreen();
+  releaseWakeLock();
+  clearMediaSession();
 }
 
 /* ─ VIMEO ─ */
@@ -2414,8 +2480,15 @@ window.addEventListener('message',function(e){
       },1000); // Vimeo가 완전히 준비된 후 이동
     }
   }
-  if(ev==='play')isPlaying=true;
-  if(ev==='pause')isPlaying=false;
+  if(ev==='play'){
+    isPlaying=true;
+    if('mediaSession' in navigator)navigator.mediaSession.playbackState='playing';
+    requestWakeLock();
+  }
+  if(ev==='pause'){
+    isPlaying=false;
+    if('mediaSession' in navigator)navigator.mediaSession.playbackState='paused';
+  }
   if(ev==='playProgress'){
     const t=parseFloat(d.data.seconds)||0,dur=parseFloat(d.data.duration)||0;
     if(dur>0)videoDuration=dur;
@@ -2442,6 +2515,10 @@ window.addEventListener('message',function(e){
     const cpf=document.getElementById('cpf-'+currentIndex);
     if(cpf)cpf.style.width=pct+'%';
     if(!completed&&dur>0&&maxReachedSec>=dur*.95)triggerComplete();
+    // MediaSession 재생 위치 업데이트 (잠금 화면 스크러버)
+    if('mediaSession' in navigator&&'setPositionState' in navigator.mediaSession&&dur>0){
+      try{navigator.mediaSession.setPositionState({duration:dur,playbackRate:1,position:t});}catch(e){}
+    }
   }
   if(ev==='seek'){
     if(jumpBlock)return;
