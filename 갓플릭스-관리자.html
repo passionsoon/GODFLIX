@@ -564,7 +564,7 @@ table.matrix tbody tr:hover td.cell-ing{background:rgba(74,158,255,.14);}
       <div class="form-row cols2">
         <div class="field">
           <label>Vimeo URL 또는 ID</label>
-          <input type="text" id="vid-url" placeholder="https://vimeo.com/123456789">
+          <input type="text" id="vid-url" placeholder="https://vimeo.com/123456789" oninput="onVimeoUrlInput(this.value)">
         </div>
         <div class="field">
           <label>날짜</label>
@@ -582,17 +582,21 @@ table.matrix tbody tr:hover td.cell-ing{background:rgba(74,158,255,.14);}
         </div>
       </div>
       <div class="field" style="margin-bottom:16px;">
-        <label>썸네일 URL (선택)</label>
+        <label style="display:flex;align-items:center;gap:8px;">
+          썸네일
+          <span id="thumb-auto-badge" style="display:none;font-size:10px;font-weight:700;background:rgba(80,200,120,.15);color:#50C878;border:1px solid rgba(80,200,120,.3);border-radius:10px;padding:2px 8px;">⚡ 자동 추출됨</span>
+          <span id="thumb-loading-badge" style="display:none;font-size:10px;color:var(--g4);">⏳ 썸네일 불러오는 중…</span>
+        </label>
         <div style="display:flex;gap:8px;margin-bottom:8px;">
-          <input type="text" id="vid-thumb-url" placeholder="Drive 공유 링크 붙여넣으면 자동 변환됩니다" oninput="onThumbUrlInput(this.value)" style="flex:1;background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.1);border-radius:6px;padding:12px 16px;font-size:14px;color:var(--white);">
-          <button type="button" onclick="document.getElementById('thumb-file').click()" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:var(--g1);border-radius:6px;padding:0 16px;font-size:13px;font-weight:600;white-space:nowrap;">📁 파일</button>
+          <input type="text" id="vid-thumb-url" placeholder="Vimeo URL 입력 시 자동 추출 · Drive 링크도 가능" oninput="onThumbUrlInput(this.value)" style="flex:1;background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.1);border-radius:6px;padding:12px 16px;font-size:14px;color:var(--white);">
+          <button type="button" onclick="document.getElementById('thumb-file').click()" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:var(--g1);border-radius:6px;padding:0 16px;font-size:13px;font-weight:600;white-space:nowrap;">📁 직접 선택</button>
         </div>
         <input type="file" id="thumb-file" accept="image/*" style="display:none" onchange="handleThumbSelect(this)">
         <div id="thumb-preview-wrap" style="display:none;position:relative;height:120px;border-radius:8px;overflow:hidden;border:1px solid rgba(255,255,255,.1);">
           <img id="thumb-preview" src="" style="width:100%;height:100%;object-fit:cover;">
           <button onclick="clearThumb()" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,.7);border:1px solid rgba(255,255,255,.3);color:var(--white);border-radius:50%;width:26px;height:26px;font-size:13px;">✕</button>
         </div>
-        <div id="thumb-empty" style="border:2px dashed rgba(255,255,255,.1);border-radius:8px;padding:16px;text-align:center;color:var(--g4);font-size:13px;">🖼 썸네일 없음</div>
+        <div id="thumb-empty" style="border:2px dashed rgba(255,255,255,.1);border-radius:8px;padding:16px;text-align:center;color:var(--g4);font-size:13px;">🖼 썸네일 없음 · Vimeo URL 입력 시 자동으로 가져옵니다</div>
       </div>
       <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
         <button class="btn-primary" onclick="saveVideo()">🎬 영상 등록</button>
@@ -604,12 +608,15 @@ table.matrix tbody tr:hover td.cell-ing{background:rgba(74,158,255,.14);}
 
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
       <div class="sec-title" style="margin:0;">등록된 영상 <em id="vid-count-label">0</em>개</div>
-      <select id="vid-filter-grade" onchange="renderVideoList()" style="background:var(--surface2);border:1px solid rgba(255,255,255,.1);color:var(--white);border-radius:6px;padding:7px 12px;font-size:13px;font-family:var(--font);">
-        <option value="">전체 과정</option>
-        <option value="기초">🌱 기초 과정</option>
-        <option value="응용">📖 응용 과정</option>
-        <option value="심화">🔥 심화 과정</option>
-      </select>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <button onclick="batchFillThumbs()" style="background:rgba(74,158,255,.15);border:1px solid rgba(74,158,255,.3);color:#4a9eff;border-radius:6px;padding:7px 14px;font-size:12px;font-weight:700;font-family:var(--font);" title="썸네일 없는 영상에 Vimeo 썸네일 자동 추출">🖼️ 썸네일 일괄 추출</button>
+        <select id="vid-filter-grade" onchange="renderVideoList()" style="background:var(--surface2);border:1px solid rgba(255,255,255,.1);color:var(--white);border-radius:6px;padding:7px 12px;font-size:13px;font-family:var(--font);">
+          <option value="">전체 과정</option>
+          <option value="기초">🌱 기초 과정</option>
+          <option value="응용">📖 응용 과정</option>
+          <option value="심화">🔥 심화 과정</option>
+        </select>
+      </div>
     </div>
     <div class="vid-list" id="vid-list-admin"><div class="spinner"></div></div>
   </div>
@@ -854,6 +861,7 @@ const ADMIN_URL  = SHEET_URL;
 let   ADMIN_PW   = '0314'; // let으로 선언 → 비밀번호 변경 시 현재 세션에도 즉시 반영
 
 let allVideos = [], vdData = null, thumbDataUrl = '', _popupData = {};
+const ADMIN_SESSION_KEY = 'gf_admin_session'; // 탭 열린 동안만 유지
 
 /* ── LOGIN ── */
 function doLogin() {
@@ -864,6 +872,7 @@ function doLogin() {
   if (pw === ADMIN_PW) {
     if (btn) { btn.disabled = true; btn.classList.add('loading'); btn.textContent = '확인 중…'; }
     setTimeout(() => {
+      try { sessionStorage.setItem(ADMIN_SESSION_KEY, '1'); } catch(e) {}
       document.getElementById('login-screen').style.display = 'none';
       document.getElementById('admin-app').style.display = 'block';
       if (btn) { btn.disabled = false; btn.classList.remove('loading'); btn.textContent = '입장하기'; }
@@ -876,6 +885,7 @@ function doLogin() {
 }
 document.getElementById('pw-in').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
 function doLogout() {
+  try { sessionStorage.removeItem(ADMIN_SESSION_KEY); } catch(e) {}
   document.getElementById('admin-app').style.display = 'none';
   document.getElementById('login-screen').style.display = 'flex';
   document.getElementById('pw-in').value = '';
@@ -888,7 +898,7 @@ function api(params) {
     const cb = '_cb_' + Date.now() + '_' + Math.random().toString(36).slice(2);
     const s  = document.createElement('script');
     s.src    = SHEET_URL + '?' + new URLSearchParams({ ...params, callback: cb });
-    const t  = setTimeout(() => { cleanup(); reject(new Error('시간 초과')); }, 20000);
+    const t  = setTimeout(() => { cleanup(); reject(new Error('시간 초과')); }, 45000);
     const cleanup = () => { delete window[cb]; s.parentNode && s.parentNode.removeChild(s); };
     window[cb] = d => { clearTimeout(t); cleanup(); resolve(d); };
     s.onerror  = () => { clearTimeout(t); cleanup(); reject(new Error('스크립트 로드 실패')); };
@@ -1327,14 +1337,24 @@ function changeAdminPw() {
 }
 
 /* ── LOAD ALL ── */
-async function loadAll() {
+async function loadAll(retry = 0) {
+  if (retry === 0) showToast('📡 서버 연결 중…');
+  if (retry === 1) showToast('⏳ 서버 응답 대기 중… (첫 실행 시 30초 걸릴 수 있어요)');
   try {
     const r = await api({ action:'videos' });
     allVideos = r.videos || r.items || [];
     renderVideoList();
     renderDashboard();
     updateStudentSelect();
-  } catch(e) { showToast('목록 로드 실패: ' + e.message); }
+    if (retry > 0) showToast('✅ 연결 완료!');
+  } catch(e) {
+    if (retry < 2) {
+      showToast(`⚠️ 연결 실패, 재시도 중… (${retry + 1}/2)`);
+      setTimeout(() => loadAll(retry + 1), 3000);
+    } else {
+      showToast('❌ 목록 로드 실패 — 새로고침하거나 잠시 후 다시 시도하세요');
+    }
+  }
 }
 async function smartRefresh() {
   showToast('새로고침 중...');
@@ -1344,6 +1364,20 @@ async function smartRefresh() {
 }
 
 /* ── HELPERS ── */
+// GAS가 날짜를 "Tue Sep 29 2026 00:00:00 GMT+0900" 형태로 내려보낼 때
+// input[type=date] value는 반드시 YYYY-MM-DD 여야 함 → 정규화
+function normalizeDate(raw) {
+  if (!raw) return '';
+  // 이미 YYYY-MM-DD면 그대로
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+  // Date 객체로 파싱 후 로컬 기준 YYYY-MM-DD 추출
+  const d = new Date(raw);
+  if (isNaN(d.getTime())) return '';
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
 function detectGrade(v) {
   if (v.grade) return v.grade;
   if (/기초/.test(v.title)) return '기초';
@@ -1468,18 +1502,24 @@ function renderVideoList() {
           </div>
         </div>
         <div class="form-row cols2" style="margin-bottom:10px;">
-          <div class="field"><label>날짜</label><input type="date" id="e-date-${v.id}" value="${v.date||''}"></div>
+          <div class="field"><label>날짜</label><input type="date" id="e-date-${v.id}" value="${normalizeDate(v.date)}"></div>
           <div class="field"><label>강사</label><input type="text" id="e-lecturer-${v.id}" value="${v.lecturer||''}"></div>
         </div>
         <div class="field" style="margin-bottom:10px;">
           <label>Vimeo ID / URL</label>
           <input type="text" id="e-url-${v.id}" value="${v.url||''}"
-            placeholder="Vimeo ID 또는 https://vimeo.com/... (오류 영상 교체 시 수정)">
+            placeholder="Vimeo ID 또는 https://vimeo.com/... (오류 영상 교체 시 수정)"
+            oninput="onEditVimeoUrlInput(this.value,'${v.id}')">
         </div>
         <div class="field" style="margin-bottom:12px;">
-          <label>썸네일 URL</label>
+          <label style="display:flex;align-items:center;gap:8px;">
+            썸네일 URL
+            <span id="e-thumb-badge-${v.id}" style="display:none;font-size:10px;font-weight:700;background:rgba(80,200,120,.15);color:#50C878;border:1px solid rgba(80,200,120,.3);border-radius:10px;padding:2px 8px;">⚡ 자동 추출됨</span>
+            <span id="e-thumb-loading-${v.id}" style="display:none;font-size:10px;color:var(--g4);">⏳ 불러오는 중…</span>
+            ${!v.thumbnail && v.url ? `<button type="button" onclick="fetchVimeoThumbForEdit('${extractVimeoId(v.url)}','${v.id}',true)" style="background:rgba(74,158,255,.15);border:1px solid rgba(74,158,255,.3);color:#4a9eff;border-radius:10px;padding:2px 10px;font-size:10px;font-weight:700;cursor:pointer;">🔄 썸네일 가져오기</button>` : ''}
+          </label>
           <input type="text" id="e-thumb-${v.id}" value="${v.thumbnail||''}"
-            placeholder="Drive 링크 붙여넣으면 자동 변환"
+            placeholder="Vimeo URL 입력 시 자동 추출 · Drive 링크도 가능"
             oninput="(function(el){const c=convertDriveUrl(el.value);if(c!==el.value)el.value=c;})(this)">
         </div>
         <div style="display:flex;gap:8px;">
@@ -1618,6 +1658,108 @@ function clearVideoForm() {
 }
 function resizeThumb(dataUrl,maxW,maxH){return new Promise(resolve=>{const img=new Image();img.onload=()=>{const s=Math.min(maxW/img.width,maxH/img.height,1),c=document.createElement('canvas');c.width=Math.round(img.width*s);c.height=Math.round(img.height*s);c.getContext('2d').drawImage(img,0,0,c.width,c.height);resolve(c.toDataURL('image/jpeg',.7));};img.onerror=()=>resolve('');img.src=dataUrl;});}
 
+/* ── VIMEO URL INPUT → 자동 썸네일 추출 ── */
+let _vimeoThumbTimer = null;
+let _editThumbTimers = {};
+
+// 편집 폼 — Vimeo URL 변경 시 썸네일 자동 추출
+function onEditVimeoUrlInput(raw, editId) {
+  const id = extractVimeoId(raw.trim());
+  if (!id) return;
+  // 이미 썸네일이 있으면 덮어쓰지 않음
+  const thumbEl = document.getElementById('e-thumb-' + editId);
+  if (thumbEl && thumbEl.value.trim()) return;
+  clearTimeout(_editThumbTimers[editId]);
+  _editThumbTimers[editId] = setTimeout(() => fetchVimeoThumbForEdit(id, editId), 300);
+}
+async function fetchVimeoThumbForEdit(videoId, editId, force = false) {
+  const loadingEl = document.getElementById('e-thumb-loading-' + editId);
+  const badgeEl   = document.getElementById('e-thumb-badge-'   + editId);
+  if (loadingEl) loadingEl.style.display = 'inline';
+  if (badgeEl)   badgeEl.style.display   = 'none';
+  try {
+    const res = await fetch(`https://vimeo.com/api/oembed.json?url=https://vimeo.com/${videoId}`);
+    if (!res.ok) throw new Error('API 오류');
+    const data = await res.json();
+    const thumbUrl = data.thumbnail_url || '';
+    if (!thumbUrl) throw new Error('썸네일 없음');
+    const thumbEl = document.getElementById('e-thumb-' + editId);
+    if (thumbEl && (!thumbEl.value.trim() || force)) {
+      thumbEl.value = thumbUrl;
+      if (badgeEl) badgeEl.style.display = 'inline';
+    }
+  } catch(e) {
+    console.warn('Edit thumb fetch failed:', e.message);
+    showToast('⚠️ 썸네일 추출 실패: ' + e.message);
+  } finally {
+    if (loadingEl) loadingEl.style.display = 'none';
+  }
+}
+
+/* ── 썸네일 일괄 추출 (썸네일 없는 영상) ── */
+async function batchFillThumbs() {
+  const missing = allVideos.filter(v => !v.thumbnail && v.url);
+  if (!missing.length) { showToast('✅ 모든 영상에 썸네일이 있습니다!'); return; }
+  showToast(`🖼️ 썸네일 없는 영상 ${missing.length}개 추출 시작…`);
+  let ok = 0, fail = 0;
+  for (const v of missing) {
+    const id = extractVimeoId(v.url);
+    if (!id) { fail++; continue; }
+    try {
+      const res = await fetch(`https://vimeo.com/api/oembed.json?url=https://vimeo.com/${id}`);
+      if (!res.ok) throw new Error('API 오류');
+      const data = await res.json();
+      const thumbUrl = data.thumbnail_url || '';
+      if (!thumbUrl) throw new Error('없음');
+      // GAS에 저장
+      await api({
+        action: 'save_video', pw: ADMIN_PW,
+        data: JSON.stringify({ ...v, thumbnail: thumbUrl })
+      });
+      v.thumbnail = thumbUrl;
+      ok++;
+    } catch(e) { fail++; }
+    await new Promise(r => setTimeout(r, 200)); // 0.2초 간격 (API 과부하 방지)
+  }
+  renderVideoList();
+  showToast(`✅ 완료: ${ok}개 추출 성공${fail ? `, ${fail}개 실패` : ''}`);
+}
+
+function onVimeoUrlInput(raw) {
+  const id = extractVimeoId(raw.trim());
+  if (!id) return;
+  // 이미 썸네일이 수동으로 설정된 경우 덮어쓰지 않음
+  if (thumbDataUrl && !thumbDataUrl.includes('vimeocdn') && !thumbDataUrl.includes('i.vimeocdn')) return;
+  // 디바운스 300ms
+  clearTimeout(_vimeoThumbTimer);
+  _vimeoThumbTimer = setTimeout(() => fetchVimeoThumb(id), 300);
+}
+async function fetchVimeoThumb(videoId) {
+  const loadingBadge = document.getElementById('thumb-loading-badge');
+  const autoBadge    = document.getElementById('thumb-auto-badge');
+  if (loadingBadge) loadingBadge.style.display = 'inline';
+  if (autoBadge)    autoBadge.style.display    = 'none';
+  try {
+    // Vimeo oEmbed API — 인증 불필요, CORS 허용
+    const res = await fetch(`https://vimeo.com/api/oembed.json?url=https://vimeo.com/${videoId}&width=1280`);
+    if (!res.ok) throw new Error('API 오류');
+    const data = await res.json();
+    const thumbUrl = data.thumbnail_url || '';
+    if (!thumbUrl) throw new Error('썸네일 없음');
+    thumbDataUrl = thumbUrl;
+    showThumbPreview(thumbUrl);
+    // URL 입력창에도 채워줌
+    const inp = document.getElementById('vid-thumb-url');
+    if (inp && !inp.value.trim()) inp.value = thumbUrl;
+    if (autoBadge)    autoBadge.style.display    = 'inline';
+  } catch(e) {
+    // 실패해도 조용히 — 수동 입력 유도
+    console.warn('Vimeo thumb fetch failed:', e.message);
+  } finally {
+    if (loadingBadge) loadingBadge.style.display = 'none';
+  }
+}
+
 /* ── THUMBNAIL ── */
 function convertDriveUrl(url) {
   if (!url) return url;
@@ -1650,7 +1792,15 @@ function onThumbUrlInput(url) {
 }
 function handleThumbSelect(input){const f=input.files[0];if(!f)return;const r=new FileReader();r.onload=e=>{thumbDataUrl=e.target.result;showThumbPreview(e.target.result);};r.readAsDataURL(f);}
 function showThumbPreview(src){document.getElementById('thumb-preview').src=src;document.getElementById('thumb-preview-wrap').style.display='block';document.getElementById('thumb-empty').style.display='none';}
-function clearThumb(){thumbDataUrl='';document.getElementById('thumb-preview-wrap').style.display='none';document.getElementById('thumb-empty').style.display='block';document.getElementById('thumb-preview').src='';const u=document.getElementById('vid-thumb-url');if(u)u.value='';}
+function clearThumb(){
+  thumbDataUrl='';
+  document.getElementById('thumb-preview-wrap').style.display='none';
+  document.getElementById('thumb-empty').style.display='block';
+  document.getElementById('thumb-preview').src='';
+  const u=document.getElementById('vid-thumb-url');if(u)u.value='';
+  const ab=document.getElementById('thumb-auto-badge');if(ab)ab.style.display='none';
+  const lb=document.getElementById('thumb-loading-badge');if(lb)lb.style.display='none';
+}
 
 /* ── DASHBOARD ── */
 function renderDashboard() {
@@ -2215,6 +2365,17 @@ function toggleAutoRefresh() {
 function showMsg(el,msg,type){el.textContent=msg;el.className='msg '+type;el.style.display='block';if(type==='ok')setTimeout(()=>{el.style.display='none';},4000);}
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800);}
 window.addEventListener('keydown',e=>{if(e.key==='Escape')closePopup();});
+
+/* ── 새로고침 세션 유지 ── */
+(function() {
+  try {
+    if (sessionStorage.getItem(ADMIN_SESSION_KEY) === '1') {
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('admin-app').style.display = 'block';
+      loadAll();
+    }
+  } catch(e) {}
+})();
 </script>
 </body>
 </html>
