@@ -1697,7 +1697,7 @@ function hideAutoLoginOverlay() {
 
 /* ── 수강생 찾기 공통 함수 ── */
 function findUser(idVal, pwVal) {
-  if (!studentList.length) return { name: idVal };
+  if (!studentList.length) return null; // 목록 미로드 시 로그인 차단
   if (typeof studentList[0] === 'object') {
     return studentList.find(s => s.id === idVal && String(s.password) === pwVal)
         || studentList.find(s => s.name === idVal && String(s.password) === pwVal);
@@ -1919,7 +1919,7 @@ function gasApi(params){
     const cb='_cb_'+Date.now()+'_'+Math.random().toString(36).slice(2);
     const s=document.createElement('script');
     s.src=SHEET_URL+'?'+new URLSearchParams({...params,callback:cb});
-    const t=setTimeout(()=>{cleanup();reject(new Error('timeout'));},15000);
+    const t=setTimeout(()=>{cleanup();reject(new Error('서버 응답 시간 초과 (15초)'));},15000);
     const cleanup=()=>{delete window[cb];s.parentNode&&s.parentNode.removeChild(s);};
     window[cb]=d=>{clearTimeout(t);cleanup();resolve(d);};
     s.onerror=()=>{clearTimeout(t);cleanup();reject(new Error('load error'));};
@@ -1945,7 +1945,7 @@ async function loadVideos(){
       document.getElementById('rows-container').innerHTML='<div class="loading-state">등록된 강의가 없습니다.</div>';
     }
   }catch(e){
-    document.getElementById('rows-container').innerHTML='<div class="loading-state">목록을 불러오지 못했습니다.</div>';
+    document.getElementById('rows-container').innerHTML='<div class="loading-state">목록을 불러오지 못했습니다.<br><button onclick="loadVideos()" style="margin-top:12px;padding:8px 20px;background:var(--red);color:#fff;border:none;border-radius:4px;font-size:13px;cursor:pointer;">다시 시도</button></div>';
   }
 }
 
@@ -1961,6 +1961,11 @@ async function confirmLogin(){
   if(!studentList.length){
     try{const j=await gasApi({action:'getAllUsers'});studentList=j.userObjects||j.users||[];}
     catch(e){studentList=[];}
+  }
+
+  if(!studentList.length){
+    err.textContent='⚠️ 수강생 목록을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.';
+    err.style.display='block';btn.disabled=false;btn.textContent='입장하기';return;
   }
 
   const matched=findUser(idVal,pwVal);
@@ -2064,9 +2069,9 @@ function updateStats(){
     const p=progressMap[v.id];
     if(!p)return;
     const maxR=parseFloat(p.maxReached)||0;
-    const lastP=parseFloat(p.lastPosition)||0;
-    // 완료: maxReached가 duration의 90% 이상이거나 completed 플래그
-    if(p.completed||(maxR>30&&maxR>=lastP*.9&&lastP>30)){done++;}
+    const dur=parseFloat(p.duration)||0;
+    // 완료: duration 대비 90% 이상 시청하거나 completed 플래그
+    if(p.completed||(dur>0&&maxR/dur>=0.9)){done++;}
     else if(maxR>30){ing++;}
   });
   const none=total-done-ing;
@@ -2119,8 +2124,10 @@ function scrollToCatalog(){document.getElementById('catalog').scrollIntoView({be
 function makeCard(v, vi, i){
   const prog=progressMap[v.id];
   const maxR=prog?(parseFloat(prog.maxReached)||0):0;
-  const isDone=prog&&(prog.completed||(maxR>30&&(parseFloat(prog.lastPosition)||0)>30));
+  const dur=prog?(parseFloat(prog.duration)||0):0;
+  const isDone=prog&&(prog.completed||(dur>0&&maxR/dur>=0.9));
   const isWatched=!isDone&&maxR>30;
+  const cardPct=isDone?100:(dur>0?Math.min(Math.round(maxR/dur*100),99):0);
   const grade=detectGrade(v);
   const gc=gradeClass(grade);
   const parsed=parseTitle(v.title);
@@ -2143,7 +2150,7 @@ function makeCard(v, vi, i){
         <path d="M10 8l6 4-6 4V8z"/>
       </svg>
     </div>
-    <div class="v-progress"><div class="v-progress-fill" id="cpf-${i}" style="width:${isDone?100:0}%;${isDone?'background:var(--green);':''}"></div></div>
+    <div class="v-progress"><div class="v-progress-fill" id="cpf-${i}" style="width:${cardPct}%;${isDone?'background:var(--green);':''}"></div></div>
     <div class="v-info">
       ${parsed.sub?`<div class="v-info-sub">${parsed.sub}</div>`:''}
       <div class="v-info-title">${parsed.main||v.title}</div>
@@ -2560,7 +2567,7 @@ function openDetail(index) {
   const progBox = document.getElementById('detail-progress');
   if (maxR > 10) {
     progBox.style.display = 'block';
-    const isDone = prog && (prog.completed || (maxR > 30 && pct >= 90));
+    const isDone = prog && (prog.completed || (dur > 0 && maxR / dur >= 0.9));
     document.getElementById('detail-prog-label').textContent =
       isDone ? '✅ 시청 완료' : '▶ ' + fmtSec(maxR) + '까지 시청';
     document.getElementById('detail-prog-pct').textContent = isDone ? '100%' : pct + '%';
