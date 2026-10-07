@@ -38,6 +38,9 @@ input,textarea,select{font-family:var(--font);outline:none;}
 .btn-login{width:100%;background:var(--red);color:var(--white);border:none;border-radius:6px;padding:15px;font-size:16px;font-weight:700;font-family:var(--font);transition:background .2s,transform .1s;}
 .btn-login:hover{background:var(--red-h);}
 .btn-login:active{transform:scale(.98);}
+.btn-login:disabled{opacity:.7;cursor:not-allowed;transform:none;}
+.btn-login.loading{background:#b00710;pointer-events:none;}
+.btn-login.loading::before{content:'';display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:8px;margin-top:-2px;}
 .login-err{color:#ff6b6b;font-size:13px;margin-top:10px;display:none;}
 
 /* ── MAIN APP ── */
@@ -299,7 +302,7 @@ table.matrix tbody tr:hover td.cell-ing{background:rgba(74,158,255,.14);}
 .legend{display:flex;gap:16px;font-size:11px;color:var(--g3);margin-top:8px;flex-wrap:wrap;}
 .legend span{display:flex;align-items:center;gap:5px;}
 .legend-dot{width:10px;height:10px;border-radius:2px;}
-.toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(80px);background:rgba(30,30,30,.96);border:1px solid rgba(255,255,255,.12);color:var(--white);padding:12px 24px;border-radius:30px;font-size:14px;font-weight:500;box-shadow:0 8px 32px rgba(0,0,0,.5);transition:transform .3s cubic-bezier(.16,1,.3,1);z-index:9500;white-space:nowrap;max-width:90vw;text-align:center;}
+.toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(80px);background:rgba(30,30,30,.96);border:1px solid rgba(255,255,255,.12);color:var(--white);padding:12px 24px;border-radius:16px;font-size:14px;font-weight:500;box-shadow:0 8px 32px rgba(0,0,0,.5);transition:transform .3s cubic-bezier(.16,1,.3,1);z-index:9500;white-space:normal;max-width:min(92vw,480px);text-align:center;line-height:1.6;}
 .toast.show{transform:translateX(-50%) translateY(0);}
 .hidden{display:none!important;}
 .active-btn{background:rgba(70,211,105,.15)!important;border-color:rgba(70,211,105,.35)!important;color:var(--green)!important;}
@@ -456,7 +459,6 @@ table.matrix tbody tr:hover td.cell-ing{background:rgba(74,158,255,.14);}
     <button class="adm-tab" id="mt-students"  onclick="switchTab('students')"><span class="tab-icon">👥</span><span class="tab-text">수강생별</span></button>
     <button class="adm-tab" id="mt-matrix"    onclick="switchTab('matrix')"><span class="tab-icon">📋</span><span class="tab-text">출석 현황</span></button>
     <button class="adm-tab" id="mt-notice"    onclick="switchTab('notice')"><span class="tab-icon">📢</span><span class="tab-text">공지사항</span></button>
-    <button class="adm-tab" id="mt-shorts"    onclick="switchTab('shorts')"><span class="tab-icon">⚡</span><span class="tab-text">쇼츠</span></button>
     <button class="adm-tab" id="mt-settings"  onclick="switchTab('settings')"><span class="tab-icon">⚙️</span><span class="tab-text">설정</span></button>
   </nav>
 
@@ -714,44 +716,6 @@ table.matrix tbody tr:hover td.cell-ing{background:rgba(74,158,255,.14);}
     </div>
   </div>
 
-  <!-- ═══ 쇼츠 관리 ═══ -->
-  <div class="tab-section" id="ts-shorts">
-    <div class="sec-title">⚡ <em>쇼츠</em> 관리</div>
-
-    <!-- 등록 폼 -->
-    <div class="panel" id="short-form-panel" style="margin-bottom:16px;">
-      <div class="panel-title" style="cursor:pointer;user-select:none;justify-content:space-between;" onclick="toggleShortForm()">
-        <span>➕ 새 쇼츠 등록</span>
-        <span id="short-form-toggle-icon" style="font-size:18px;color:var(--g3);transition:transform .2s;display:inline-block;">▾</span>
-      </div>
-      <div id="short-form-body" style="display:none;">
-        <div class="form-row cols2">
-          <div class="field"><label>제목 *</label><input type="text" id="short-title" placeholder="쇼츠 제목"></div>
-          <div class="field"><label>Vimeo URL *</label><input type="text" id="short-url" placeholder="https://vimeo.com/..."></div>
-        </div>
-        <div class="form-row cols2">
-          <div class="field"><label>강사</label><input type="text" id="short-lecturer" placeholder="강사명"></div>
-          <div class="field"><label>날짜</label><input type="date" id="short-date"></div>
-        </div>
-        <div class="field" style="margin-bottom:14px;">
-          <label>설명 (선택)</label>
-          <textarea id="short-desc" rows="2" placeholder="간단한 설명" style="width:100%;background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.1);border-radius:6px;padding:12px 16px;font-size:14px;color:var(--white);font-family:var(--font);resize:vertical;"></textarea>
-        </div>
-        <div style="display:flex;gap:10px;align-items:center;">
-          <button class="btn-primary" onclick="saveShort()">⚡ 쇼츠 등록</button>
-          <div class="msg" id="short-msg"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 쇼츠 목록 -->
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-      <div style="font-size:14px;font-weight:700;color:var(--g2);">등록된 쇼츠 <em id="short-count" style="color:var(--white)">0</em>개</div>
-      <button class="adm-btn" onclick="loadShortsList()">↻ 새로고침</button>
-    </div>
-    <div id="short-list"><div class="spinner"></div></div>
-  </div>
-
   <!-- ═══ 공지사항 ═══ -->
   <div class="tab-section" id="ts-notice">
     <div class="sec-title">📢 <em>공지사항</em> 관리</div>
@@ -887,26 +851,35 @@ table.matrix tbody tr:hover td.cell-ing{background:rgba(74,158,255,.14);}
 <script>
 const SHEET_URL = 'https://script.google.com/macros/s/AKfycbxygUx-v4SAwg_MSa6SmZJNqjZZFRFWNkyvRtWgFa8k70_fHeVOD-0x2xYvoJyolJhC/exec';
 const ADMIN_URL  = SHEET_URL;
-const ADMIN_PW   = '0314';
+let   ADMIN_PW   = '0314'; // let으로 선언 → 비밀번호 변경 시 현재 세션에도 즉시 반영
 
 let allVideos = [], vdData = null, thumbDataUrl = '', _popupData = {};
 
 /* ── LOGIN ── */
 function doLogin() {
-  if (document.getElementById('pw-in').value === ADMIN_PW) {
-    document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('admin-app').style.display = 'block';
-    loadAll();
+  const pw  = document.getElementById('pw-in').value;
+  const btn = document.querySelector('.btn-login');
+  const err = document.getElementById('login-err');
+  err.style.display = 'none';
+  if (pw === ADMIN_PW) {
+    if (btn) { btn.disabled = true; btn.classList.add('loading'); btn.textContent = '확인 중…'; }
+    setTimeout(() => {
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('admin-app').style.display = 'block';
+      if (btn) { btn.disabled = false; btn.classList.remove('loading'); btn.textContent = '입장하기'; }
+      loadAll();
+    }, 400);
   } else {
-    document.getElementById('login-err').style.display = 'block';
+    err.style.display = 'block';
+    if (btn) { btn.classList.add('loading'); setTimeout(() => btn.classList.remove('loading'), 600); }
   }
 }
 document.getElementById('pw-in').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
 function doLogout() {
-  if (!confirm('로그아웃하시겠습니까?')) return;
   document.getElementById('admin-app').style.display = 'none';
   document.getElementById('login-screen').style.display = 'flex';
   document.getElementById('pw-in').value = '';
+  document.getElementById('login-err').style.display = 'none';
 }
 
 /* ── JSONP API ── */
@@ -936,7 +909,6 @@ function switchTab(t) {
   if (t==='matrix')   loadVideoData();
   if (t==='notice')   loadCurrentNotice();
   if (t==='settings') initSettings();
-  if (t==='shorts')   loadShortsList();
 }
 
 /* ════════════════════
@@ -1025,13 +997,19 @@ async function saveShort() {
 }
 
 async function deleteShort(id, title) {
-  if (!confirm(`"${title}" 쇼츠를 삭제하시겠습니까?`)) return;
+  const toast = document.getElementById('toast');
+  const safeTitle = title.replace(/'/g, "\\'");
+  toast.innerHTML = `⚡ "<b>${title}</b>" 쇼츠를 삭제하시겠습니까? &nbsp;<button onclick="_confirmDeleteShort('${id}');this.closest('[id=toast]').classList.remove('show')" style="background:var(--red);color:#fff;border:none;border-radius:4px;padding:3px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);">삭제</button>&nbsp;<button onclick="this.closest('[id=toast]').classList.remove('show')" style="background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:4px;padding:3px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);">취소</button>`;
+  toast.classList.add('show');
+  setTimeout(() => { toast.classList.remove('show'); toast.innerHTML = ''; }, 6000);
+}
+async function _confirmDeleteShort(id) {
   showToast('⏳ 삭제 중…');
   try {
-    const r = await api({ action:'delete_short', pw:ADMIN_PW, id });
+    const r = await api({ action: 'delete_short', pw: ADMIN_PW, id });
     if (r && r.success) { showToast('✅ 삭제됐습니다.'); loadShortsList(); }
-    else showToast('❌ '+(r&&r.error||'삭제 실패'));
-  } catch(e) { showToast('❌ '+e.message); }
+    else showToast('❌ ' + (r && r.error || '삭제 실패'));
+  } catch(e) { showToast('❌ ' + e.message); }
 }
 
 /* ════════════════════════════
@@ -1247,7 +1225,13 @@ function cancelCsvUpload() {
   document.getElementById('bulk-msg').style.display = 'none';
 }
 async function resetStudentProgress(name, videoId, videoTitle) {
-  if (!confirm(`"${name}" 님의 "${videoTitle}" 진도를 초기화하시겠습니까?\n시청 기록은 삭제되지 않습니다.`)) return;
+  const toast = document.getElementById('toast');
+  const safeN = name.replace(/'/g, "\\'"), safeV = videoId.replace(/'/g, "\\'"), safeT = videoTitle.replace(/'/g, "\\'");
+  toast.innerHTML = `📊 "<b>${name}</b>"의 "${videoTitle}" 진도를 초기화할까요? &nbsp;<button onclick="_confirmResetProgress('${safeN}','${safeV}','${safeT}');this.closest('[id=toast]').classList.remove('show')" style="background:var(--red);color:#fff;border:none;border-radius:4px;padding:3px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);">초기화</button>&nbsp;<button onclick="this.closest('[id=toast]').classList.remove('show')" style="background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:4px;padding:3px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);">취소</button>`;
+  toast.classList.add('show');
+  setTimeout(() => { toast.classList.remove('show'); toast.innerHTML = ''; }, 6000);
+}
+async function _confirmResetProgress(name, videoId, videoTitle) {
   showToast('⏳ 초기화 중…');
   try {
     const r = await api({ action: 'reset_progress', pw: ADMIN_PW, name, videoId });
@@ -1330,7 +1314,8 @@ function changeAdminPw() {
   api({ action: 'change_admin_pw', pw: ADMIN_PW, newpw: nw })
     .then(r => {
       if (r && r.success) {
-        showMsg(msg, '✅ 비밀번호가 변경됐습니다! HTML 파일의 ADMIN_PW도 동일하게 수정해 주세요.', 'ok');
+        ADMIN_PW = nw; // 현재 세션에 즉시 반영
+        showMsg(msg, '✅ 변경됐습니다! HTML 파일의 ADMIN_PW 상수도 동일하게 수정해 주세요.', 'ok');
         document.getElementById('adm-pw-current').value = '';
         document.getElementById('adm-pw-new').value = '';
         document.getElementById('adm-pw-confirm').value = '';
@@ -1486,6 +1471,11 @@ function renderVideoList() {
           <div class="field"><label>날짜</label><input type="date" id="e-date-${v.id}" value="${v.date||''}"></div>
           <div class="field"><label>강사</label><input type="text" id="e-lecturer-${v.id}" value="${v.lecturer||''}"></div>
         </div>
+        <div class="field" style="margin-bottom:10px;">
+          <label>Vimeo ID / URL</label>
+          <input type="text" id="e-url-${v.id}" value="${v.url||''}"
+            placeholder="Vimeo ID 또는 https://vimeo.com/... (오류 영상 교체 시 수정)">
+        </div>
         <div class="field" style="margin-bottom:12px;">
           <label>썸네일 URL</label>
           <input type="text" id="e-thumb-${v.id}" value="${v.thumbnail||''}"
@@ -1546,7 +1536,7 @@ async function saveEdit(id) {
     date:      document.getElementById('e-date-'+id).value,
     lecturer:  document.getElementById('e-lecturer-'+id).value.trim(),
     thumbnail: document.getElementById('e-thumb-'+id).value.trim(),
-    url: v.url || ''
+    url: extractVimeoId(document.getElementById('e-url-'+id).value.trim()) || v.url || ''
   };
   if (!data.title) { showMsg(msg,'제목을 입력하세요.','err'); return; }
   showMsg(msg,'⏳ 저장 중…','ok');
@@ -1584,30 +1574,16 @@ async function saveVideo() {
       data:JSON.stringify({title,url:vimeoId,grade,date,lecturer,description:desc,thumbnail:thumb})
     });
     if (r && r.success) {
-      showMsg(msg,'✅ 등록됐습니다!','ok');
+      // 즉시 로컬 배열에 추가 → 기다리지 않고 바로 목록에 반영
+      const newVideo = { id: r.id || String(Date.now()), title, url: vimeoId, grade, date, lecturer, description: desc, thumbnail: thumb };
+      allVideos.unshift(newVideo);
+      renderVideoList();
+      showMsg(msg,'✅ 등록 완료!','ok');
+      showToast('✅ 영상 등록 완료');
       clearVideoForm();
       toggleVidForm(false);
-      // 등록 직후 목록 새로고침 — 방금 등록된 항목 포함 확인
-      showMsg(msg,'✅ 등록 완료! 목록 갱신 중…','ok');
-      let retries = 0;
-      const refreshAndCheck = async () => {
-        try {
-          const r2 = await api({action:'videos'});
-          const newList = r2.videos || r2.items || [];
-          // 새 목록에 방금 등록한 제목이 있는지 확인
-          if (newList.some(v => v.title === title) || retries >= 2) {
-            allVideos = newList;
-            renderVideoList();
-            showMsg(msg,'✅ 등록 완료!','ok');
-            showToast('✅ 영상 등록 완료');
-          } else {
-            retries++;
-            // 아직 반영 안 됐으면 1.5초 후 재시도
-            setTimeout(refreshAndCheck, 1500);
-          }
-        } catch(e2) { renderVideoList(); }
-      };
-      setTimeout(refreshAndCheck, 1000);
+      // 백그라운드에서 서버 목록과 동기화 (조용히)
+      api({action:'videos'}).then(r2=>{ allVideos=r2.videos||r2.items||[]; renderVideoList(); }).catch(()=>{});
     } else {
       showMsg(msg,'❌ '+(r&&r.error||'GAS 응답 없음 — GAS 재배포 여부를 확인하세요.'),'err');
     }
@@ -1617,13 +1593,24 @@ async function saveVideo() {
   if (btn) btn.disabled=false;
 }
 async function deleteVideo(id) {
-  if (!confirm('삭제하시겠습니까?')) return;
-  showToast('⏳ 삭제 중…');
+  const v = allVideos.find(v => v.id === id);
+  const titleLabel = v ? (v.title.length > 20 ? v.title.slice(0, 20) + '…' : v.title) : '이 영상';
+  const toast = document.getElementById('toast');
+  toast.innerHTML = `🗑 "<b>${titleLabel}</b>"을 삭제하시겠습니까? &nbsp;<button onclick="_confirmDeleteVideo('${id}');this.closest('[id=toast]').classList.remove('show')" style="background:var(--red);color:#fff;border:none;border-radius:4px;padding:3px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);">삭제</button>&nbsp;<button onclick="this.closest('[id=toast]').classList.remove('show')" style="background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:4px;padding:3px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);">취소</button>`;
+  toast.classList.add('show');
+  setTimeout(() => { toast.classList.remove('show'); toast.innerHTML = ''; }, 6000);
+}
+async function _confirmDeleteVideo(id) {
+  // 즉시 로컬에서 제거 → UI 즉각 반영
+  allVideos = allVideos.filter(v => v.id !== id);
+  renderVideoList();
+  showToast('🗑 삭제됐습니다.');
+  // 백그라운드에서 실제 삭제 API 호출
   try {
-    try { await api({action:'delete_video',pw:ADMIN_PW,id}); } catch(e1) { await postApi({action:'delete_video',pw:ADMIN_PW,id}); await new Promise(r=>setTimeout(r,1500)); }
-    try{const r2=await api({action:'videos'});allVideos=r2.videos||r2.items||[];}catch(e2){allVideos=allVideos.filter(v=>v.id!==id);}
-    renderVideoList(); showToast('🗑 삭제됐습니다.');
-  } catch(e) { showToast('❌ '+e.message); }
+    try { await api({action:'delete_video',pw:ADMIN_PW,id}); } catch(e1) { await postApi({action:'delete_video',pw:ADMIN_PW,id}); }
+    // 서버 목록과 동기화 (조용히)
+    api({action:'videos'}).then(r2=>{ allVideos=r2.videos||r2.items||[]; renderVideoList(); }).catch(()=>{});
+  } catch(e) { showToast('⚠️ 서버 삭제 실패: '+e.message); }
 }
 function clearVideoForm() {
   ['vid-title','vid-url','vid-date','vid-lecturer','vid-desc','vid-thumb-url'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
@@ -1794,7 +1781,12 @@ function renderDashboard() {
 
 /* ── VIDEO DATA LOAD (출석 현황 탭 진입 시 자동 로드) ── */
 async function loadVideoData() {
-  if (vdData) { renderMatrix(vdData); return; } // 이미 로드됐으면 재사용
+  if (vdData) {
+    // 이미 로드됐으면 재사용 (최신 데이터가 필요하면 "강제 갱신" 버튼 사용)
+    if (window.innerWidth <= 768) renderMatrixCards(vdData);
+    else renderMatrix(vdData);
+    return;
+  }
   document.getElementById('matrix-area').innerHTML='<div class="spinner"></div>';
   document.getElementById('matrix-summary').innerHTML='';
   try {
@@ -1946,7 +1938,13 @@ async function addStudent(){
   catch(e){showMsg(msg,'❌ '+e.message,'err');}
 }
 async function deleteStudent(name){
-  if(!confirm(`"${name}" 수강생을 삭제하시겠습니까?`))return;
+  const toast=document.getElementById('toast');
+  const safeName=name.replace(/'/g,"\\'");
+  toast.innerHTML=`👥 "<b>${name}</b>" 수강생을 삭제하시겠습니까? &nbsp;<button onclick="_confirmDeleteStudent('${safeName}');this.closest('[id=toast]').classList.remove('show')" style="background:var(--red);color:#fff;border:none;border-radius:4px;padding:3px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);">삭제</button>&nbsp;<button onclick="this.closest('[id=toast]').classList.remove('show')" style="background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:4px;padding:3px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);">취소</button>`;
+  toast.classList.add('show');
+  setTimeout(()=>{toast.classList.remove('show');toast.innerHTML='';},6000);
+}
+async function _confirmDeleteStudent(name){
   showToast('⏳ 삭제 중…');
   try{await api({action:'delete_student',pw:ADMIN_PW,name});loadStudentList();showToast('🗑 수강생이 삭제됐습니다.');}
   catch(e){showToast('❌ '+e.message);}
@@ -1994,7 +1992,18 @@ function renderStudentDetail(){
 /* ── NOTICE ── */
 async function loadCurrentNotice(){const el=document.getElementById('notice-preview');if(!el)return;try{const r=await api({action:'getNotice'});el.textContent=(r&&r.text)?r.text:'현재 활성 공지가 없습니다.';if(r&&r.text)document.getElementById('notice-input').value=r.text;}catch(e){el.textContent='불러오기 실패: '+e.message;}}
 async function saveNotice(){const text=document.getElementById('notice-input').value.trim(),msg=document.getElementById('notice-msg');if(!text){showMsg(msg,'공지 내용을 입력해 주세요.','err');return;}showMsg(msg,'⏳ 등록 중…','ok');try{const r=await api({action:'save_notice',pw:ADMIN_PW,text});if(r&&r.success){showMsg(msg,'✅ 등록됐습니다!','ok');loadCurrentNotice();}else{showMsg(msg,'❌ '+(r&&r.error||'오류'),'err');}}catch(e){showMsg(msg,'❌ '+e.message,'err');}}
-async function deleteNotice(){if(!confirm('공지사항을 삭제하시겠습니까?'))return;const msg=document.getElementById('notice-msg');try{await api({action:'delete_notice',pw:ADMIN_PW});showMsg(msg,'✅ 삭제됐습니다.','ok');document.getElementById('notice-input').value='';loadCurrentNotice();}catch(e){showMsg(msg,'❌ '+e.message,'err');}}
+async function deleteNotice(){
+  const msg=document.getElementById('notice-msg');
+  // confirm() 대신 토스트 확인 방식
+  const toast=document.getElementById('toast');
+  toast.innerHTML='📢 공지를 삭제하시겠습니까? &nbsp;<button onclick="_confirmDeleteNotice();this.closest(\'[id=toast]\').classList.remove(\'show\')" style="background:var(--red);color:#fff;border:none;border-radius:4px;padding:3px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);">삭제</button>&nbsp;<button onclick="this.closest(\'[id=toast]\').classList.remove(\'show\')" style="background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:4px;padding:3px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);">취소</button>';
+  toast.classList.add('show');
+  setTimeout(()=>{toast.classList.remove('show');toast.textContent='';},6000);
+}
+async function _confirmDeleteNotice(){
+  const msg=document.getElementById('notice-msg');
+  try{await api({action:'delete_notice',pw:ADMIN_PW});showMsg(msg,'✅ 삭제됐습니다.','ok');document.getElementById('notice-input').value='';loadCurrentNotice();}catch(e){showMsg(msg,'❌ '+e.message,'err');}
+}
 
 /* ── POPUP ── */
 function regPopup(k,t,i){_popupData[k]={title:t,items:i};}
@@ -2068,10 +2077,32 @@ function moveVideo(id, dir) {
 /* ════════════════════════
    ⑤ 수강생 비밀번호 초기화
 ════════════════════════ */
-async function resetPassword(name) {
-  const newpw = prompt(`"${name}" 님의 새 비밀번호를 입력하세요:`);
-  if (!newpw) return;
-  if (newpw.length < 4) { showToast('❌ 비밀번호는 4자 이상이어야 합니다.'); return; }
+function resetPassword(name) {
+  // prompt() 대신 팝업 오버레이 사용 (iOS Safari 호환)
+  document.getElementById('popup-title').textContent = '🔑 비밀번호 초기화';
+  document.getElementById('popup-body').innerHTML = `
+    <div style="padding:8px 0;">
+      <div style="font-size:14px;color:var(--g2);margin-bottom:16px;"><b>${name}</b> 님의 새 비밀번호를 입력하세요.</div>
+      <input type="password" id="reset-pw-input" placeholder="새 비밀번호 (4자 이상)"
+        style="width:100%;background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.15);border-radius:6px;padding:12px 16px;font-size:15px;color:var(--white);font-family:var(--font);box-sizing:border-box;outline:none;"
+        onkeydown="if(event.key==='Enter')_doResetPassword('${name.replace(/'/g, "\\'")}')">
+      <div id="reset-pw-err" style="color:#ff6b6b;font-size:12px;margin-top:8px;display:none;"></div>
+      <div style="display:flex;gap:10px;margin-top:16px;">
+        <button class="btn-primary" style="flex:1;" onclick="_doResetPassword('${name.replace(/'/g, "\\'")}')">변경하기</button>
+        <button class="btn-secondary" style="flex:1;" onclick="closePopup()">취소</button>
+      </div>
+    </div>`;
+  document.getElementById('popup-overlay').classList.add('show');
+  setTimeout(() => { const el = document.getElementById('reset-pw-input'); if (el) el.focus(); }, 100);
+}
+async function _doResetPassword(name) {
+  const inp = document.getElementById('reset-pw-input');
+  const err = document.getElementById('reset-pw-err');
+  if (!inp) return;
+  const newpw = inp.value.trim();
+  if (!newpw) { if(err){err.textContent='비밀번호를 입력해 주세요.';err.style.display='block';} return; }
+  if (newpw.length < 4) { if(err){err.textContent='비밀번호는 4자 이상이어야 합니다.';err.style.display='block';} return; }
+  closePopup();
   showToast('⏳ 변경 중…');
   try {
     const r = await api({ action: 'reset_password', pw: ADMIN_PW, name, newpw });
