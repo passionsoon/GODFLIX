@@ -142,7 +142,15 @@ input{outline:none;font-family:'Pretendard Variable','Pretendard',-apple-system,
 }
 .btn-enter:hover{background:#f40612;}
 .btn-enter:active{transform:scale(.98);}
-.btn-enter:disabled{opacity:.5;cursor:not-allowed;transform:none;}
+.btn-enter:disabled{opacity:.7;cursor:not-allowed;transform:none;}
+.btn-enter.loading{background:#b00710;pointer-events:none;}
+.btn-enter.loading::before{
+  content:'';display:inline-block;width:16px;height:16px;
+  border:2px solid rgba(255,255,255,.35);border-top-color:#fff;
+  border-radius:50%;animation:spin .7s linear infinite;
+  vertical-align:middle;margin-right:8px;margin-top:-2px;
+}
+@keyframes spin{to{transform:rotate(360deg);}}
 .login-err{
   display:none;color:#ff6b6b;font-size:13px;
   margin-top:12px;line-height:1.5;
@@ -1956,22 +1964,25 @@ async function confirmLogin(){
   const btn=document.getElementById('confirm-btn');
   const err=document.getElementById('error-msg');
   if(!idVal||!pwVal){showToast('아이디와 비밀번호를 입력해 주세요');return;}
-  err.style.display='none';btn.disabled=true;btn.textContent='확인 중…';
+  err.style.display='none';
+  btn.disabled=true;btn.classList.add('loading');btn.textContent='로그인 중…';
 
   if(!studentList.length){
     try{const j=await gasApi({action:'getAllUsers'});studentList=j.userObjects||j.users||[];}
     catch(e){studentList=[];}
   }
 
+  const resetBtn=()=>{btn.disabled=false;btn.classList.remove('loading');btn.textContent='입장하기';};
+
   if(!studentList.length){
     err.textContent='⚠️ 수강생 목록을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.';
-    err.style.display='block';btn.disabled=false;btn.textContent='입장하기';return;
+    err.style.display='block';resetBtn();return;
   }
 
   const matched=findUser(idVal,pwVal);
   if(!matched){
     err.textContent='❌ 등록된 수강생 명단에 없는 아이디입니다.';
-    err.style.display='block';btn.disabled=false;btn.textContent='입장하기';return;
+    err.style.display='block';resetBtn();return;
   }
 
   // 자동로그인 체크 시 저장
@@ -1980,7 +1991,7 @@ async function confirmLogin(){
     localStorage.setItem(AUTO_KEY,JSON.stringify({id:idVal,pw:pwVal}));
   }
 
-  btn.disabled=false;btn.textContent='입장하기';
+  resetBtn();
   await doLogin(matched,idVal);
 
   // 생체인증 등록 제안 (자동로그인 체크 + 미등록 시)
