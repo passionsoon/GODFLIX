@@ -1621,7 +1621,6 @@ function showToast(msg){
 
 let currentSearchQuery = '';
 
-/* ════════════════════════════════════
 let _searchTimer = null;
 function onSearch(q) {
   currentSearchQuery = q.trim();
@@ -1653,6 +1652,7 @@ function clearSearch() {
   if (countEl) countEl.textContent = '';
   renderCatalog();
 }
+
 /* ═══════════════════════════════════════
    🔐 자동로그인 + 생체인증 (WebAuthn)
 ═══════════════════════════════════════ */
@@ -1986,9 +1986,11 @@ async function confirmLogin(){
   // 생체인증 등록 제안 (자동로그인 체크 + 미등록 시)
   if(autoCheck?.checked&&window.PublicKeyCredential&&!localStorage.getItem(CRED_KEY)){
     setTimeout(()=>{
-      if(confirm('다음부터 지문/Face ID로 바로 로그인할 수 있습니다.\n생체 인증을 등록하시겠어요?')){
-        registerBiometric(idVal,pwVal);
-      }
+      const toast=document.getElementById('toast');
+      if(!toast)return;
+      toast.innerHTML='🔐 다음부터 지문/Face ID로 로그인하시겠어요? &nbsp;<button onclick="registerBiometric(\''+idVal+'\',\''+pwVal+'\');this.closest(\'[id=toast]\').classList.remove(\'show\')" style="background:var(--white);color:var(--black);border:none;border-radius:4px;padding:3px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">등록하기</button>';
+      toast.classList.add('show');
+      setTimeout(()=>{toast.classList.remove('show');toast.textContent='';},7000);
     },1500);
   }
 }
@@ -1996,12 +1998,10 @@ async function confirmLogin(){
 function goToLogin(){
   if(currentVideo&&maxReachedSec>5){saveRecord(true);saveProgress();}
   clearInterval(progressSaveInterval);closePlayer();
-  // 자동로그인 해제 여부 확인
+  // 자동로그인 해제 (로그아웃 시 항상 해제)
   if(localStorage.getItem(AUTO_KEY)){
-    if(confirm('자동 로그인을 해제하시겠어요?')){
-      localStorage.removeItem(AUTO_KEY);
-      localStorage.removeItem(CRED_KEY);
-    }
+    localStorage.removeItem(AUTO_KEY);
+    localStorage.removeItem(CRED_KEY);
   }
   document.getElementById('app').classList.remove('show');
   document.getElementById('stats-row').style.display='none';
@@ -2655,7 +2655,10 @@ async function changePw(){
     const pw=String(s.password||'');
     return (id===userName||s.name===userName)&&pw===cur;
   });
-  if(!matched&&studentList.length>0){
+  if(!studentList.length){
+    err.textContent='⚠️ 수강생 목록을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.';err.style.display='block';return;
+  }
+  if(!matched){
     err.textContent='현재 비밀번호가 올바르지 않습니다.';err.style.display='block';return;
   }
   try{
