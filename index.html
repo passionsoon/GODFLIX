@@ -193,7 +193,7 @@ input{outline:none;font-family:'Pretendard Variable','Pretendard',-apple-system,
 .hero-content{
   position:absolute;
   bottom:18%;left:4%;
-  max-width:52%;
+  max-width:62%;
   z-index:10;
 }
 @media(max-width:700px){
@@ -227,17 +227,17 @@ input{outline:none;font-family:'Pretendard Variable','Pretendard',-apple-system,
     font-size:clamp(22px,7.5vw,36px);
     letter-spacing:-1px;
     margin-bottom:10px;
-    -webkit-line-clamp:2;
-    display:-webkit-box;
-    -webkit-box-orient:vertical;
-    overflow:hidden;
+    /* 클램프 제거 — 제목 전체 표시 */
+    display:block;
+    overflow:visible;
+    white-space:normal;
   }
   .hero-title-sub{font-size:11px;font-weight:800;margin-bottom:3px;letter-spacing:.5px;color:var(--g1);}
   .hero-badge{font-size:10px;margin-bottom:8px;padding:2px 8px;}
   .hero-meta{font-size:11px;gap:8px;margin-bottom:10px;}
   .hero-desc{
     font-size:12px;
-    -webkit-line-clamp:2;
+    -webkit-line-clamp:3;
     margin-bottom:14px;
   }
   .hero-btns{gap:8px;}
@@ -875,10 +875,10 @@ input{outline:none;font-family:'Pretendard Variable','Pretendard',-apple-system,
     font-size:clamp(24px,7.5vw,36px);
     letter-spacing:-1px;
     margin-bottom:8px;
-    -webkit-line-clamp:2;
-    display:-webkit-box;
-    -webkit-box-orient:vertical;
-    overflow:hidden;
+    /* 클램프 제거 — 제목 전체 표시 */
+    display:block;
+    overflow:visible;
+    white-space:normal;
   }
   .hero-meta{font-size:12px;gap:8px;margin-bottom:10px;}
   .hero-desc{
@@ -1666,18 +1666,39 @@ function clearSearch() {
 ═══════════════════════════════════════ */
 const AUTO_KEY    = 'gf_auto_login';
 const CRED_KEY    = 'gf_biometric_cred';
+const SESSION_KEY = 'gf_session'; // 탭 열린 동안만 유지 (sessionStorage)
 
 /* ── 초기화: 페이지 로드 시 자동로그인 시도 ── */
 async function initAutoLogin() {
-  // 1. 자동로그인 저장 데이터 확인
-  const saved = JSON.parse(localStorage.getItem(AUTO_KEY) || 'null');
-  if (saved && saved.id && saved.pw) {
-    showAutoLoginOverlay('자동 로그인 중…');
-    // 수강생 목록 먼저 로드
+  // 0. 세션 유지 — 새로고침해도 로그인 상태 유지 (탭 닫으면 초기화)
+  const sess = JSON.parse(sessionStorage.getItem(SESSION_KEY) || 'null');
+  if (sess && sess.id && sess.pw) {
+    showAutoLoginOverlay('로그인 정보 확인 중…');
     try {
       const j = await gasApi({ action: 'getAllUsers' });
       studentList = j.userObjects || j.users || [];
     } catch(e) { studentList = []; }
+    const matched = findUser(sess.id, sess.pw);
+    if (matched) {
+      await doLogin(matched, sess.id);
+      hideAutoLoginOverlay();
+      return;
+    }
+    sessionStorage.removeItem(SESSION_KEY);
+    hideAutoLoginOverlay();
+  }
+
+  // 1. 자동로그인 저장 데이터 확인 (localStorage — 탭 닫아도 유지)
+  const saved = JSON.parse(localStorage.getItem(AUTO_KEY) || 'null');
+  if (saved && saved.id && saved.pw) {
+    showAutoLoginOverlay('자동 로그인 중…');
+    // 수강생 목록 먼저 로드
+    if (!studentList.length) {
+      try {
+        const j = await gasApi({ action: 'getAllUsers' });
+        studentList = j.userObjects || j.users || [];
+      } catch(e) { studentList = []; }
+    }
     // 저장된 정보로 로그인 시도
     const matched = findUser(saved.id, saved.pw);
     if (matched) {
@@ -1791,6 +1812,7 @@ async function loginWithBiometric() {
       }
       const matched = findUser(savedUser.id, savedUser.pw);
       if (matched) {
+        try { sessionStorage.setItem(SESSION_KEY, JSON.stringify({id:savedUser.id, pw:savedUser.pw})); } catch(e){}
         await doLogin(matched, savedUser.id);
         hideAutoLoginOverlay();
         return;
@@ -1985,6 +2007,9 @@ async function confirmLogin(){
     err.style.display='block';resetBtn();return;
   }
 
+  // 세션 저장 — 새로고침해도 로그인 유지 (탭 닫으면 초기화)
+  try { sessionStorage.setItem(SESSION_KEY, JSON.stringify({id:idVal, pw:pwVal})); } catch(e){}
+
   // 자동로그인 체크 시 저장
   const autoCheck=document.getElementById('auto-login-check');
   if(autoCheck?.checked){
@@ -2009,7 +2034,8 @@ async function confirmLogin(){
 function goToLogin(){
   if(currentVideo&&maxReachedSec>5){saveRecord(true);saveProgress();}
   clearInterval(progressSaveInterval);closePlayer();
-  // 자동로그인 해제 (로그아웃 시 항상 해제)
+  // 세션 + 자동로그인 해제 (로그아웃 시 항상 해제)
+  try { sessionStorage.removeItem(SESSION_KEY); } catch(e){}
   if(localStorage.getItem(AUTO_KEY)){
     localStorage.removeItem(AUTO_KEY);
     localStorage.removeItem(CRED_KEY);
