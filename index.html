@@ -1688,34 +1688,46 @@ async function initAutoLogin() {
     } catch(e) { studentList = []; }
   }
 
-  // 0. 세션 유지 — 새로고침해도 로그인 상태 유지 (탭 닫으면 초기화)
-  const sess = JSON.parse(sessionStorage.getItem(SESSION_KEY) || 'null');
-  if (sess && sess.id && sess.pw) {
-    showAutoLoginOverlay('로그인 정보 확인 중…');
-    await ensureStudents();
-    const matched = findUser(sess.id, sess.pw);
-    if (matched) {
-      await doLogin(matched, sess.id);
-      hideAutoLoginOverlay();
-      return;
+  // 저장된 로그인 정보로 즉시 입장 (서버 기다리지 않음)
+  //  - 사용자 정보(user)를 같이 저장해 두므로 서버 응답 없이 바로 로그인
+  //  - 서버가 느리거나 실패해도 저장된 정보는 절대 지우지 않음
+  //  - 서버 목록을 받은 뒤 '명단에 확실히 없을 때만' 로그아웃 처리
+  async function loginFromSaved(saved, storage, key) {
+    let user = saved.user || findUser(saved.id, saved.pw);
+    if (user) {
+      await doLogin(user, saved.id);
+      // 백그라운드 검증
+      ensureStudents().then(() => {
+        if (!studentList.length) return;          // 서버 실패 → 그대로 유지
+        const fresh = findUser(saved.id, saved.pw);
+        if (fresh) { storage.setItem(key, JSON.stringify({ id: saved.id, pw: saved.pw, user: fresh })); }
+        else { storage.removeItem(key); }          // 명단에서 빠진 경우만 삭제
+      });
+      return true;
     }
-    sessionStorage.removeItem(SESSION_KEY);
-    hideAutoLoginOverlay();
-  }
-
-  // 1. 자동로그인 저장 데이터 확인 (localStorage — 탭 닫아도 유지)
-  const saved = JSON.parse(localStorage.getItem(AUTO_KEY) || 'null');
-  if (saved && saved.id && saved.pw) {
     showAutoLoginOverlay('자동 로그인 중…');
     await ensureStudents();
-    const matched = findUser(saved.id, saved.pw);
-    if (matched) {
-      await doLogin(matched, saved.id);
-      hideAutoLoginOverlay();
-      return;
-    }
-    localStorage.removeItem(AUTO_KEY);
     hideAutoLoginOverlay();
+    user = findUser(saved.id, saved.pw);
+    if (user) {
+      storage.setItem(key, JSON.stringify({ id: saved.id, pw: saved.pw, user }));
+      await doLogin(user, saved.id);
+      return true;
+    }
+    if (studentList.length) storage.removeItem(key); // 서버 정상인데 불일치일 때만 삭제
+    return false;
+  }
+
+  // 0. 자동로그인 (localStorage — 브라우저 닫아도 유지)
+  const saved = JSON.parse(localStorage.getItem(AUTO_KEY) || 'null');
+  if (saved && saved.id && saved.pw) {
+    if (await loginFromSaved(saved, localStorage, AUTO_KEY)) return;
+  }
+
+  // 1. 세션 유지 (sessionStorage — 탭 닫으면 초기화)
+  const sess = JSON.parse(sessionStorage.getItem(SESSION_KEY) || 'null');
+  if (sess && sess.id && sess.pw) {
+    if (await loginFromSaved(sess, sessionStorage, SESSION_KEY)) return;
   }
 
   // 2. 생체인증 등록 여부 확인 → 버튼 표시
@@ -2109,12 +2121,12 @@ async function confirmLogin(){
   }
 
   // 세션 저장 — 새로고침해도 로그인 유지 (탭 닫으면 초기화)
-  try { sessionStorage.setItem(SESSION_KEY, JSON.stringify({id:idVal, pw:pwVal})); } catch(e){}
+  try { sessionStorage.setItem(SESSION_KEY, JSON.stringify({id:idVal, pw:pwVal, user:matched})); } catch(e){}
 
   // 자동로그인 체크 시 저장
   const autoCheck=document.getElementById('auto-login-check');
   if(autoCheck?.checked){
-    localStorage.setItem(AUTO_KEY,JSON.stringify({id:idVal,pw:pwVal}));
+    localStorage.setItem(AUTO_KEY,JSON.stringify({id:idVal,pw:pwVal,user:matched}));
   }
 
   resetBtn();

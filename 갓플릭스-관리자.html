@@ -1519,7 +1519,7 @@ function renderVideoList() {
             ${!v.thumbnail && v.url ? `<button type="button" onclick="fetchVimeoThumbForEdit('${extractVimeoId(v.url)}','${v.id}',true)" style="background:rgba(74,158,255,.15);border:1px solid rgba(74,158,255,.3);color:#4a9eff;border-radius:10px;padding:2px 10px;font-size:10px;font-weight:700;cursor:pointer;">🔄 썸네일 가져오기</button>` : ''}
           </label>
           <input type="text" id="e-thumb-${v.id}" value="${v.thumbnail||''}"
-            placeholder="Vimeo URL 입력 시 자동 추출 · Drive 링크도 가능"
+            placeholder="공개 영상만 자동 추출 · 비공개는 Vimeo→영상→썸네일 우클릭→이미지 주소 복사"
             oninput="(function(el){const c=convertDriveUrl(el.value);if(c!==el.value)el.value=c;})(this)">
         </div>
         <div style="display:flex;gap:8px;">
@@ -1682,7 +1682,7 @@ async function fetchVimeoThumbForEdit(videoId, editId, force = false) {
     if (!res.ok) throw new Error('API 오류');
     const data = await res.json();
     const thumbUrl = data.thumbnail_url || '';
-    if (!thumbUrl) throw new Error('썸네일 없음');
+    if (!thumbUrl) throw new Error('비공개 영상이면 썸네일 자동 추출 불가 — Vimeo에서 직접 복사해 주세요');
     const thumbEl = document.getElementById('e-thumb-' + editId);
     if (thumbEl && (!thumbEl.value.trim() || force)) {
       thumbEl.value = thumbUrl;
@@ -1690,7 +1690,7 @@ async function fetchVimeoThumbForEdit(videoId, editId, force = false) {
     }
   } catch(e) {
     console.warn('Edit thumb fetch failed:', e.message);
-    showToast('⚠️ 썸네일 추출 실패: ' + e.message);
+    showToast('⚠️ ' + e.message);
   } finally {
     if (loadingEl) loadingEl.style.display = 'none';
   }
@@ -1713,8 +1713,8 @@ async function batchFillThumbs() {
       if (!thumbUrl) throw new Error('없음');
       // GAS에 저장
       await api({
-        action: 'save_video', pw: ADMIN_PW,
-        data: JSON.stringify({ ...v, thumbnail: thumbUrl })
+        action: 'update_video', pw: ADMIN_PW,
+        data: JSON.stringify({ id: v.id, thumbnail: thumbUrl })
       });
       v.thumbnail = thumbUrl;
       ok++;
@@ -1745,7 +1745,7 @@ async function fetchVimeoThumb(videoId) {
     if (!res.ok) throw new Error('API 오류');
     const data = await res.json();
     const thumbUrl = data.thumbnail_url || '';
-    if (!thumbUrl) throw new Error('썸네일 없음');
+    if (!thumbUrl) throw new Error('비공개 영상이면 썸네일 자동 추출 불가 — Vimeo에서 직접 복사해 주세요');
     thumbDataUrl = thumbUrl;
     showThumbPreview(thumbUrl);
     // URL 입력창에도 채워줌
