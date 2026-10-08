@@ -2001,17 +2001,15 @@ async function init(){
     studentList = cachedUsers;
   }
 
-  // 3. 자동로그인 시도 (캐시 있으면 서버 호출 없이 바로 처리)
-  await initAutoLogin();
-
-  // 4. 서버에서 최신 데이터 백그라운드 업데이트
-  loadVideosFromServer();
+  // 3. 자동로그인 + 영상 로딩 + 수강생 로딩 동시 시작 (서로 기다리지 않음)
+  const loginPromise = initAutoLogin();
+  loadVideosFromServer(); // 영상은 로그인 기다리지 않고 즉시 시작
   if (!cachedUsers || !cachedUsers.length) {
     loadStudentsFromServer();
   } else {
-    // 캐시 있어도 백그라운드에서 조용히 갱신
-    loadStudentsFromServer(true);
+    loadStudentsFromServer(true); // 백그라운드 조용히 갱신
   }
+  await loginPromise; // 로그인 완료 대기 (UI 업데이트 위해)
 }
 
 async function loadStudentsFromServer(silent = false) {
@@ -2031,20 +2029,42 @@ async function loadStudents(){
   await loadStudentsFromServer();
 }
 
-async function loadVideosFromServer() {
+async function loadVideosFromServer(retryCount=0) {
   try{
-    const j=await gasApi({action:'getVideos'});
-    if(j.result==='success'&&j.videos?.length){
-      VIDEOS=j.videos;
-      cacheSet(CACHE_VIDEOS_KEY, j.videos);
+    // 'videos' 액션 사용 (GAS 호환), 첫 번째 시도 시 사용자에게 알림
+    if(retryCount===0 && !VIDEOS.length){
+      // 로딩 중 표시 (이미 스켈레톤이 있으면 유지, 없으면 메시지)
+      const c=document.getElementById('rows-container');
+      if(!c.querySelector('.skeleton-card,.v-row')){
+        c.innerHTML='<div class="loading-state" style="color:var(--g3);font-size:13px;">📡 강의 목록 불러오는 중…</div>';
+      }
+    }
+    const j=await gasApi({action:'videos'});
+    // GAS 응답 형태: {videos:[...]} 또는 {result:'success', videos:[...]} 또는 {items:[...]}
+    const list = j.videos || j.items || [];
+    if(list.length){
+      VIDEOS=list;
+      cacheSet(CACHE_VIDEOS_KEY, list);
       buildGradeTabs();renderCatalog();updateFeatured(0);
       initHeroCarousel();
     }else if(!VIDEOS.length){
-      document.getElementById('rows-container').innerHTML='<div class="loading-state">등록된 강의가 없습니다.</div>';
+      // 서버는 응답했지만 영상이 없음 — 재시도 1회
+      if(retryCount<1){
+        setTimeout(()=>loadVideosFromServer(retryCount+1), 3000);
+      } else {
+        document.getElementById('rows-container').innerHTML='<div class="loading-state">등록된 강의가 없습니다.</div>';
+      }
     }
   }catch(e){
+    console.warn('loadVideosFromServer error:', e.message);
     if(!VIDEOS.length){
-      document.getElementById('rows-container').innerHTML='<div class="loading-state">목록을 불러오지 못했습니다.<br><button onclick="loadVideosFromServer()" style="margin-top:12px;padding:8px 20px;background:var(--red);color:#fff;border:none;border-radius:4px;font-size:13px;cursor:pointer;">다시 시도</button></div>';
+      if(retryCount<1){
+        // GAS cold start 대비 재시도
+        document.getElementById('rows-container').innerHTML='<div class="loading-state" style="color:var(--g3);font-size:13px;">⏳ 서버 연결 중… (첫 실행 시 시간이 걸려요)</div>';
+        setTimeout(()=>loadVideosFromServer(retryCount+1), 5000);
+      } else {
+        document.getElementById('rows-container').innerHTML='<div class="loading-state">목록을 불러오지 못했습니다.<br><small style="color:var(--g3);font-size:11px;">'+e.message+'</small><br><button onclick="loadVideosFromServer()" style="margin-top:12px;padding:8px 20px;background:var(--red);color:#fff;border:none;border-radius:4px;font-size:13px;cursor:pointer;">다시 시도</button></div>';
+      }
     }
   }
 }
@@ -2284,6 +2304,8 @@ function makeCard(v, vi, i){
 
 function makeRow(title, videos, globalIndexFn){
   if(!videos.length) return null;
+  // 최신 등록 영상이 맨 앞에 오도록 화면 표시 순서만 뒤집기 (강의 순서·잠금 로직은 그대로)
+  videos = videos.slice().reverse();
 
   const row=document.createElement('div');
   row.className='nf-row';
