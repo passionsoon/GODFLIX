@@ -690,6 +690,25 @@ input{outline:none;font-family:'Pretendard Variable','Pretendard',-apple-system,
 #fs-label{color:rgba(255,255,255,.85);font-size:12px;margin-bottom:6px;}
 #fs-watch-bar-wrap{height:3px;background:rgba(255,255,255,.2);border-radius:2px;overflow:hidden;}
 #fs-watch-bar{height:100%;background:var(--red);border-radius:2px;width:0%;transition:width .5s;}
+/* 10초 앞으로/뒤로 */
+.skip-row{display:flex;justify-content:center;gap:12px;margin:-4px 0 12px;}
+.skip-btn{
+  background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);color:var(--white);
+  border-radius:22px;padding:9px 18px;font-size:14px;font-weight:700;cursor:pointer;
+  font-family:'Pretendard Variable','Pretendard',-apple-system,sans-serif;min-height:42px;
+}
+.skip-btn:hover{background:rgba(255,255,255,.16);}
+.skip-btn:active{transform:scale(.96);}
+.fs-skip{
+  position:absolute;top:50%;z-index:11;transform:translateY(-50%);
+  width:62px;height:62px;border-radius:50%;border:1px solid rgba(255,255,255,.3);
+  background:rgba(0,0,0,.45);color:#fff;font-size:13px;font-weight:800;line-height:1.1;
+  font-family:'Pretendard Variable','Pretendard',-apple-system,sans-serif;
+  -webkit-tap-highlight-color:transparent;touch-action:manipulation;
+}
+.fs-skip:active{background:rgba(229,9,20,.6);}
+#fs-skip-back{left:max(10px,env(safe-area-inset-left,0px));}
+#fs-skip-fwd{right:max(10px,env(safe-area-inset-right,0px));}
 #fs-complete{display:none;color:var(--green);font-weight:700;font-size:13px;margin-top:5px;}
 
 /* ═══════════════════════════
@@ -1531,6 +1550,10 @@ html{-webkit-overflow-scrolling:touch;}
     <div class="video-wrap">
       <iframe id="vimeo-player" src="" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
     </div>
+    <div class="skip-row">
+      <button class="skip-btn" id="skip-back" onclick="skipBy(-10)" title="키보드 ←">⟲ 10초 뒤로</button>
+      <button class="skip-btn" id="skip-fwd" onclick="skipBy(10)" title="키보드 →">10초 앞으로 ⟳</button>
+    </div>
     <div class="prog-section">
       <div class="prog-label-row">
         <span id="watch-label">시청 시작 전</span>
@@ -1557,6 +1580,8 @@ html{-webkit-overflow-scrolling:touch;}
 <!-- ══ MOBILE FULLSCREEN ══ -->
 <div id="fs-overlay">
   <iframe id="fs-player" src="" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
+  <button class="fs-skip" id="fs-skip-back" onclick="skipBy(-10)">⟲<br>10초</button>
+  <button class="fs-skip" id="fs-skip-fwd" onclick="skipBy(10)">⟳<br>10초</button>
   <div id="fs-header">
     <div id="fs-title">강의 재생 중</div>
     <button id="fs-close-btn" onclick="closeFullscreen()">✕ 닫기</button>
@@ -2713,6 +2738,7 @@ window.addEventListener('message',function(e){
     if(jumpBlock)return;
     const tg=parseFloat(d.data.seconds)||0,dur=parseFloat(d.data.duration)||videoDuration;
     if(!wasDone&&!(dur>0&&maxReachedSec>=dur*.95)&&tg>maxReachedSec+3)blockJump(isFs);
+    else{lastPositionSec=tg;_lastT=null;}   // 멈춘 상태에서 옮겨도 10초 버튼이 정확한 위치에서 동작
   }
   if(ev==='finish'){isPlaying=false;if(!completed&&videoDuration>0&&maxReachedSec>=videoDuration*.9)triggerComplete();}
 });
@@ -2755,6 +2781,28 @@ function triggerComplete(){
   renderRecentRow();
   // A. 다음 강의 추천
   showNextVideoBtn();
+}
+// 넷플릭스처럼 10초 앞으로/뒤로. 아직 안 본 구간으로는 넘어가지 않음(다 본 강의는 자유)
+function skipBy(sec){
+  if(!currentVideo||window._awaitReady)return;
+  const isFs=document.getElementById('fs-overlay')?.classList.contains('open');
+  const dur=videoDuration;
+  const cur=lastPositionSec||0;
+  let to=cur+sec;
+  if(dur>0)to=Math.min(to,dur-1);
+  to=Math.max(0,to);
+  if(sec>0){
+    const free=wasDone||(dur>0&&maxReachedSec>=dur*.95);
+    if(!free&&to>maxReachedSec){
+      to=Math.max(cur,maxReachedSec);
+      if(to-cur<1){showToast('아직 보지 않은 구간은 건너뛸 수 없어요');return;}
+    }
+  }
+  if(Math.abs(to-cur)<0.5)return;
+  jumpBlock=true;clearTimeout(window._skipT);
+  sendPlayer('setCurrentTime',to,isFs);
+  lastPositionSec=to;_lastT=null;
+  window._skipT=setTimeout(()=>{jumpBlock=false;},700);
 }
 function blockJump(isFs=false){
   if(jumpBlock)return;jumpBlock=true;
@@ -2807,6 +2855,10 @@ window.addEventListener('scroll',()=>{
   document.getElementById('gf-header').classList.toggle('solid',window.scrollY>60);
 },{passive:true});
 window.addEventListener('keydown',e=>{
+  const playerOpen=document.getElementById('player-overlay')?.classList.contains('show');
+  if(playerOpen&&(e.key==='ArrowLeft'||e.key==='ArrowRight')&&!/INPUT|TEXTAREA|SELECT/.test((e.target&&e.target.tagName)||'')){
+    e.preventDefault();skipBy(e.key==='ArrowRight'?10:-10);return;
+  }
   if(e.key==='Escape'){
     if(document.getElementById('my-stats-modal').classList.contains('show'))closeMyStats();
     else if(document.getElementById('detail-modal').classList.contains('show'))closeDetail();
