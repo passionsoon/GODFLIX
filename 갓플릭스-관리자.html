@@ -858,7 +858,7 @@ table.matrix tbody tr:hover td.cell-ing{background:rgba(74,158,255,.14);}
 <script>
 const SHEET_URL = 'https://script.google.com/macros/s/AKfycbxygUx-v4SAwg_MSa6SmZJNqjZZFRFWNkyvRtWgFa8k70_fHeVOD-0x2xYvoJyolJhC/exec';
 const ADMIN_URL  = SHEET_URL;
-let   ADMIN_PW   = ''; // 로그인 시 서버에서 확인된 비밀번호 (파일에 비밀번호를 적어두지 않음)
+let   ADMIN_PW   = ''; // 로그인 후 서버가 발급한 관리자 토큰 (12시간 유효, 비밀번호 자체는 저장하지 않음)
 
 let allVideos = [], vdData = null, thumbDataUrl = '', _popupData = {};
 const ADMIN_SESSION_KEY = 'gf_admin_session'; // 탭 열린 동안만 유지
@@ -871,15 +871,16 @@ async function doLogin() {
   err.style.display = 'none';
   if (!pw) { err.style.display = 'block'; return; }
   if (btn) { btn.disabled = true; btn.classList.add('loading'); btn.textContent = '확인 중…'; }
-  let ok = false, failMsg = '';
+  let ok = false, failMsg = '', tok = '';
   try {
     const r = await api({ action: 'admin_login', pw });
-    ok = !!(r && r.success);
+    ok = !!(r && r.success && r.token);
+    tok = ok ? r.token : '';
   } catch(e) { failMsg = '⚠️ 서버 연결 실패 — 잠시 후 다시 시도하세요.'; }
   if (btn) { btn.disabled = false; btn.classList.remove('loading'); btn.textContent = '입장하기'; }
   if (ok) {
-    ADMIN_PW = pw;
-    try { sessionStorage.setItem(ADMIN_SESSION_KEY, pw); } catch(e) {}
+    ADMIN_PW = tok;
+    try { sessionStorage.setItem(ADMIN_SESSION_KEY, tok); } catch(e) {}
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('admin-app').style.display = 'block';
     loadAll();
@@ -1323,11 +1324,10 @@ function changeAdminPw() {
   if (nw !== cf)          { showMsg(msg, '새 비밀번호가 일치하지 않습니다.', 'err'); return; }
   if (nw.length < 4)      { showMsg(msg, '비밀번호는 4자 이상이어야 합니다.', 'err'); return; }
   // 서버에서 현재 비밀번호 확인 후 변경 (서버에만 저장됨)
-  api({ action: 'change_admin_pw', pw: cur, newpw: nw })
+  api({ action: 'change_admin_pw', pw: ADMIN_PW, cur, newpw: nw })
     .then(r => {
       if (r && r.success) {
-        ADMIN_PW = nw; // 현재 세션에 즉시 반영
-        try { sessionStorage.setItem(ADMIN_SESSION_KEY, nw); } catch(e) {}
+        if (r.token) { ADMIN_PW = r.token; try { sessionStorage.setItem(ADMIN_SESSION_KEY, r.token); } catch(e) {} }
         showMsg(msg, '✅ 변경됐습니다! 다음 로그인부터 새 비밀번호를 사용하세요.', 'ok');
         document.getElementById('adm-pw-current').value = '';
         document.getElementById('adm-pw-new').value = '';
@@ -2069,7 +2069,7 @@ function renderStudentCards() {
 function updateStudentSelect(){const sel=document.getElementById('stu-select');const students=vdData?(vdData.students||[]):[];sel.innerHTML='<option value="">-- 선택 --</option>'+students.map(n=>`<option value="${n}">${n}</option>`).join('');}
 async function loadStudentList(){
   const c=document.getElementById('stu-list-admin');if(!c)return;c.innerHTML='<div class="spinner"></div>';
-  try{const r=await api({action:'getAllUsers'});const users=r.userObjects||r.users?.map(n=>({name:n,id:n,password:''}))|| [];
+  try{const r=await api({action:'getAllUsers',pw:ADMIN_PW});const users=r.userObjects||r.users?.map(n=>({name:n,id:n,password:''}))|| [];
   document.getElementById('stu-count-label').textContent=users.length;
   if(!users.length){c.innerHTML='<p class="empty">등록된 수강생이 없습니다.</p>';return;}
   c.innerHTML=users.map(u=>`
@@ -2373,7 +2373,7 @@ window.addEventListener('keydown',e=>{if(e.key==='Escape')closePopup();});
 (function() {
   try {
     const savedPw = sessionStorage.getItem(ADMIN_SESSION_KEY);
-    if (savedPw && savedPw !== '1') {
+    if (savedPw && savedPw.includes('.')) {   // 토큰 형식일 때만 (예전 세션값은 무시)
       ADMIN_PW = savedPw;
       document.getElementById('login-screen').style.display = 'none';
       document.getElementById('admin-app').style.display = 'block';
