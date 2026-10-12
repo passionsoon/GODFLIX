@@ -876,6 +876,7 @@ async function doLogin() {
     const r = await api({ action: 'admin_login', pw });
     ok = !!(r && r.success && r.token);
     tok = ok ? r.token : '';
+    if (r && r.locked) failMsg = '🔒 ' + r.error;
   } catch(e) { failMsg = '⚠️ 서버 연결 실패 — 잠시 후 다시 시도하세요.'; }
   if (btn) { btn.disabled = false; btn.classList.remove('loading'); btn.textContent = '입장하기'; }
   if (ok) {
@@ -1340,7 +1341,7 @@ function changeAdminPw() {
   const msg    = document.getElementById('adm-pw-msg');
   if (!cur || !nw || !cf) { showMsg(msg, '모든 항목을 입력해 주세요.', 'err'); return; }
   if (nw !== cf)          { showMsg(msg, '새 비밀번호가 일치하지 않습니다.', 'err'); return; }
-  if (nw.length < 4)      { showMsg(msg, '비밀번호는 4자 이상이어야 합니다.', 'err'); return; }
+  if (nw.length < 6)      { showMsg(msg, '비밀번호는 6자 이상이어야 합니다.', 'err'); return; }
   // 서버에서 현재 비밀번호 확인 후 변경 (서버에만 저장됨)
   api({ action: 'change_admin_pw', pw: ADMIN_PW, cur, newpw: nw })
     .then(r => {
@@ -1527,6 +1528,10 @@ function renderVideoList() {
           <div class="field"><label>강사</label><input type="text" id="e-lecturer-${v.id}" value="${v.lecturer||''}"></div>
         </div>
         <div class="field" style="margin-bottom:10px;">
+          <label>설명</label>
+          <textarea id="e-desc-${v.id}" rows="3" style="width:100%;box-sizing:border-box;background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.15);border-radius:6px;padding:10px 12px;font-size:13px;color:var(--white);font-family:var(--font);resize:vertical;">${String(v.description||'').replace(/&/g,'&amp;').replace(/</g,'&lt;')}</textarea>
+        </div>
+        <div class="field" style="margin-bottom:10px;">
           <label>Vimeo ID / URL</label>
           <input type="text" id="e-url-${v.id}" value="${v.url||''}"
             placeholder="Vimeo ID 또는 https://vimeo.com/... (오류 영상 교체 시 수정)"
@@ -1596,6 +1601,7 @@ async function saveEdit(id) {
     grade:     document.getElementById('e-grade-'+id).value,
     date:      document.getElementById('e-date-'+id).value,
     lecturer:  document.getElementById('e-lecturer-'+id).value.trim(),
+    description: (document.getElementById('e-desc-'+id)?.value || '').trim(),
     thumbnail: document.getElementById('e-thumb-'+id).value.trim(),
     url: extractVimeoId(document.getElementById('e-url-'+id).value.trim()) || v.url || ''
   };
@@ -1662,16 +1668,23 @@ async function deleteVideo(id) {
   setTimeout(() => { toast.classList.remove('show'); toast.innerHTML = ''; }, 6000);
 }
 async function _confirmDeleteVideo(id) {
-  // 즉시 로컬에서 제거 → UI 즉각 반영
+  // 화면에서 먼저 빼되, 서버가 실패하면 되돌림
+  const backup = allVideos.slice();
   allVideos = allVideos.filter(v => v.id !== id);
   renderVideoList();
-  showToast('🗑 삭제됐습니다.');
-  // 백그라운드에서 실제 삭제 API 호출
+  showToast('⏳ 삭제 중…');
+  let ok = false, err = '';
   try {
-    try { await api({action:'delete_video',pw:ADMIN_PW,id}); } catch(e1) { await postApi({action:'delete_video',pw:ADMIN_PW,id}); }
-    // 서버 목록과 동기화 (조용히)
+    const r = await api({action:'delete_video',pw:ADMIN_PW,id});
+    ok = !!(r && r.success); err = r && r.error || '';
+  } catch(e) { err = e.message; }
+  if (ok) {
+    showToast('🗑 삭제됐습니다.');
     api({action:'videos'}).then(r2=>{ allVideos=r2.videos||r2.items||[]; renderVideoList(); }).catch(()=>{});
-  } catch(e) { showToast('⚠️ 서버 삭제 실패: '+e.message); }
+  } else {
+    allVideos = backup; renderVideoList();
+    showToast('❌ 삭제 실패 — 영상이 그대로 남아 있습니다. ' + err);
+  }
 }
 function clearVideoForm() {
   ['vid-title','vid-url','vid-date','vid-lecturer','vid-desc','vid-thumb-url'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
@@ -2233,7 +2246,10 @@ function exportCSV(){
 function moveVideo(id, dir) {
   const idx = allVideos.findIndex(v => v.id === id);
   if (idx < 0) return;
-  const swapIdx = idx + dir;
+  // 과정 필터가 켜져 있으면, 화면에 보이는(같은 과정) 이웃과만 자리 바꾸기
+  const gf = document.getElementById('vid-filter-grade')?.value || '';
+  let swapIdx = idx + dir;
+  if (gf) { while (swapIdx >= 0 && swapIdx < allVideos.length && detectGrade(allVideos[swapIdx]) !== gf) swapIdx += dir; }
   if (swapIdx < 0 || swapIdx >= allVideos.length) return;
   // 배열 swap
   [allVideos[idx], allVideos[swapIdx]] = [allVideos[swapIdx], allVideos[idx]];

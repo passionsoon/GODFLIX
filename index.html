@@ -1793,10 +1793,14 @@ async function loadProgress(){
     if (j && j.invalid) return false;
     if (j && j.data) {
       // 서버값과 이 기기의 값 중 더 많이 본 쪽을 유지
+      // 이 기기 기록이 서버보다 '나중에' 저장됐고 더 많이 본 경우에만 유지
+      // (관리자가 진도를 초기화하면 서버 시간이 더 최신이라 예전 기록이 되살아나지 않음)
       const merged = j.data;
+      const srvTime = t => { const m = String(t||'').match(/^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})/); return m ? Date.parse(`${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:${m[6]}+09:00`) : 0; };
       Object.entries(progressMap).forEach(([vid, loc]) => {
         const sv = merged[vid];
-        if (!sv || (loc.maxReached||0) > (sv.maxReached||0)) merged[vid] = loc;
+        if (!sv) { if (loc.savedAt) merged[vid] = loc; return; }
+        if ((loc.maxReached||0) > (sv.maxReached||0) && (loc.savedAt||0) > srvTime(sv.updatedAt)) merged[vid] = loc;
       });
       progressMap = merged; saveProgLocal();
       renderCatalog(); updateStats(); renderRecentRow();
@@ -2088,7 +2092,7 @@ async function confirmLogin(){
 
   const r=await verifyLogin(idVal,pwVal);
   if(!r.user){
-    err.textContent = r.invalid ? '❌ '+r.error : '⚠️ 서버 연결 실패. 잠시 후 다시 눌러보세요.';
+    err.textContent = r.invalid ? '❌ '+r.error : (r.error&&/잠겼/.test(r.error)) ? '🔒 '+r.error : '⚠️ 서버 연결 실패. 잠시 후 다시 눌러보세요.';
     err.style.display='block';resetBtn();return;
   }
   const matched=r.user;
@@ -2489,6 +2493,8 @@ async function releaseWakeLock(){
 // 화면이 다시 켜졌을 때 wake lock 재요청 (iOS 등)
 document.addEventListener('visibilitychange',()=>{
   if(document.visibilityState==='visible'&&isPlaying)requestWakeLock();
+  // 아이폰은 앱을 닫을 때 pagehide가 안 올 수 있음 → 화면이 가려지는 순간 저장
+  if(document.visibilityState==='hidden'&&userName&&currentVideo&&maxReachedSec>5){saveProgress(true);saveRecord(false);}
 });
 
 /* ── MediaSession API — 잠금 화면 컨트롤 ── */
@@ -2610,7 +2616,7 @@ window.addEventListener('message',function(e){
     // 카드 진행바 업데이트
     const cpf=document.getElementById('cpf-'+currentIndex);
     if(cpf)cpf.style.width=pct+'%';
-    if(!completed&&dur>0&&maxReachedSec>=dur*.95)triggerComplete();
+    if(!completed&&dur>0&&maxReachedSec>=dur*.9)triggerComplete(); // 카드 '완료' 기준(90%)과 통일
     // MediaSession 재생 위치 업데이트 (잠금 화면 스크러버)
     if('mediaSession' in navigator&&'setPositionState' in navigator.mediaSession&&dur>0){
       try{navigator.mediaSession.setPositionState({duration:dur,playbackRate:1,position:t});}catch(e){}
@@ -2682,7 +2688,7 @@ function saveRecord(isFinal=true){
   if(recordSent)return;if(isFinal)recordSent=true;
   if(!authTok)return;
   fetch(SHEET_URL,{method:'POST',mode:'no-cors',keepalive:true,headers:{'Content-Type':'text/plain'},
-    body:JSON.stringify({type:'record',tok:authTok,videoTitle:currentVideo.title,
+    body:JSON.stringify({type:'record',tok:authTok,videoId:currentVideo.id,grade:detectGrade(currentVideo),videoTitle:currentVideo.title,
       date:currentVideo.date||'',lecturer:currentVideo.lecturer||'',startTime,completed,
       watchedMinutes:Math.round(maxReachedSec/60*10)/10,replayCount})}).catch(()=>{});
 }
@@ -2693,6 +2699,7 @@ function saveProgress(force=false){
   progressMap[currentVideo.id].lastPosition=Math.floor(lastPositionSec);
   progressMap[currentVideo.id].maxReached=Math.floor(maxReachedSec);
   if(videoDuration>0)progressMap[currentVideo.id].duration=Math.floor(videoDuration);
+  progressMap[currentVideo.id].savedAt=Date.now();
   saveProgLocal();
   // 위치가 바뀌지 않았으면 서버에 보내지 않음 (불필요한 요청 줄이기)
   const sig=currentVideo.id+':'+Math.floor(lastPositionSec)+':'+Math.floor(maxReachedSec);
@@ -2868,8 +2875,15 @@ async function changePw(){
   if(nw.length<4){err.textContent='비밀번호는 4자 이상이어야 합니다.';err.style.display='block';return;}
   // 현재 비밀번호 확인은 서버에서 처리
   try{
-    const r=await gasApi({action:'change_password',name:userName,current:cur,newpw:nw});
+    const r=await gasApi({action:'change_password',tok:authTok,current:cur,newpw:nw});
     if(r&&r.success){
+      // 다른 기기의 자동로그인은 해제되고, 이 기기는 새 토큰으로 계속 유지
+      if(r.token){
+        authTok=r.token;
+        [[localStorage,AUTO_KEY],[sessionStorage,SESSION_KEY]].forEach(([st,k])=>{
+          try{const o=JSON.parse(st.getItem(k)||'null');if(o){o.tok=r.token;st.setItem(k,JSON.stringify(o));}}catch(e){}
+        });
+      }
       closePwModal();
       showToast('✅ 비밀번호가 변경되었습니다.');
       // 자동로그인은 토큰 방식이라 비밀번호를 바꿔도 그대로 유지됨
