@@ -1678,43 +1678,28 @@ const SESSION_KEY = 'gf_session'; // 탭 열린 동안만 유지 (sessionStorage
 
 /* ── 초기화: 페이지 로드 시 자동로그인 시도 ── */
 async function initAutoLogin() {
-  // 공통: 수강생 목록 확보 (캐시 우선, 없으면 서버)
-  async function ensureStudents() {
-    if (studentList.length) return; // 캐시에서 이미 로드됨
-    try {
-      const j = await gasApi({ action: 'getAllUsers' });
-      studentList = j.userObjects || j.users || [];
-      if (studentList.length) cacheSet(CACHE_USERS_KEY, studentList);
-    } catch(e) { studentList = []; }
-  }
-
   // 저장된 로그인 정보로 즉시 입장 (서버 기다리지 않음)
-  //  - 사용자 정보(user)를 같이 저장해 두므로 서버 응답 없이 바로 로그인
-  //  - 서버가 느리거나 실패해도 저장된 정보는 절대 지우지 않음
-  //  - 서버 목록을 받은 뒤 '명단에 확실히 없을 때만' 로그아웃 처리
+  //  - 서버 확인은 입장 후 백그라운드에서 진행
+  //  - 서버가 느리거나 실패해도 저장된 정보는 지우지 않음
+  //  - 서버가 '아이디/비밀번호 불일치'라고 확실히 답할 때만 삭제
   async function loginFromSaved(saved, storage, key) {
-    let user = saved.user || findUser(saved.id, saved.pw);
-    if (user) {
-      await doLogin(user, saved.id);
-      // 백그라운드 검증
-      ensureStudents().then(() => {
-        if (!studentList.length) return;          // 서버 실패 → 그대로 유지
-        const fresh = findUser(saved.id, saved.pw);
-        if (fresh) { storage.setItem(key, JSON.stringify({ id: saved.id, pw: saved.pw, user: fresh })); }
-        else { storage.removeItem(key); }          // 명단에서 빠진 경우만 삭제
+    if (saved.user) {
+      await doLogin(saved.user, saved.id);
+      verifyLogin(saved.id, saved.pw).then(r => {
+        if (r.user) storage.setItem(key, JSON.stringify({ id: saved.id, pw: saved.pw, user: r.user }));
+        else if (r.invalid) storage.removeItem(key);
       });
       return true;
     }
     showAutoLoginOverlay('자동 로그인 중…');
-    await ensureStudents();
+    const r = await verifyLogin(saved.id, saved.pw);
     hideAutoLoginOverlay();
-    user = findUser(saved.id, saved.pw);
-    if (user) {
-      storage.setItem(key, JSON.stringify({ id: saved.id, pw: saved.pw, user }));
-      await doLogin(user, saved.id);
+    if (r.user) {
+      storage.setItem(key, JSON.stringify({ id: saved.id, pw: saved.pw, user: r.user }));
+      await doLogin(r.user, saved.id);
       return true;
     }
-    if (studentList.length) storage.removeItem(key); // 서버 정상인데 불일치일 때만 삭제
+    if (r.invalid) storage.removeItem(key);
     return false;
   }
 
@@ -1743,16 +1728,19 @@ function hideAutoLoginOverlay() {
   document.getElementById('auto-login-overlay').classList.remove('show');
 }
 
-/* ── 수강생 찾기 공통 함수 ── */
-function findUser(idVal, pwVal) {
-  if (!studentList.length) return null;
-  const id = idVal.trim().toLowerCase();
-  const pw = pwVal.trim();
-  if (typeof studentList[0] === 'object') {
-    return studentList.find(s => String(s.id||'').trim().toLowerCase() === id && String(s.password||'').trim() === pw)
-        || studentList.find(s => String(s.name||'').trim().toLowerCase() === id && String(s.password||'').trim() === pw);
+/* ── 서버에서 아이디/비밀번호 확인 (비밀번호는 브라우저에 내려오지 않음) ──
+   반환: {user} 성공 | {invalid:true, error} 불일치 | {error} 서버 오류 */
+async function verifyLogin(idVal, pwVal) {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const j = await gasApi({ action: 'login', id: String(idVal).trim(), pw: String(pwVal).trim() });
+      if (j && j.success && j.user) return { user: j.user };
+      if (j && j.invalid) return { invalid: true, error: j.error || '아이디 또는 비밀번호가 올바르지 않습니다.' };
+      return { error: (j && j.error) || '서버 응답 오류' };
+    } catch (e) {
+      if (attempt === 1) return { error: e.message || '서버 연결 실패' };
+    }
   }
-  return studentList.find(s => String(s).trim().toLowerCase() === id) ? { name: idVal.trim() } : null;
 }
 
 /* ── 실제 로그인 처리 (confirmLogin과 공유) ── */
@@ -1827,13 +1815,9 @@ async function loginWithBiometric() {
     });
     if (assertion) {
       // 인증 성공 → 저장된 정보로 로그인
-      if (!studentList.length) {
-        const j = await gasApi({ action: 'getAllUsers' });
-        studentList = j.userObjects || j.users || [];
-      }
-      const matched = findUser(savedUser.id, savedUser.pw);
+      const matched = savedUser.user || (await verifyLogin(savedUser.id, savedUser.pw)).user;
       if (matched) {
-        try { sessionStorage.setItem(SESSION_KEY, JSON.stringify({id:savedUser.id, pw:savedUser.pw})); } catch(e){}
+        try { sessionStorage.setItem(SESSION_KEY, JSON.stringify({id:savedUser.id, pw:savedUser.pw, user:matched})); } catch(e){}
         await doLogin(matched, savedUser.id);
         hideAutoLoginOverlay();
         return;
@@ -2007,38 +1991,13 @@ async function init(){
     renderSkeleton(2, 5);
   }
 
-  // 2. 캐시된 수강생 목록 즉시 사용
-  const cachedUsers = cacheGet(CACHE_USERS_KEY);
-  if (cachedUsers && cachedUsers.length) {
-    studentList = cachedUsers;
-  }
+  // 2. 예전 버전이 저장해 둔 수강생 명단(비밀번호 포함) 캐시 삭제
+  try { localStorage.removeItem(CACHE_USERS_KEY); } catch(e){}
 
   // 3. 자동로그인 + 영상 로딩 + 수강생 로딩 동시 시작 (서로 기다리지 않음)
   const loginPromise = initAutoLogin();
   loadVideosFromServer(); // 영상은 로그인 기다리지 않고 즉시 시작
-  if (!cachedUsers || !cachedUsers.length) {
-    loadStudentsFromServer();
-  } else {
-    loadStudentsFromServer(true); // 백그라운드 조용히 갱신
-  }
   await loginPromise; // 로그인 완료 대기 (UI 업데이트 위해)
-}
-
-async function loadStudentsFromServer(silent = false) {
-  try {
-    const j = await gasApi({action:'getAllUsers'});
-    const list = j.userObjects || j.users || [];
-    if (list.length) {
-      studentList = list;
-      cacheSet(CACHE_USERS_KEY, list);
-    }
-  } catch(e) { if (!silent && !studentList.length) studentList = []; }
-}
-
-// 하위 호환 — confirmLogin, initAutoLogin에서 직접 호출
-async function loadStudents(){
-  if (studentList.length) return; // 이미 있으면 스킵
-  await loadStudentsFromServer();
 }
 
 async function loadVideosFromServer(retryCount=0) {
@@ -2093,32 +2052,14 @@ async function confirmLogin(){
   err.style.display='none';
   btn.disabled=true;btn.classList.add('loading');btn.textContent='로그인 중…';
 
-  if(!studentList.length){
-    btn.textContent='서버 연결 중…';
-    // 최대 2회 재시도
-    for(let attempt=0; attempt<2; attempt++){
-      try{
-        const j=await gasApi({action:'getAllUsers'});
-        studentList=j.userObjects||j.users||[];
-        if(studentList.length){ cacheSet(CACHE_USERS_KEY, studentList); break; }
-      } catch(e){
-        if(attempt===0) btn.textContent='재시도 중…';
-      }
-    }
-  }
-
   const resetBtn=()=>{btn.disabled=false;btn.classList.remove('loading');btn.textContent='입장하기';};
 
-  if(!studentList.length){
-    err.textContent='⚠️ 서버 연결 실패. 잠시 후 다시 눌러보세요.';
+  const r=await verifyLogin(idVal,pwVal);
+  if(!r.user){
+    err.textContent = r.invalid ? '❌ '+r.error : '⚠️ 서버 연결 실패. 잠시 후 다시 눌러보세요.';
     err.style.display='block';resetBtn();return;
   }
-
-  const matched=findUser(idVal,pwVal);
-  if(!matched){
-    err.textContent='❌ 등록된 수강생 명단에 없는 아이디입니다.';
-    err.style.display='block';resetBtn();return;
-  }
+  const matched=r.user;
 
   // 세션 저장 — 새로고침해도 로그인 유지 (탭 닫으면 초기화)
   try { sessionStorage.setItem(SESSION_KEY, JSON.stringify({id:idVal, pw:pwVal, user:matched})); } catch(e){}
@@ -2870,26 +2811,16 @@ async function changePw(){
   if(!cur||!nw||!cf){err.textContent='모든 항목을 입력해 주세요.';err.style.display='block';return;}
   if(nw!==cf){err.textContent='새 비밀번호가 일치하지 않습니다.';err.style.display='block';return;}
   if(nw.length<4){err.textContent='비밀번호는 4자 이상이어야 합니다.';err.style.display='block';return;}
-  // 현재 비번 확인
-  const matched=studentList.find(s=>{
-    const id=(s.id||s.name||s);
-    const pw=String(s.password||'');
-    return (id===userName||s.name===userName)&&pw===cur;
-  });
-  if(!studentList.length){
-    err.textContent='⚠️ 수강생 목록을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.';err.style.display='block';return;
-  }
-  if(!matched){
-    err.textContent='현재 비밀번호가 올바르지 않습니다.';err.style.display='block';return;
-  }
+  // 현재 비밀번호 확인은 서버에서 처리
   try{
     const r=await gasApi({action:'change_password',name:userName,current:cur,newpw:nw});
     if(r&&r.success){
       closePwModal();
       showToast('✅ 비밀번호가 변경되었습니다.');
-      // 로컬 studentList 업데이트
-      const stu=studentList.find(s=>s.name===userName||s.id===userName);
-      if(stu)stu.password=nw;
+      // 저장된 자동로그인/세션 비밀번호도 새 비밀번호로 갱신
+      [[localStorage,AUTO_KEY],[sessionStorage,SESSION_KEY]].forEach(([st,k])=>{
+        try{const o=JSON.parse(st.getItem(k)||'null');if(o){o.pw=nw;st.setItem(k,JSON.stringify(o));}}catch(e){}
+      });
     }else{
       err.textContent='❌ '+(r&&r.error?r.error:'변경 실패');err.style.display='block';
     }
