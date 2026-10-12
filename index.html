@@ -2634,6 +2634,14 @@ function clearMediaSession(){
   });
 }
 
+function lockLandscape(){
+  try{ if(screen.orientation&&screen.orientation.lock)screen.orientation.lock('landscape').catch(()=>{}); }catch(e){}
+}
+// 재생 중 전체화면이 바뀌어도(비메오 자체 전체화면 등) 강의 화면이 열려 있으면 다시 가로로 고정
+['fullscreenchange','webkitfullscreenchange'].forEach(ev=>document.addEventListener(ev,()=>{
+  const open=document.getElementById('fs-overlay')?.classList.contains('open');
+  if(open&&(document.fullscreenElement||document.webkitFullscreenElement))lockLandscape();
+}));
 function openFullscreen(videoId,title){
   const o=document.getElementById('fs-overlay');
   document.getElementById('fs-title').textContent=title;
@@ -2643,12 +2651,13 @@ function openFullscreen(videoId,title){
   document.getElementById('vimeo-player').src='';
   // background=1 → 화면 꺼짐 / PiP 상태에서도 오디오 계속 재생
   document.getElementById('fs-player').src=
-    `https://player.vimeo.com/video/${videoId}?badge=0&autopause=0&app_id=58479&api=1&player_id=fs-player&autoplay=0&muted=0&quality=auto&background=0&playsinline=0`;
+    `https://player.vimeo.com/video/${videoId}?badge=0&autopause=0&app_id=58479&api=1&player_id=fs-player&autoplay=0&muted=0&quality=auto&background=0&playsinline=1`;
   // 휴대폰은 자동 재생하면 소리가 꺼진 채로만 재생됨 → 재생 버튼을 직접 눌러야 소리가 나옴
+  // playsinline=1: 재생을 눌러도 비메오가 자기 전체화면으로 바꾸지 않음 → 가로 화면이 세로로 풀리지 않음
   o.classList.add('open');
   if(o.requestFullscreen)o.requestFullscreen().catch(()=>{});
   else if(o.webkitRequestFullscreen)o.webkitRequestFullscreen();
-  if(screen.orientation?.lock)screen.orientation.lock('landscape').catch(()=>{});
+  lockLandscape();
   requestWakeLock();
   // 잠금 화면 컨트롤 등록
   if(currentVideo)setMediaSession(title,currentVideo.thumbnail||'');
