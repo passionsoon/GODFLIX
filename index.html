@@ -2442,6 +2442,8 @@ async function selectVideo(index){
 
   window._pendingResume=resumeFrom>10?resumeFrom:0;
   window._pendingMaxReached=maxReachedSec;
+  // 새 플레이어가 준비될 때까지 이전 영상 플레이어의 늦은 신호는 모두 무시
+  window._awaitReady=true;
 
   const overlayEl = document.getElementById('player-overlay');
   overlayEl.style.display = 'block';
@@ -2564,11 +2566,17 @@ function closeFullscreen(){
 
 /* ─ VIMEO ─ */
 window.addEventListener('message',function(e){
+  if(e.origin!=='https://player.vimeo.com')return;
   if(!e.data||typeof e.data!=='string')return;
   let d;try{d=JSON.parse(e.data);}catch(err){return;}
   const ev=d.event,pid=d.player_id,isFs=(pid==='fs-player');
+  // 지금 열린 플레이어에서 온 신호만 처리
+  const playerEl=document.getElementById(isFs?'fs-player':'vimeo-player');
+  if(!playerEl||e.source!==playerEl.contentWindow||!currentVideo)return;
+  if(ev!=='ready'&&window._awaitReady)return;
 
   if(ev==='ready'){
+    window._awaitReady=false;
     maxReachedSec=window._pendingMaxReached||0;
     ['play','pause','finish','seek','playProgress'].forEach(n=>sendPlayer('addEventListener',n,isFs));
     // 이어보기: 모바일(fs)과 데스크탑 모두 처리
@@ -2593,6 +2601,8 @@ window.addEventListener('message',function(e){
   }
   if(ev==='playProgress'){
     const t=parseFloat(d.data.seconds)||0,dur=parseFloat(d.data.duration)||0;
+    if(dur>0&&t>dur+2)return;                       // 영상 길이보다 긴 위치는 무시
+    if(videoDuration>0&&dur>0&&Math.abs(dur-videoDuration)>5)return; // 다른 영상의 신호
     if(dur>0)videoDuration=dur;
     const fw=dur>0&&maxReachedSec>=dur*.95;
     if(!fw&&!jumpBlock&&t>maxReachedSec+10){blockJump(isFs);return;}
@@ -2627,7 +2637,7 @@ window.addEventListener('message',function(e){
     const tg=parseFloat(d.data.seconds)||0,dur=parseFloat(d.data.duration)||videoDuration;
     if(!(dur>0&&maxReachedSec>=dur*.95)&&tg>maxReachedSec+3)blockJump(isFs);
   }
-  if(ev==='finish'){isPlaying=false;if(!completed)triggerComplete();}
+  if(ev==='finish'){isPlaying=false;if(!completed&&videoDuration>0&&maxReachedSec>=videoDuration*.9)triggerComplete();}
 });
 
 function triggerComplete(){
@@ -2697,7 +2707,7 @@ function saveProgress(force=false){
   if(!userName||!currentVideo||!authTok)return;
   if(!progressMap[currentVideo.id])progressMap[currentVideo.id]={lastPosition:0,maxReached:0,duration:0};
   progressMap[currentVideo.id].lastPosition=Math.floor(lastPositionSec);
-  progressMap[currentVideo.id].maxReached=Math.floor(maxReachedSec);
+  progressMap[currentVideo.id].maxReached=Math.floor(videoDuration>0?Math.min(maxReachedSec,videoDuration):maxReachedSec);
   if(videoDuration>0)progressMap[currentVideo.id].duration=Math.floor(videoDuration);
   progressMap[currentVideo.id].savedAt=Date.now();
   saveProgLocal();
@@ -2707,7 +2717,7 @@ function saveProgress(force=false){
   _lastSaved=sig;
   fetch(SHEET_URL,{method:'POST',mode:'no-cors',keepalive:true,headers:{'Content-Type':'text/plain'},
     body:JSON.stringify({type:'progress',tok:authTok,videoId:currentVideo.id,
-      lastPosition:Math.floor(lastPositionSec),maxReached:Math.floor(maxReachedSec),
+      lastPosition:Math.floor(lastPositionSec),maxReached:Math.floor(videoDuration>0?Math.min(maxReachedSec,videoDuration):maxReachedSec),
       duration:Math.floor(videoDuration||0)})}).catch(()=>{});
 }
 window.addEventListener('beforeunload',()=>{if(userName&&currentVideo&&maxReachedSec>5){saveRecord(true);saveProgress();}});
