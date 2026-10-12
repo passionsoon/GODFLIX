@@ -1606,7 +1606,7 @@ let userName='',currentVideo=null,currentIndex=-1;
 let authTok=''; // 서버가 발급한 로그인 토큰 (비밀번호 대신 사용)
 let startTime=null,maxReachedSec=0,lastPositionSec=0,videoDuration=0;
 let replayCount=0,completed=false,isPlaying=false;
-let wasDone=false,sessionPlayedSec=0,_lastT=null; // 다시 보기: 이번에 실제로 재생한 시간
+let wasDone=false,sessionPlayedSec=0,_lastT=null,skippedAhead=0; // 다시 보기: 이번에 실제로 재생한 시간
 let jumpBlock=false,recordSent=false;
 let progressSaveInterval=null,watchedMinutesSinceLastRecord=0;
 let featuredIndex=0,currentGrade='전체';
@@ -2505,7 +2505,7 @@ async function selectVideo(index){
   const prog=progressMap[currentVideo.id];
   // 이미 완료한 강의를 다시 볼 때는 '완료→다음 강의 자동 재생'이 다시 일어나지 않도록
   completed=isDoneProg(prog);
-  wasDone=completed;sessionPlayedSec=0;_lastT=null;
+  wasDone=completed;sessionPlayedSec=0;_lastT=null;skippedAhead=0;
   maxReachedSec=prog?(parseFloat(prog.maxReached)||0):0;
   let resumeFrom=prog?(parseFloat(prog.lastPosition)||0):0;
   // 다 본 강의를 끝부분에서 멈췄으면 다시 볼 때는 처음부터
@@ -2782,7 +2782,9 @@ function triggerComplete(){
   // A. 다음 강의 추천
   showNextVideoBtn();
 }
-// 넷플릭스처럼 10초 앞으로/뒤로. 아직 안 본 구간으로는 넘어가지 않음(다 본 강의는 자유)
+// 넷플릭스처럼 10초 앞으로/뒤로.
+// 안 본 구간도 10초 버튼으로는 자유롭게 넘길 수 있음(생각하는 시간 등 빈 구간용).
+// 진행바를 끌어서 크게 건너뛰는 것은 그대로 막힘(blockJump).
 function skipBy(sec){
   if(!currentVideo||window._awaitReady)return;
   const isFs=document.getElementById('fs-overlay')?.classList.contains('open');
@@ -2794,8 +2796,10 @@ function skipBy(sec){
   if(sec>0){
     const free=wasDone||(dur>0&&maxReachedSec>=dur*.95);
     if(!free&&to>maxReachedSec){
-      to=Math.max(cur,maxReachedSec);
-      if(to-cur<1){showToast('아직 보지 않은 구간은 건너뛸 수 없어요');return;}
+      skippedAhead+=to-Math.max(cur,maxReachedSec);
+      maxReachedSec=to;   // 넘긴 곳까지 본 것으로 → 이어서 재생해도 '건너뛰기 막힘'이 뜨지 않음
+      const pm=progressMap[currentVideo.id]||(progressMap[currentVideo.id]={lastPosition:0,maxReached:0,duration:0});
+      pm.maxReached=Math.max(pm.maxReached||0,to);
     }
   }
   if(Math.abs(to-cur)<0.5)return;
