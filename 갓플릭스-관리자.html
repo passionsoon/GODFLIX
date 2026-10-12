@@ -876,6 +876,7 @@ async function doLogin() {
     const r = await api({ action: 'admin_login', pw });
     ok = !!(r && r.success && r.token);
     tok = ok ? r.token : '';
+    try { if (ok) { if (r.isDefault) sessionStorage.setItem('gf_admin_default','1'); else sessionStorage.removeItem('gf_admin_default'); } } catch(e) {}
     if (r && r.locked) failMsg = '🔒 ' + r.error;
   } catch(e) { failMsg = '⚠️ 서버 연결 실패 — 잠시 후 다시 시도하세요.'; }
   if (btn) { btn.disabled = false; btn.classList.remove('loading'); btn.textContent = '입장하기'; }
@@ -884,6 +885,7 @@ async function doLogin() {
     try { sessionStorage.setItem(ADMIN_SESSION_KEY, tok); } catch(e) {}
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('admin-app').style.display = 'block';
+    showDefaultPwBanner();
     loadAll();
   } else {
     if (failMsg) showToast(failMsg);
@@ -921,6 +923,16 @@ function postApi(body) {
   return fetch(SHEET_URL, { method:'POST', mode:'no-cors', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
 }
 
+function showDefaultPwBanner(){
+  let b = document.getElementById('default-pw-banner');
+  let on = false; try { on = sessionStorage.getItem('gf_admin_default') === '1'; } catch(e) {}
+  if (!on) { if (b) b.remove(); return; }
+  if (b) return;
+  b = document.createElement('div'); b.id = 'default-pw-banner';
+  b.style.cssText = 'background:rgba(245,197,24,.12);border:1px solid rgba(245,197,24,.4);color:#f5c518;padding:10px 16px;margin:12px 4%;border-radius:8px;font-size:13px;font-weight:700;display:flex;gap:10px;align-items:center;flex-wrap:wrap;';
+  b.innerHTML = '⚠️ 기본 비밀번호(초기 비밀번호)를 사용 중입니다. 누구나 추측할 수 있으니 설정에서 6자 이상으로 바꿔 주세요. <button onclick="switchTab(\'settings\')" style="background:#f5c518;color:#000;border:none;border-radius:4px;padding:4px 10px;font-weight:700;cursor:pointer;font-family:var(--font)">지금 바꾸기</button>';
+  const app = document.getElementById('admin-app'); app.insertBefore(b, app.children[1] || null);
+}
 let _expiredShown = false;
 function handleExpired() {
   if (_expiredShown) return;
@@ -1347,6 +1359,7 @@ function changeAdminPw() {
     .then(r => {
       if (r && r.success) {
         if (r.token) { ADMIN_PW = r.token; try { sessionStorage.setItem(ADMIN_SESSION_KEY, r.token); } catch(e) {} }
+        try { sessionStorage.removeItem('gf_admin_default'); } catch(e) {} showDefaultPwBanner();
         showMsg(msg, '✅ 변경됐습니다! 다음 로그인부터 새 비밀번호를 사용하세요.', 'ok');
         document.getElementById('adm-pw-current').value = '';
         document.getElementById('adm-pw-new').value = '';
@@ -1420,6 +1433,10 @@ function extractVimeoId(url) {
   if (/^\d+$/.test(url.trim())) return url.trim();
   return url;
 }
+// 'yyyy-MM-dd HH:mm:ss'(한국 시간) → ms
+function tsMs(t){ const m=String(t||'').match(/^(\d{4})-(\d{2})-(\d{2})(?: (\d{2}):(\d{2}):(\d{2}))?/); return m?Date.parse(`${m[1]}-${m[2]}-${m[3]}T${m[4]||'00'}:${m[5]||'00'}:${m[6]||'00'}+09:00`):0; }
+function lastWatchMs(name){ let t=0; Object.values((vdData&&vdData.rawProgress&&vdData.rawProgress[name])||{}).forEach(p=>{ if((Number(p.maxReached)||0)>0) t=Math.max(t,tsMs(p.updatedAt)); }); return t; }
+function escHtml(t){ return String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function getStatus(p) {
   if (!p || p.maxReached < 10) return 'none';
   if (p.completed) return 'done';
@@ -2058,6 +2075,12 @@ function renderStudentCards() {
       : adminList.includes(n)
       ? `<span style="font-size:10px;font-weight:700;background:rgba(245,197,24,.15);color:#f5c518;border:1px solid rgba(245,197,24,.3);border-radius:3px;padding:1px 6px;">👑 관리자</span>`
       : '';
+    // 7일 이상 미시청 표시
+    const lw=lastWatchMs(n), days=lw?Math.floor((Date.now()-lw)/86400000):-1;
+    const isStaff = (vdData.adminGroup||[]).includes(n) || (vdData.insemGroup||[]).includes(n);
+    const inactiveBadge = isStaff ? '' : lw===0
+      ? `<span style="font-size:10px;font-weight:700;background:rgba(255,255,255,.08);color:var(--g3);border-radius:3px;padding:1px 6px;">아직 시작 안 함</span>`
+      : days>=7 ? `<span style="font-size:10px;font-weight:700;background:rgba(229,9,20,.15);color:#ff8a80;border:1px solid rgba(229,9,20,.3);border-radius:3px;padding:1px 6px;">⚠️ ${days}일째 미시청 (7일 이상)</span>` : '';
     let done=[],ing=[],none=[];
     allVideos.forEach(v=>{
       const p=rawP[n]?.[v.id],st=getStatus(p);
@@ -2074,7 +2097,8 @@ function renderStudentCards() {
         <div class="stu-avatar" style="background:${avatarBg}">${n.slice(0,1)}</div>
         <div style="flex:1;min-width:0;">
           <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-            <div class="stu-name">${n}</div>
+            <div class="stu-name" style="cursor:pointer;text-decoration:underline dotted" title="상세 보기" data-name="${escHtml(n)}" onclick="openStudentDetail(this.dataset.name)">${escHtml(n)}</div>
+            ${inactiveBadge}
             ${roleBadge}
           </div>
           <div class="stu-sub">${allVideos.length}개 강의 · <span style="color:${statusColor};font-weight:600">${statusText}</span></div>
@@ -2163,7 +2187,8 @@ function renderStudentDetail(){
           </div>
           <div style="text-align:right;flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
             <div style="font-size:14px;font-weight:700;color:${vc}">${st==='done'?'완료':st==='ing'?vp+'%':'미시청'}</div>
-            ${st==='ing'?`<div style="font-size:10px;color:var(--g3)">${fmtSec(p?.maxReached)}</div>`:''}
+            ${p?.rewatch?`<div style="font-size:11px;font-weight:700;color:var(--gold)">🔁 재시청 ${p.rewatch}회 (총 ${p.rewatch+1}회 시청)</div>`:''}
+            ${st!=='none'?`<div style="font-size:10px;color:var(--g3)">마지막 시청 ${String(p?.updatedAt||'').slice(0,10)||'-'}${st==='ing'?' · 이어보기 '+fmtSec(p?.lastPosition||p?.maxReached):''}</div>`:''}
             ${st!=='none'?`<button onclick="resetStudentProgress('${name}','${v.id}','${(pp.main||v.title).replace(/'/g,"\\'")}')"
               style="background:rgba(229,9,20,.1);border:1px solid rgba(229,9,20,.2);color:#ff8a80;border-radius:4px;padding:2px 8px;font-size:10px;font-weight:700;cursor:pointer;">초기화</button>`:''}
           </div>
@@ -2192,9 +2217,24 @@ async function _confirmDeleteNotice(){
 /* ── POPUP ── */
 function regPopup(k,t,i){_popupData[k]={title:t,items:i};}
 function showPopup(k){const d=_popupData[k];if(!d)return;document.getElementById('popup-title').textContent=d.title;document.getElementById('popup-body').innerHTML=d.items?.length?d.items.map(item=>`<div class="popup-item"><div class="popup-avatar">${item.icon||item.name.slice(0,1)}</div><div><div style="font-size:14px;font-weight:700">${item.name}</div>${item.sub?`<div style="font-size:12px;color:var(--g3)">${item.sub}</div>`:''}</div></div>`).join(''):'<p style="text-align:center;color:var(--g3);padding:2rem;font-size:14px;">해당 항목 없음</p>';document.getElementById('popup-overlay').classList.add('show');}
+async function copyNames(kind){
+  const names = (window._copyNames && window._copyNames[kind]) || [];
+  const text = names.join(', ');
+  try { await navigator.clipboard.writeText(text); }
+  catch(e) { const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); } catch(_){} ta.remove(); }
+  showToast(`📋 ${names.length}명 이름을 복사했습니다. 카톡에 붙여넣으세요.`);
+}
 function closePopup(){document.getElementById('popup-overlay').classList.remove('show');}
 
 /* ── STUDENT SUB SWITCH ── */
+function openStudentDetail(name){
+  if (typeof switchTab === 'function') switchTab('students');
+  switchStudentSub('detail');
+  const sel=document.getElementById('stu-select');
+  if (sel && ![...sel.options].some(o=>o.value===name)) { const o=document.createElement('option'); o.value=name; o.textContent=name; sel.appendChild(o); }
+  if (sel) sel.value=name;
+  renderStudentDetail();
+}
 function switchStudentSub(s){['all','mgmt','detail'].forEach(m=>{const b=document.getElementById('st-'+m+'-btn');if(b)b.classList.toggle('active',m===s);const v=document.getElementById('st-view-'+m);if(v)v.style.display=m===s?'block':'none';});if(s==='all')renderStudentCards();if(s==='mgmt')loadStudentList();}
 
 /* ── CSV EXPORT ── */
@@ -2203,7 +2243,7 @@ function exportCSV(){
   const{students=[],rawProgress:rawP={}}=vdData;
 
   let csv='\uFEFF수강생,역할,'+allVideos.map(v=>'"'+v.title.replace(/"/g,'""')+'"').join(',')
-    +',완료율,완주횟수,마지막시청일\n';
+    +',완료율,완주횟수,마지막시청일,최근 7일 시청 강의 수,상태\n';
 
   students.forEach(n=>{
     const insemList = vdData.insemGroup || [];
@@ -2222,19 +2262,25 @@ function exportCSV(){
     // 마지막 시청일: rawProgress에서 updatedAt이 가장 최근인 것
     let lastDate='';
     Object.values(rawP[n]||{}).forEach(p=>{
-      if(p.updatedAt && (!lastDate || p.updatedAt > lastDate)) lastDate = p.updatedAt;
+      if((Number(p.maxReached)||0) > 0 && p.updatedAt && (!lastDate || p.updatedAt > lastDate)) lastDate = p.updatedAt;
     });
     // 날짜 부분만 (YYYY-MM-DD)
     const dateStr = lastDate ? lastDate.split(' ')[0] : '-';
-
-    csv+='"'+n+'","'+role+'",'+cells.map(c=>'"'+c+'"').join(',')+','+pct+'%,'+done+',"'+dateStr+'"\n';
+    // 최근 7일 동안 본 강의 수, 상태
+    const weekAgo = Date.now() - 7*86400000;
+    const week = Object.values(rawP[n]||{}).filter(p => (Number(p.maxReached)||0) > 0 && tsMs(p.updatedAt) >= weekAgo).length;
+    const lw = lastWatchMs(n);
+    const state = !lw ? '시작 안 함' : (Date.now()-lw) >= 7*86400000 ? '7일 이상 미시청' : '진행 중';
+    const q = v => '"'+String(v).replace(/"/g,'""')+'"';
+    csv+=q(n)+','+q(role)+','+cells.map(q).join(',')+','+pct+'%,'+done+','+q(dateStr)+','+week+','+q(state)+'\n';
   });
 
   const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
   a.href=url;
-  a.download='갓플릭스_'+new Date().toISOString().split('T')[0]+'.csv';
+  const d=new Date(); const ymd=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  a.download='갓플릭스_주간보고_'+ymd+'.csv';
   a.click();
   URL.revokeObjectURL(url);
   showToast('📥 CSV 다운로드 완료');
@@ -2329,13 +2375,20 @@ function showVidDetailPopup(vidId, title) {
   students.forEach(n => {
     const p = rawP[n]?.[vidId];
     const st = getStatus(p);
-    if (st==='done') done.push({ icon:'✅', name:n, sub:'완료' });
+    if (st==='done') done.push({ icon:'✅', name:n, sub:'완료' + (p?.rewatch ? ' · 🔁 재시청 ' + p.rewatch + '회 (총 ' + (p.rewatch+1) + '회 시청)' : '') });
     else if (st==='ing') ing.push({ icon:'▶', name:n, sub: getPct(p)+'% ('+fmtSec(p?.maxReached)+') 시청중' });
     else none.push({ icon:'○', name:n, sub:'미시청' });
   });
   const items = [...done, ...ing, ...none];
+  // 독려 대상은 수강생만 (관리자·인섬교 제외)
+  const staff = new Set([...(vdData.adminGroup||[]), ...(vdData.insemGroup||[])]);
+  window._copyNames = { none: none.map(x => x.name).filter(n => !staff.has(n)), ing: ing.map(x => x.name).filter(n => !staff.has(n)) };
   document.getElementById('popup-title').textContent = title;
   document.getElementById('popup-body').innerHTML = `
+    <div style="display:flex;gap:8px;margin:4px 0 10px;flex-wrap:wrap;">
+      ${window._copyNames.none.length ? `<button onclick="copyNames('none')" style="background:rgba(229,9,20,.15);border:1px solid rgba(229,9,20,.35);color:#ff8a80;border-radius:6px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font)">📋 미시청자 이름 복사 (${window._copyNames.none.length}명)</button>` : ''}
+      ${window._copyNames.ing.length ? `<button onclick="copyNames('ing')" style="background:rgba(74,158,255,.15);border:1px solid rgba(74,158,255,.35);color:#4a9eff;border-radius:6px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font)">📋 시청중 이름 복사 (${window._copyNames.ing.length}명)</button>` : ''}
+    </div>
     <div style="display:flex;gap:8px;margin:8px 0 14px;flex-wrap:wrap;">
       <span style="background:rgba(70,211,105,.15);color:var(--green);font-size:12px;font-weight:700;padding:4px 12px;border-radius:20px;">✅ 완료 ${done.length}명</span>
       <span style="background:rgba(74,158,255,.15);color:var(--blue);font-size:12px;font-weight:700;padding:4px 12px;border-radius:20px;">▶ 시청중 ${ing.length}명</span>
@@ -2417,6 +2470,7 @@ window.addEventListener('keydown',e=>{if(e.key==='Escape')closePopup();});
     const savedPw = sessionStorage.getItem(ADMIN_SESSION_KEY);
     if (savedPw && savedPw.includes('.')) {   // 토큰 형식일 때만 (예전 세션값은 무시)
       ADMIN_PW = savedPw;
+      setTimeout(showDefaultPwBanner, 0);
       document.getElementById('login-screen').style.display = 'none';
       document.getElementById('admin-app').style.display = 'block';
       loadAll();

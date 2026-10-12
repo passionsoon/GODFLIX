@@ -1450,6 +1450,7 @@ html{-webkit-overflow-scrolling:touch;}
         진도 새로고침
       </button>
     </div>
+    <div id="next-lecture" style="display:none"></div>
     <div id="rows-container"></div>
   </div>
   </div><!-- /catalog-view -->
@@ -1580,6 +1581,7 @@ let userName='',currentVideo=null,currentIndex=-1;
 let authTok=''; // 서버가 발급한 로그인 토큰 (비밀번호 대신 사용)
 let startTime=null,maxReachedSec=0,lastPositionSec=0,videoDuration=0;
 let replayCount=0,completed=false,isPlaying=false;
+let wasDone=false,sessionPlayedSec=0,_lastT=null; // 다시 보기: 이번에 실제로 재생한 시간
 let jumpBlock=false,recordSent=false;
 let progressSaveInterval=null,watchedMinutesSinceLastRecord=0;
 let featuredIndex=0,currentGrade='전체';
@@ -1696,14 +1698,21 @@ async function initAutoLogin() {
         if (!saved.user) await doLogin(r.user, saved.id); else loadProgress();
         return true;
       }
-      if (r.invalid) storage.removeItem(key);
+      if (r.invalid) { storage.removeItem(key); if (saved.user) forceRelogin(); return false; }
+      if (saved.user) retryToken(saved, storage, key);   // 서버 일시 오류 → 잠시 후 토큰 다시 받기
       return !!saved.user;
     }
     if (saved.tok && saved.user) {
       authTok = saved.tok;
       await doLogin(saved.user, saved.id);
       gasApi({ action: 'auth', tok: saved.tok }).then(r => {
-        if (r && r.invalid) { storage.removeItem(key); }
+        if (r && r.invalid) { forceRelogin(); return; }
+        if (r && r.success && r.token) {          // 이름·과정이 바뀐 경우 새 토큰
+          authTok = r.token;
+          storage.setItem(key, JSON.stringify({ id: saved.id, user: r.user, tok: r.token }));
+          if (r.user) applyRole(r.user.grade);
+          if (r.user && r.user.name !== userName) { userName = r.user.name; document.getElementById('header-name').textContent = userName + ' 님'; loadProgress(); }
+        }
       }).catch(() => {});
       return true;
     }
@@ -1735,6 +1744,37 @@ function hideAutoLoginOverlay() {
   document.getElementById('auto-login-overlay').classList.remove('show');
 }
 
+function applyRole(grade){
+  const g = String(grade || '');
+  userRole = g === '인섬교' ? '인섬교' : g === '관리자' ? '관리자' : '수강생';
+  const roleArea = document.getElementById('header-role-badge');
+  if (!roleArea) return;
+  if (userRole === '인섬교') {
+    roleArea.textContent = '⚡ 인섬교';
+    roleArea.style.cssText = 'display:inline-flex;align-items:center;background:rgba(74,158,255,.15);color:#4a9eff;border:1px solid rgba(74,158,255,.3);border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700;margin-left:6px;';
+  } else if (userRole === '관리자') {
+    roleArea.textContent = '👑 관리자';
+    roleArea.style.cssText = 'display:inline-flex;align-items:center;background:rgba(245,197,24,.15);color:#f5c518;border:1px solid rgba(245,197,24,.3);border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700;margin-left:6px;';
+  } else { roleArea.style.display = 'none'; roleArea.textContent = ''; }
+}
+
+/* ── 로그인이 무효가 됨 (비밀번호 초기화·삭제 등) → 저장 정보 지우고 로그인 화면 ── */
+function forceRelogin(){
+  try { localStorage.removeItem(AUTO_KEY); localStorage.removeItem(CRED_KEY); sessionStorage.removeItem(SESSION_KEY); } catch(e){}
+  if (typeof goToLogin === 'function' && userName) goToLogin();
+  showToast('🔒 로그인 정보가 바뀌었습니다. 다시 로그인해 주세요.');
+}
+function retryToken(saved, storage, key, n = 0){
+  if (authTok || n > 10) return;
+  setTimeout(async () => {
+    if (authTok || !userName) return;
+    const r = await verifyLogin(saved.id, saved.pw);
+    if (r.user) { authTok = r.tok; try { storage.setItem(key, JSON.stringify({ id: saved.id, user: r.user, tok: r.tok })); } catch(e){} loadProgress(); }
+    else if (r.invalid) forceRelogin();
+    else retryToken(saved, storage, key, n + 1);
+  }, 30000);
+}
+
 /* ── 서버에서 아이디/비밀번호 확인 (비밀번호는 브라우저에 내려오지 않음) ──
    반환: {user} 성공 | {invalid:true, error} 불일치 | {error} 서버 오류 */
 async function verifyLogin(idVal, pwVal) {
@@ -1753,20 +1793,7 @@ async function verifyLogin(idVal, pwVal) {
 /* ── 실제 로그인 처리 (confirmLogin과 공유) ── */
 async function doLogin(matched, idVal) {
   userName = matched.name || idVal;
-  const g = String(matched.grade || '');
-  userRole = g === '인섬교' ? '인섬교' : g === '관리자' ? '관리자' : '수강생';
-  const roleArea = document.getElementById('header-role-badge');
-  if (roleArea) {
-    if (userRole === '인섬교') {
-      roleArea.textContent = '⚡ 인섬교';
-      roleArea.style.cssText = 'display:inline-flex;align-items:center;background:rgba(74,158,255,.15);color:#4a9eff;border:1px solid rgba(74,158,255,.3);border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700;margin-left:6px;';
-    } else if (userRole === '관리자') {
-      roleArea.textContent = '👑 관리자';
-      roleArea.style.cssText = 'display:inline-flex;align-items:center;background:rgba(245,197,24,.15);color:#f5c518;border:1px solid rgba(245,197,24,.3);border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700;margin-left:6px;';
-    } else {
-      roleArea.style.display = 'none';
-    }
-  }
+  applyRole(matched.grade);
   // 진도: 이 기기에 저장해 둔 것부터 바로 표시 → 서버 최신값은 뒤에서 받아 갱신 (기다리지 않음)
   try { progressMap = JSON.parse(localStorage.getItem(progKey()) || '{}'); } catch(e) { progressMap = {}; }
   loadProgress();
@@ -1790,18 +1817,25 @@ async function loadProgress(){
   if (!authTok || !userName) return false;
   try {
     const j = await gasApi({ action:'getAllProgress', tok: authTok });
-    if (j && j.invalid) return false;
+    if (j && j.invalid) { forceRelogin(); return false; }
     if (j && j.data) {
       // 서버값과 이 기기의 값 중 더 많이 본 쪽을 유지
       // 이 기기 기록이 서버보다 '나중에' 저장됐고 더 많이 본 경우에만 유지
       // (관리자가 진도를 초기화하면 서버 시간이 더 최신이라 예전 기록이 되살아나지 않음)
+      // 기기 시계가 틀려도 되도록 서버 시계 기준으로 비교 (j.now = 서버 현재 시각)
+      const skew = j.now ? (j.now - Date.now()) : 0;
       const merged = j.data;
       const srvTime = t => { const m = String(t||'').match(/^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})/); return m ? Date.parse(`${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:${m[6]}+09:00`) : 0; };
+      // 서버 시각을 알면 오차 보정이 되므로 기간 제한 없음 / 모르면 6시간까지만 신뢰
+      const fresh = loc => loc.savedAt && (j.now ? true : (Date.now() - loc.savedAt) < 6 * 3600e3) && (loc.savedAt + skew) <= (j.now || Date.now()) + 60e3;
+      const ahead = [];
       Object.entries(progressMap).forEach(([vid, loc]) => {
         const sv = merged[vid];
-        if (!sv) { if (loc.savedAt) merged[vid] = loc; return; }
-        if ((loc.maxReached||0) > (sv.maxReached||0) && (loc.savedAt||0) > srvTime(sv.updatedAt)) merged[vid] = loc;
+        if (!sv) { if (fresh(loc)) { merged[vid] = loc; ahead.push(vid); } return; }
+        if ((loc.maxReached||0) > (sv.maxReached||0) && fresh(loc) && (loc.savedAt + skew) > srvTime(sv.updatedAt)) { merged[vid] = loc; ahead.push(vid); }
       });
+      // 서버가 못 받은 기록(네트워크 끊김 등)은 다시 보내서 서버에도 남김
+      ahead.forEach(vid => { const p = merged[vid]; if ((p.duration||0) > 0 && (p.maxReached||0) > 0) fetch(SHEET_URL,{method:'POST',mode:'no-cors',keepalive:true,headers:{'Content-Type':'text/plain'},body:JSON.stringify({type:'progress',tok:authTok,videoId:vid,lastPosition:Math.floor(p.lastPosition||0),maxReached:Math.floor(p.maxReached),duration:Math.floor(p.duration)})}).catch(()=>{}); });
       progressMap = merged; saveProgLocal();
       renderCatalog(); updateStats(); renderRecentRow();
       return true;
@@ -2124,6 +2158,7 @@ async function confirmLogin(){
 
 function goToLogin(){
   if(currentVideo&&maxReachedSec>5){saveRecord(true);saveProgress();}
+  if(document.getElementById('fs-overlay')?.classList.contains('open')){ closeFullscreen(); }
   clearInterval(progressSaveInterval);closePlayer();
   // 세션 + 자동로그인 해제 (로그아웃 시 항상 해제)
   try { sessionStorage.removeItem(SESSION_KEY); } catch(e){}
@@ -2281,7 +2316,7 @@ function makeCard(v, vi, i){
   card.id='vc-'+i;
   card.innerHTML=`
     <div class="v-thumb" style="${thumbStyle}"${thumbData}></div>
-    ${!v.thumbnail?`<div class="v-thumb-fallback"><div class="v-fallback-num">${vi+1}</div></div>`:''}
+    ${!v.thumbnail?`<div class="v-thumb-fallback"><div class="v-fallback-num">${(String(v.title||"").match(/(\d+)\s*강/)||[])[1]||(vi+1)}</div></div>`:''}
     <div class="v-overlay"></div>
     <div class="v-badge-grade ${gc}">${grade}</div>
     ${isDone?'<div class="v-badge-done">✓</div>':''}
@@ -2356,7 +2391,36 @@ function makeRow(title, videos, globalIndexFn){
   return row;
 }
 
-function renderCatalog(){
+function renderCatalog(){ _renderCatalogInner(); renderNextLecture(); }
+
+/* ── 다음에 볼 강의 + 과정 완료 현황 ── */
+function lectureNo(v,i){ const m=String(v.title||'').match(/(\d+)\s*강/); return m?Number(m[1]):1000+i; }
+function isDoneProg(p){ if(!p)return false; const mx=parseFloat(p.maxReached)||0, d=parseFloat(p.duration)||0; return !!(p.completed||(d>0&&mx/d>=0.9)); }
+function renderNextLecture(){
+  const box=document.getElementById('next-lecture'); if(!box)return;
+  if(!userName||!VIDEOS.length||currentSearchQuery){ box.style.display='none'; return; }
+  // 가장 최근에 본 강의의 과정 → 없으면 첫 과정
+  let g=null, last=0;
+  Object.entries(progressMap||{}).forEach(([id,p])=>{ const v=VIDEOS.find(x=>x.id===id); const t=p.savedAt||Date.parse(String(p.updatedAt||'').replace(' ','T')+'+09:00')||0; if(v&&(p.maxReached||0)>0&&t>=last){ last=t; g=detectGrade(v); } });
+  if(currentGrade!=='전체') g=currentGrade;
+  if(!g){ const order=['기초','응용','심화','기타']; g=order.find(x=>VIDEOS.some(v=>detectGrade(v)===x)); }
+  const list=VIDEOS.map((v,i)=>({v,i})).filter(o=>detectGrade(o.v)===g).sort((a,b)=>lectureNo(a.v,a.i)-lectureNo(b.v,b.i));
+  if(!list.length){ box.style.display='none'; return; }
+  const done=list.filter(o=>isDoneProg(progressMap[o.v.id])).length;
+  const next=list.find(o=>!isDoneProg(progressMap[o.v.id]));
+  const pct=Math.round(done/list.length*100);
+  const gl={기초:'기초 과정',응용:'응용 과정',심화:'심화 과정'}[g]||g;
+  const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  box.style.cssText='margin:0 4% 18px;padding:14px 16px;border-radius:8px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:14px;flex-wrap:wrap;';
+  box.innerHTML = next
+    ? `<div style="flex:1;min-width:200px"><div style="font-size:12px;color:var(--g3)">▶ 이어서 볼 강의 · ${gl} <b style="color:var(--white)">${done}/${list.length} 완료</b></div>
+        <div style="font-size:16px;font-weight:700;margin-top:4px">${esc(next.v.title)}</div>
+        <div style="height:4px;background:rgba(255,255,255,.08);border-radius:2px;margin-top:8px;overflow:hidden"><div style="width:${pct}%;height:100%;background:var(--red)"></div></div></div>
+       <button data-play="${next.i}" onclick="selectVideo(${next.i})" style="background:var(--white);color:#000;border:none;border-radius:4px;padding:9px 18px;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit">▶ 재생</button>`
+    : `<div style="font-size:14px">🎉 ${gl} ${list.length}강을 모두 완료했어요!</div>`;
+  box.style.display='flex';
+}
+function _renderCatalogInner(){
   const container=document.getElementById('rows-container');
   container.innerHTML='';
 
@@ -2403,18 +2467,25 @@ function renderCatalog(){
 /* ─ SELECT & PLAY ─ */
 async function selectVideo(index){
   if(!userName){showToast('먼저 로그인해 주세요');return;}
+  clearTimeout(window._closeTimer);   // 방금 닫은 플레이어 정리 타이머가 새 영상을 지우지 않도록
   if(currentVideo&&maxReachedSec>5){saveRecord(true);saveProgress();}
   clearInterval(progressSaveInterval);
 
   currentVideo=VIDEOS[index];currentIndex=index;
   startTime=new Date().toLocaleString('ko-KR');
-  replayCount=0;completed=false;recordSent=false;
+  replayCount=0;recordSent=false;
   isPlaying=false;jumpBlock=false;videoDuration=0;
   lastPositionSec=0;watchedMinutesSinceLastRecord=0;
 
   const prog=progressMap[currentVideo.id];
+  // 이미 완료한 강의를 다시 볼 때는 '완료→다음 강의 자동 재생'이 다시 일어나지 않도록
+  completed=isDoneProg(prog);
+  wasDone=completed;sessionPlayedSec=0;_lastT=null;
   maxReachedSec=prog?(parseFloat(prog.maxReached)||0):0;
-  const resumeFrom=prog?(parseFloat(prog.lastPosition)||0):0;
+  let resumeFrom=prog?(parseFloat(prog.lastPosition)||0):0;
+  // 다 본 강의를 끝부분에서 멈췄으면 다시 볼 때는 처음부터
+  const pDur=prog?(parseFloat(prog.duration)||0):0;
+  if(wasDone&&pDur>0&&resumeFrom>=pDur-90)resumeFrom=0;
 
   document.querySelectorAll('.v-card').forEach((el,i)=>
     el.classList.toggle('active',parseInt(el.id.replace('vc-',''))===index));
@@ -2472,7 +2543,8 @@ function closePlayer(){
   const overlay = document.getElementById('player-overlay');
   overlay.classList.remove('show');
   // opacity 전환 후 display:none (250ms — transition 시간과 동일)
-  setTimeout(() => {
+  clearTimeout(window._closeTimer);
+  window._closeTimer = setTimeout(() => {
     overlay.style.display = 'none';
     document.getElementById('vimeo-player').src='';
   }, 250);
@@ -2481,6 +2553,7 @@ function closePlayer(){
   clearInterval(progressSaveInterval);
   releaseWakeLock();
   clearMediaSession();
+  try { renderNextLecture(); } catch(e){}
 }
 
 /* ─ MOBILE FS ─ */
@@ -2541,11 +2614,12 @@ function openFullscreen(videoId,title){
   document.getElementById('fs-title').textContent=title;
   document.getElementById('fs-label').textContent='로딩 중…';
   document.getElementById('fs-watch-bar').style.width='0%';
-  document.getElementById('fs-complete').style.display='none';
+  const fcEl=document.getElementById('fs-complete'); fcEl.style.display='none'; fcEl.innerHTML='🎉 시청 완료!';
   document.getElementById('vimeo-player').src='';
   // background=1 → 화면 꺼짐 / PiP 상태에서도 오디오 계속 재생
   document.getElementById('fs-player').src=
-    `https://player.vimeo.com/video/${videoId}?badge=0&autopause=0&app_id=58479&api=1&player_id=fs-player&autoplay=1&quality=auto&background=0&playsinline=0`;
+    `https://player.vimeo.com/video/${videoId}?badge=0&autopause=0&app_id=58479&api=1&player_id=fs-player&autoplay=0&muted=0&quality=auto&background=0&playsinline=0`;
+  // 휴대폰은 자동 재생하면 소리가 꺼진 채로만 재생됨 → 재생 버튼을 직접 눌러야 소리가 나옴
   o.classList.add('open');
   if(o.requestFullscreen)o.requestFullscreen().catch(()=>{});
   else if(o.webkitRequestFullscreen)o.webkitRequestFullscreen();
@@ -2555,6 +2629,7 @@ function openFullscreen(videoId,title){
   if(currentVideo)setMediaSession(title,currentVideo.thumbnail||'');
 }
 function closeFullscreen(){
+  closePlayer();   // 진도·기록 저장, 저장 타이머 정지, 플레이어 화면 닫기
   document.getElementById('fs-overlay').classList.remove('open');
   document.getElementById('fs-player').src='';
   if(screen.orientation?.unlock)screen.orientation.unlock();
@@ -2604,9 +2679,11 @@ window.addEventListener('message',function(e){
     if(dur>0&&t>dur+2)return;                       // 영상 길이보다 긴 위치는 무시
     if(videoDuration>0&&dur>0&&Math.abs(dur-videoDuration)>5)return; // 다른 영상의 신호
     if(dur>0)videoDuration=dur;
-    const fw=dur>0&&maxReachedSec>=dur*.95;
+    const fw=wasDone||(dur>0&&maxReachedSec>=dur*.95);   // 다 본 강의는 자유롭게 넘겨보기
     if(!fw&&!jumpBlock&&t>maxReachedSec+10){blockJump(isFs);return;}
     if(jumpBlock)return;
+    if(_lastT!==null){const dt=t-_lastT;if(dt>0&&dt<=3)sessionPlayedSec+=dt;}   // 건너뛴 구간은 빼고 실제 재생 시간만
+    _lastT=t;
     lastPositionSec=t;
     if(t>maxReachedSec){
       maxReachedSec=t;
@@ -2635,7 +2712,7 @@ window.addEventListener('message',function(e){
   if(ev==='seek'){
     if(jumpBlock)return;
     const tg=parseFloat(d.data.seconds)||0,dur=parseFloat(d.data.duration)||videoDuration;
-    if(!(dur>0&&maxReachedSec>=dur*.95)&&tg>maxReachedSec+3)blockJump(isFs);
+    if(!wasDone&&!(dur>0&&maxReachedSec>=dur*.95)&&tg>maxReachedSec+3)blockJump(isFs);
   }
   if(ev==='finish'){isPlaying=false;if(!completed&&videoDuration>0&&maxReachedSec>=videoDuration*.9)triggerComplete();}
 });
@@ -2695,16 +2772,20 @@ function sendPlayer(method,value,isFs=false){
 /* ─ SAVE ─ */
 function saveRecord(isFinal=true){
   if(!userName||!currentVideo)return;
+  if(window._awaitReady||!(videoDuration>0))return;   // 플레이어 준비 전에는 기록하지 않음
   if(recordSent)return;if(isFinal)recordSent=true;
   if(!authTok)return;
   fetch(SHEET_URL,{method:'POST',mode:'no-cors',keepalive:true,headers:{'Content-Type':'text/plain'},
     body:JSON.stringify({type:'record',tok:authTok,videoId:currentVideo.id,grade:detectGrade(currentVideo),videoTitle:currentVideo.title,
       date:currentVideo.date||'',lecturer:currentVideo.lecturer||'',startTime,completed,
-      watchedMinutes:Math.round(maxReachedSec/60*10)/10,replayCount})}).catch(()=>{});
+      watchedMinutes:Math.round(maxReachedSec/60*10)/10,replayCount,
+      playedMinutes:Math.round(sessionPlayedSec/60*10)/10,
+      rewatch:wasDone&&videoDuration>0&&sessionPlayedSec>=videoDuration*0.5})}).catch(()=>{});
 }
 let _lastSaved='';
 function saveProgress(force=false){
   if(!userName||!currentVideo||!authTok)return;
+  if(window._awaitReady||!(videoDuration>0))return;   // 플레이어 준비 전 저장 → 길이 0으로 덮어쓰는 문제 방지
   if(!progressMap[currentVideo.id])progressMap[currentVideo.id]={lastPosition:0,maxReached:0,duration:0};
   progressMap[currentVideo.id].lastPosition=Math.floor(lastPositionSec);
   progressMap[currentVideo.id].maxReached=Math.floor(videoDuration>0?Math.min(maxReachedSec,videoDuration):maxReachedSec);
@@ -3099,13 +3180,7 @@ function showNextVideoBtn() {
     const dur = parseFloat(p?.duration) || 0, maxR = parseFloat(p?.maxReached) || 0;
     if (!(p?.completed || (dur > 0 && maxR / dur >= 0.9))) { nextVideo = sameGrade[i]; break; }
   }
-  if (!nextVideo) {
-    nextVideo = VIDEOS.filter(v => v.id !== currentVideo.id).find(v => {
-      const p = progressMap[v.id];
-      const dur = parseFloat(p?.duration) || 0, maxR = parseFloat(p?.maxReached) || 0;
-      return !(p?.completed || (dur > 0 && maxR / dur >= 0.9));
-    });
-  }
+  // (예전: 뒤에 볼 강의가 없으면 앞쪽 미완료 강의로 되돌아감 → 5강 끝나고 1강이 갑자기 열리는 문제. 제거)
 
   if (nextVideo) {
     const parsed = parseTitle(nextVideo.title);
@@ -3117,7 +3192,16 @@ function showNextVideoBtn() {
     sub.style.fontWeight = '400';
     sub.style.fontSize = '12px';
 
-    // ④ 5초 카운트다운 자동재생
+    // 휴대폰: 자동으로 넘어가지 않고 버튼으로만 (자동 재생은 소리가 꺼지고, 전체화면에 가려 '갑자기' 바뀐 것처럼 보임)
+    const fsOpen = document.getElementById('fs-overlay')?.classList.contains('open');
+    if (isMobile || fsOpen) {
+      btn.textContent = '▶ 다음 강의 보기';
+      sub.textContent = '다음: ' + (parsed.sub ? parsed.sub + ' ' : '') + (parsed.main || nextVideo.title);
+      const fc = document.getElementById('fs-complete');
+      if (fc) fc.innerHTML = '🎉 시청 완료! <button onclick="closeFullscreen();setTimeout(()=>selectVideo(' + VIDEOS.indexOf(nextVideo) + '),350)" style="margin-left:8px;background:#fff;color:#000;border:none;border-radius:4px;padding:6px 12px;font-weight:700;font-size:13px;font-family:inherit">▶ 다음 강의</button>';
+      return;
+    }
+    // ④ 5초 카운트다운 자동재생 (컴퓨터)
     _autoPlayCancelled = false;
     let remaining = 5;
     const updateLabel = () => {
