@@ -2001,12 +2001,12 @@ const CACHE_TTL_MS      = 10 * 60 * 1000; // 10분
 function cacheSet(key, data) {
   try { localStorage.setItem(key, JSON.stringify({ts: Date.now(), data})); } catch(e){}
 }
-function cacheGet(key) {
+function cacheGet(key, ignoreTtl = false) {
   try {
     const raw = localStorage.getItem(key);
     if (!raw) return null;
     const obj = JSON.parse(raw);
-    if (Date.now() - obj.ts > CACHE_TTL_MS) return null;
+    if (!ignoreTtl && Date.now() - obj.ts > CACHE_TTL_MS) return null;
     return obj.data;
   } catch(e) { return null; }
 }
@@ -2014,7 +2014,8 @@ function cacheGet(key) {
 /* ─ INIT ─ */
 async function init(){
   // 1. 캐시된 영상 목록 즉시 표시 (서버 응답 기다리지 않음)
-  const cachedVideos = cacheGet(CACHE_VIDEOS_KEY);
+  // 저장된 목록은 오래됐어도 일단 바로 보여주고, 최신 목록은 뒤에서 받아 교체
+  const cachedVideos = cacheGet(CACHE_VIDEOS_KEY, true);
   if (cachedVideos && cachedVideos.length) {
     VIDEOS = cachedVideos;
     buildGradeTabs(); renderCatalog(); updateFeatured(0); initHeroCarousel();
@@ -2244,6 +2245,19 @@ function playFeatured(){if(!userName){showToast('먼저 로그인해 주세요')
 function scrollToCatalog(){document.getElementById('catalog').scrollIntoView({behavior:'smooth'});}
 
 /* ─ CATALOG — 넷플릭스 가로 행 ─ */
+function smallThumb(u){
+  u=String(u||'');
+  if(/drive\.google\.com\/thumbnail/.test(u)) return /[?&]sz=/.test(u)?u.replace(/sz=w\d+/,'sz=w480'):u+'&sz=w480';
+  return u;
+}
+let _thumbObs=null;
+function lazyThumbs(root){
+  const els=(root||document).querySelectorAll('.v-thumb[data-bg]');
+  const apply=el=>{const u=el.getAttribute('data-bg');if(u){el.style.backgroundImage=`url('${u}')`;el.style.backgroundSize='cover';el.style.backgroundPosition='center';}el.removeAttribute('data-bg');};
+  if(!('IntersectionObserver' in window)){els.forEach(apply);return;}
+  if(!_thumbObs)_thumbObs=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){apply(e.target);_thumbObs.unobserve(e.target);}}),{rootMargin:'300px'});
+  els.forEach(el=>_thumbObs.observe(el));
+}
 function makeCard(v, vi, i){
   const prog=progressMap[v.id];
   const maxR=prog?(parseFloat(prog.maxReached)||0):0;
@@ -2254,14 +2268,15 @@ function makeCard(v, vi, i){
   const grade=detectGrade(v);
   const gc=gradeClass(grade);
   const parsed=parseTitle(v.title);
-  const thumbStyle=v.thumbnail?`background-image:url('${v.thumbnail}')`:
-    `background:linear-gradient(135deg,#1a1a1a,#2d2d2d)`;
+  // 카드용 작은 썸네일 + 화면에 보일 때만 불러오기 (강의가 많아져도 첫 화면 속도 일정)
+  const thumbStyle=`background:linear-gradient(135deg,#1a1a1a,#2d2d2d)`;
+  const thumbData=v.thumbnail?` data-bg="${smallThumb(v.thumbnail)}"`:'';
 
   const card=document.createElement('div');
   card.className='v-card'+(i===currentIndex?' active':'')+(isDone?' done':'');
   card.id='vc-'+i;
   card.innerHTML=`
-    <div class="v-thumb" style="${thumbStyle}"></div>
+    <div class="v-thumb" style="${thumbStyle}"${thumbData}></div>
     ${!v.thumbnail?`<div class="v-thumb-fallback"><div class="v-fallback-num">${vi+1}</div></div>`:''}
     <div class="v-overlay"></div>
     <div class="v-badge-grade ${gc}">${grade}</div>
@@ -2323,6 +2338,7 @@ function makeRow(title, videos, globalIndexFn){
     const i=globalIndexFn(v);
     slider.appendChild(makeCard(v,vi,i));
   });
+  lazyThumbs(slider);
 
   // 스크롤 버튼
   const scrollAmt=()=>slider.clientWidth*0.75;
