@@ -65,6 +65,22 @@ input,textarea,select{font-family:var(--font);outline:none;}
   scrollbar-width:none;
 }
 .adm-tabs::-webkit-scrollbar{display:none;}
+.fb-dot{background:#E50914;color:#fff;border-radius:10px;font-size:11px;font-weight:800;padding:1px 7px;margin-left:2px;}
+.fb-filter{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;align-items:center;}
+.fb-filter button{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:var(--g2);border-radius:16px;padding:7px 14px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font);}
+.fb-filter button.on{background:rgba(229,9,20,.18);border-color:rgba(229,9,20,.55);color:#fff;}
+.fb-filter input{flex:1;min-width:140px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:7px 14px;color:var(--white);font-size:13px;font-family:var(--font);}
+.fb-card{background:var(--surface);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:14px 16px;margin-bottom:10px;}
+.fb-card.new{border-color:rgba(229,9,20,.45);box-shadow:0 0 0 1px rgba(229,9,20,.15) inset;}
+.fb-meta{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;font-size:12px;color:var(--g3);margin-bottom:8px;}
+.fb-meta b{color:var(--white);font-size:14px;}
+.fb-tag{border-radius:4px;padding:1px 7px;font-weight:700;font-size:11px;}
+.fb-tag.q{background:rgba(74,158,255,.15);color:#4a9eff;border:1px solid rgba(74,158,255,.3);}
+.fb-tag.f{background:rgba(245,197,24,.12);color:#f5c518;border:1px solid rgba(245,197,24,.3);}
+.fb-tag.n{background:rgba(229,9,20,.15);color:#ff8a80;border:1px solid rgba(229,9,20,.3);}
+.fb-body{white-space:pre-wrap;word-break:break-word;font-size:14px;line-height:1.7;color:var(--g1);}
+.fb-acts{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;}
+.fb-acts button{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);color:var(--g1);border-radius:6px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);}
 .adm-tab{
   background:none;border:none;border-bottom:3px solid transparent;
   padding:14px 16px;font-size:13px;font-weight:700;color:var(--g3);
@@ -458,6 +474,7 @@ table.matrix tbody tr:hover td.cell-ing{background:rgba(74,158,255,.14);}
     <button class="adm-tab" id="mt-videos"    onclick="switchTab('videos')"><span class="tab-icon">🎬</span><span class="tab-text">영상 관리</span></button>
     <button class="adm-tab" id="mt-students"  onclick="switchTab('students')"><span class="tab-icon">👥</span><span class="tab-text">수강생별</span></button>
     <button class="adm-tab" id="mt-matrix"    onclick="switchTab('matrix')"><span class="tab-icon">📋</span><span class="tab-text">출석 현황</span></button>
+    <button class="adm-tab" id="mt-feedback"  onclick="switchTab('feedback')"><span class="tab-icon">✍️</span><span class="tab-text">소감·질문</span><span class="fb-dot" id="fb-unread" style="display:none"></span></button>
     <button class="adm-tab" id="mt-notice"    onclick="switchTab('notice')"><span class="tab-icon">📢</span><span class="tab-text">공지사항</span></button>
     <button class="adm-tab" id="mt-settings"  onclick="switchTab('settings')"><span class="tab-icon">⚙️</span><span class="tab-text">설정</span></button>
   </nav>
@@ -723,6 +740,21 @@ table.matrix tbody tr:hover td.cell-ing{background:rgba(74,158,255,.14);}
     </div>
   </div>
 
+  <!-- ═══ 소감·질문 (수강생 → 관리자) ═══ -->
+  <div class="tab-section" id="ts-feedback">
+    <div class="sec-title">✍️ <em>소감·질문</em></div>
+    <div style="font-size:13px;color:var(--g3);margin:-10px 0 14px;">수강생이 강의를 보고 보낸 느낀 점·궁금한 점이에요. 관리자만 볼 수 있어요.</div>
+    <div class="fb-filter">
+      <button data-f="all" class="on" onclick="setFbFilter('all')">전체</button>
+      <button data-f="new" onclick="setFbFilter('new')">새 글</button>
+      <button data-f="질문" onclick="setFbFilter('질문')">❓ 질문</button>
+      <button data-f="느낀점" onclick="setFbFilter('느낀점')">💛 느낀 점</button>
+      <input id="fb-search" placeholder="이름·강의·내용 검색" oninput="renderFeedback()">
+      <button onclick="loadFeedback(true)">🔄 새로고침</button>
+    </div>
+    <div id="fb-list"><p class="empty">불러오는 중…</p></div>
+  </div>
+
   <!-- ═══ 공지사항 ═══ -->
   <div class="tab-section" id="ts-notice">
     <div class="sec-title">📢 <em>공지사항</em> 관리</div>
@@ -955,6 +987,7 @@ function switchTab(t) {
   if (t==='students') renderStudentCards();
   if (t==='matrix')   loadVideoData();
   if (t==='notice')   loadCurrentNotice();
+  if (t==='feedback') loadFeedback(true);
   if (t==='settings') initSettings();
 }
 
@@ -1372,8 +1405,60 @@ function changeAdminPw() {
 }
 
 /* ── LOAD ALL ── */
+/* ════════════════════
+   ✍️ 소감·질문
+════════════════════ */
+let _fbItems = [], _fbFilter = 'all';
+function setFbFilter(f){ _fbFilter = f; document.querySelectorAll('.fb-filter [data-f]').forEach(b => b.classList.toggle('on', b.dataset.f === f)); renderFeedback(); }
+function setFbBadge(n){ const el = document.getElementById('fb-unread'); if (!el) return; el.textContent = n; el.style.display = n > 0 ? '' : 'none'; }
+async function loadFeedback(show){
+  try {
+    const r = await api({ action: 'feedback_list', pw: ADMIN_PW });
+    if (!r || r.error) { if (show) document.getElementById('fb-list').innerHTML = '<p class="empty">불러오지 못했습니다.</p>'; return; }
+    _fbItems = r.items || []; setFbBadge(r.unread || 0);
+    if (show || document.getElementById('ts-feedback').classList.contains('active')) renderFeedback();
+  } catch(e) { if (show) document.getElementById('fb-list').innerHTML = '<p class="empty">⚠️ 서버 연결 실패 — 새로고침을 눌러 주세요.</p>'; }
+}
+function renderFeedback(){
+  const q = (document.getElementById('fb-search').value || '').trim().toLowerCase();
+  const list = _fbItems.filter(x => (_fbFilter === 'all' || (_fbFilter === 'new' ? x.status === '새글' : x.kind === _fbFilter))
+    && (!q || (x.name + ' ' + x.title + ' ' + x.text).toLowerCase().includes(q)));
+  const el = document.getElementById('fb-list');
+  if (!list.length) { el.innerHTML = '<p class="empty">' + (_fbItems.length ? '조건에 맞는 글이 없습니다.' : '아직 받은 글이 없습니다.') + '</p>'; return; }
+  el.innerHTML = list.map(x => {
+    const isNew = x.status === '새글';
+    return `<div class="fb-card ${isNew ? 'new' : ''}">
+      <div class="fb-meta">${isNew ? '<span class="fb-tag n">NEW</span>' : ''}<span class="fb-tag ${x.kind === '질문' ? 'q' : 'f'}">${x.kind === '질문' ? '❓ 질문' : '💛 느낀 점'}</span>
+        <b>${escHtml(x.name)}</b>${x.grade ? '<span>' + escHtml(x.grade) + '</span>' : ''}<span>${escHtml(x.title || '(강의 선택 안 함)')}</span><span style="margin-left:auto">${escHtml(x.at)}</span></div>
+      <div class="fb-body">${escHtml(x.text)}</div>
+      <div class="fb-acts">
+        <button data-fid="${escHtml(x.fid)}" data-st="${isNew ? '읽음' : '새글'}" onclick="markFb(this.dataset.fid,this.dataset.st)">${isNew ? '✅ 읽음 처리' : '↩️ 새 글로 표시'}</button>
+        <button data-fid="${escHtml(x.fid)}" onclick="copyFb(this.dataset.fid)">📋 복사</button>
+        <button data-fid="${escHtml(x.fid)}" onclick="delFb(this.dataset.fid)" style="color:#ff8a80">🗑 삭제</button>
+      </div></div>`;
+  }).join('');
+}
+async function markFb(fid, st){
+  const it = _fbItems.find(x => x.fid === fid); if (!it) return;
+  const prev = it.status; it.status = st; setFbBadge(_fbItems.filter(x => x.status === '새글').length); renderFeedback();
+  try { const r = await api({ action: 'feedback_mark', pw: ADMIN_PW, fid, status: st }); if (!r || !r.success) throw 0; }
+  catch(e) { it.status = prev; setFbBadge(_fbItems.filter(x => x.status === '새글').length); renderFeedback(); showToast('⚠️ 저장 실패 — 다시 시도해 주세요.'); }
+}
+async function delFb(fid){
+  const i = _fbItems.findIndex(x => x.fid === fid); if (i < 0) return;
+  if (!confirm('이 글을 삭제할까요? 되돌릴 수 없습니다.')) return;
+  const it = _fbItems.splice(i, 1)[0]; setFbBadge(_fbItems.filter(x => x.status === '새글').length); renderFeedback();
+  try { const r = await api({ action: 'feedback_delete', pw: ADMIN_PW, fid }); if (!r || !r.success) throw 0; showToast('🗑 삭제했습니다.'); }
+  catch(e) { _fbItems.splice(i, 0, it); setFbBadge(_fbItems.filter(x => x.status === '새글').length); renderFeedback(); showToast('⚠️ 삭제 실패 — 다시 시도해 주세요.'); }
+}
+function copyFb(fid){
+  const x = _fbItems.find(y => y.fid === fid); if (!x) return;
+  const t = `[${x.kind === '질문' ? '질문' : '느낀 점'}] ${x.name} · ${x.title || ''}\n${x.text}`;
+  (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => showToast('📋 복사했습니다.')).catch(() => { prompt('복사해서 사용하세요', t); });
+}
+
 async function loadAll(retry = 0) {
-  if (retry === 0) showToast('📡 서버 연결 중…');
+  if (retry === 0) { showToast('📡 서버 연결 중…'); setTimeout(() => loadFeedback(false), 1500); }
   if (retry === 1) showToast('⏳ 서버 응답 대기 중… (첫 실행 시 30초 걸릴 수 있어요)');
   try {
     const r = await api({ action:'videos' });
