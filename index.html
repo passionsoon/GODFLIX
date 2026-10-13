@@ -2105,7 +2105,7 @@ function buildMyStats() {
   VIDEOS.forEach(v=>{
     const p=progressMap[v.id]; if(!p)return;
     const maxR=parseFloat(p.maxReached)||0, dur=parseFloat(p.duration)||0;
-    if(p.completed||isFull(maxR,dur)){done++;}
+    if(isFull(maxR,dur)){done++;}
     else if(maxR>30){ing++;}
     totalWatchedSec+=maxR;
   });
@@ -2117,7 +2117,7 @@ function buildMyStats() {
   const gradeColors={'기초':'#4a9eff','응용':'#46d369','심화':'#E50914'};
   const gradeStats=['기초','응용','심화'].map(g=>{
     const gv=VIDEOS.filter(v=>detectGrade(v)===g); if(!gv.length)return null;
-    const gd=gv.filter(v=>{const p=progressMap[v.id];if(!p)return false;const maxR=parseFloat(p.maxReached)||0,dur=parseFloat(p.duration)||0;return p.completed||isFull(maxR,dur);}).length;
+    const gd=gv.filter(v=>{const p=progressMap[v.id];if(!p)return false;const maxR=parseFloat(p.maxReached)||0,dur=parseFloat(p.duration)||0;return isFull(maxR,dur);}).length;
     return{g,total:gv.length,done:gd,pct:Math.round(gd/gv.length*100)};
   }).filter(Boolean);
   // 연속 학습일
@@ -2129,8 +2129,8 @@ function buildMyStats() {
     localStorage.setItem(sKey,JSON.stringify(sd));
   }
   const streak=sd.days;
-  const doneVids=VIDEOS.filter(v=>{const p=progressMap[v.id];if(!p)return false;const maxR=parseFloat(p.maxReached)||0,dur=parseFloat(p.duration)||0;return p.completed||isFull(maxR,dur);}).slice(0,5);
-  const ingVids=VIDEOS.filter(v=>{const p=progressMap[v.id];if(!p)return false;const maxR=parseFloat(p.maxReached)||0,dur=parseFloat(p.duration)||0;return!(p.completed||isFull(maxR,dur))&&maxR>30;}).slice(0,5);
+  const doneVids=VIDEOS.filter(v=>{const p=progressMap[v.id];if(!p)return false;const maxR=parseFloat(p.maxReached)||0,dur=parseFloat(p.duration)||0;return isFull(maxR,dur);}).slice(0,5);
+  const ingVids=VIDEOS.filter(v=>{const p=progressMap[v.id];if(!p)return false;const maxR=parseFloat(p.maxReached)||0,dur=parseFloat(p.duration)||0;return!(isFull(maxR,dur))&&maxR>30;}).slice(0,5);
 
   return `
   ${buildBadgeSection()}
@@ -2633,7 +2633,7 @@ function updateStats(){
     const maxR=parseFloat(p.maxReached)||0;
     const dur=parseFloat(p.duration)||0;
     // 완료: duration 대비 90% 이상 시청하거나 completed 플래그
-    if(p.completed||isFull(maxR,dur)){done++;}
+    if(isFull(maxR,dur)){done++;}
     else if(maxR>30){ing++;}
   });
   const none=total-done-ing;
@@ -2700,7 +2700,7 @@ function makeCard(v, vi, i){
   const prog=progressMap[v.id];
   const maxR=prog?(parseFloat(prog.maxReached)||0):0;
   const dur=prog?(parseFloat(prog.duration)||0):0;
-  const isDone=prog&&(prog.completed||isFull(maxR,dur));
+  const isDone=prog&&(isFull(maxR,dur));
   const isWatched=!isDone&&maxR>30;
   const cardPct=isDone?100:(dur>0?Math.min(Math.round(maxR/dur*100),99):0);
   const grade=detectGrade(v);
@@ -2796,7 +2796,7 @@ function renderCatalog(){ _renderCatalogInner(); renderNextLecture(); }
 function lectureNo(v,i){ const m=String(v.title||'').match(/(\d+)\s*강/); return m?Number(m[1]):1000+i; }
 // ✅ 완료 = 영상을 끝까지(100%) 본 것. 초 단위 반올림 차이만 2초 허용
 function isFull(mx,d){ mx=parseFloat(mx)||0; d=parseFloat(d)||0; return d>0&&mx>=d-2; }
-function isDoneProg(p){ if(!p)return false; return !!(p.completed||isFull(p.maxReached,p.duration)); }
+function isDoneProg(p){ if(!p)return false; return isFull(p.maxReached,p.duration); }   // 기기에 남은 예전 '완료' 표시(90% 기준)는 보지 않음
 function renderNextLecture(){
   const box=document.getElementById('next-lecture'); if(!box)return;
   if(!userName||!VIDEOS.length||currentSearchQuery){ box.style.display='none'; return; }
@@ -3357,7 +3357,7 @@ function openDetail(index) {
   const progBox = document.getElementById('detail-progress');
   if (maxR > 10) {
     progBox.style.display = 'block';
-    const isDone = prog && (prog.completed || isFull(maxR, dur));
+    const isDone = prog && (isFull(maxR, dur));
     document.getElementById('detail-prog-label').textContent =
       isDone ? '✅ 시청 완료' : '▶ ' + fmtSec(maxR) + '까지 시청';
     document.getElementById('detail-prog-pct').textContent = isDone ? '100%' : pct + '%';
@@ -3402,7 +3402,7 @@ function renderRecentRow() {
     if (maxR <= 30) return false; // 거의 안 본 것 제외
     // 완료된 강의 제외
     const dur  = parseFloat(p.duration) || 0;
-    const isDone = p.completed || isFull(maxR, dur);
+    const isDone = isFull(maxR, dur);
     return !isDone;
   });
 
@@ -3660,7 +3660,7 @@ function showNextVideoBtn() {
   for (let i = curPos + 1; i < sameGrade.length; i++) {
     const p = progressMap[sameGrade[i].id];
     const dur = parseFloat(p?.duration) || 0, maxR = parseFloat(p?.maxReached) || 0;
-    if (!(p?.completed || isFull(maxR, dur))) { nextVideo = sameGrade[i]; break; }
+    if (!(isFull(maxR, dur))) { nextVideo = sameGrade[i]; break; }
   }
   // (예전: 뒤에 볼 강의가 없으면 앞쪽 미완료 강의로 되돌아감 → 5강 끝나고 1강이 갑자기 열리는 문제. 제거)
 
