@@ -1951,7 +1951,7 @@ async function doLogin(matched, idVal) {
   const hint = document.getElementById('stats-row-hint');
   if (hint) hint.style.display = 'block';
   document.getElementById('search-bar-wrap').style.display = 'block';
-  renderCatalog(); updateStats(); updateFeatured(0); renderRecentRow();
+  renderCatalog(); updateStats(); updateFeatured(latestIdx()); renderRecentRow();
   initHeroCarousel(); loadNotice();
   setTimeout(showPwaPrompt, 3000);
   showToast('환영합니다, ' + userName + ' 님!');
@@ -2453,7 +2453,7 @@ async function init(){
   const cachedVideos = cacheGet(CACHE_VIDEOS_KEY, true);
   if (cachedVideos && cachedVideos.length) {
     VIDEOS = cachedVideos;
-    buildGradeTabs(); renderCatalog(); updateFeatured(0); initHeroCarousel();
+    buildGradeTabs(); renderCatalog(); updateFeatured(latestIdx()); initHeroCarousel();
   } else {
     renderSkeleton(2, 5);
   }
@@ -2483,7 +2483,7 @@ async function loadVideosFromServer(retryCount=0) {
     if(list.length){
       VIDEOS=list;
       cacheSet(CACHE_VIDEOS_KEY, list);
-      buildGradeTabs();renderCatalog();updateFeatured(0);
+      buildGradeTabs();renderCatalog();updateFeatured(latestIdx());
       initHeroCarousel();
     }else if(!VIDEOS.length){
       // 서버는 응답했지만 영상이 없음 — 재시도 1회
@@ -2605,7 +2605,7 @@ function switchGrade(g){
   if(currentSearchQuery) clearSearch();
   else renderCatalog();
   const f=filteredVideos();
-  if(f.length>0){const ri=VIDEOS.indexOf(f[0]);if(ri>=0)updateFeatured(ri);}
+  if(f.length>0){const ri=latestIdx(f);if(ri>=0)updateFeatured(ri);}   // 그 과정의 최신 회차
 }
 function filteredVideos(){
   let list = currentGrade==='전체' ? VIDEOS : VIDEOS.filter(v=>detectGrade(v)===currentGrade);
@@ -3462,20 +3462,27 @@ async function changePw(){
    5. 히어로 자동 전환 (Auto-carousel)
 ══════════════════════════════════ */
 let _heroTimer=null, _heroIdx=0, _heroList=[];
+// 최신 회차가 먼저: 강의 날짜가 늦은 순 → 같은 날이면 'N강' 번호가 큰 순 → 나중에 등록한 순
+function latestFirst(list){
+  const ts=v=>{ const t=Date.parse(String(v.date||'').replace(/\./g,'-').trim()); return isNaN(t)?0:t; };
+  return list.map((v,i)=>({v,i})).sort((a,b)=>(ts(b.v)-ts(a.v))||(lectureNo(b.v,b.i)%1000-lectureNo(a.v,a.i)%1000)||(b.i-a.i)).map(x=>x.v);
+}
+function latestIdx(list){ const l=latestFirst(list||VIDEOS); return l.length?VIDEOS.indexOf(l[0]):0; }
 
 function initHeroCarousel(){
   clearInterval(_heroTimer);
-  _heroList=VIDEOS.filter(v=>v.thumbnail); // 썸네일 있는 것만
+  _heroList=latestFirst(VIDEOS.filter(v=>v.thumbnail)); // 썸네일 있는 것만, 최신 회차부터
   if(_heroList.length<=1){
     document.getElementById('hero-dots').innerHTML='';
     return;
   }
   // 도트 생성
   const dots=document.getElementById('hero-dots');
+  const k=_heroList.indexOf(VIDEOS[featuredIndex]);   // 지금 보이는 강의(최신 회차)부터 이어서 넘김
+  _heroIdx=k>=0?k:-1;
   dots.innerHTML=_heroList.map((_,i)=>
-    `<button class="hero-dot${i===0?' active':''}" onclick="jumpHero(${i})"></button>`
+    `<button class="hero-dot${i===_heroIdx?' active':''}" onclick="jumpHero(${i})"></button>`
   ).join('');
-  _heroIdx=0;
   _heroTimer=setInterval(()=>nextHero(),6000);
 }
 function nextHero(){
