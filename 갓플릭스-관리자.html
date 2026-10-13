@@ -65,6 +65,25 @@ input,textarea,select{font-family:var(--font);outline:none;}
   scrollbar-width:none;
 }
 .adm-tabs::-webkit-scrollbar{display:none;}
+.dl-strip{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;margin-bottom:14px;scrollbar-width:thin;}
+.dl-day{flex:0 0 auto;width:64px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:8px 4px 6px;text-align:center;cursor:pointer;font-family:var(--font);color:var(--g2);}
+.dl-day.on{border-color:var(--red);background:rgba(229,9,20,.15);color:#fff;}
+.dl-day .dl-d{font-size:12px;font-weight:700;}
+.dl-day .dl-w{font-size:10px;color:var(--g3);}
+.dl-day .dl-bar{height:34px;display:flex;align-items:flex-end;justify-content:center;margin:4px 0;}
+.dl-day .dl-bar i{width:14px;background:var(--red);border-radius:3px 3px 0 0;min-height:2px;}
+.dl-day .dl-n{font-size:12px;font-weight:800;color:#fff;}
+.dl-sum{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;font-size:14px;color:var(--g2);margin-bottom:12px;}
+.dl-sum b{color:#fff;font-size:16px;}
+.dl-stu{background:var(--surface);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:12px 14px;margin-bottom:8px;}
+.dl-stu-h{font-size:15px;font-weight:800;color:#fff;margin-bottom:6px;display:flex;gap:8px;align-items:center;}
+.dl-row{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center;font-size:13px;color:var(--g2);padding:5px 0;border-top:1px solid rgba(255,255,255,.05);}
+.dl-row:first-of-type{border-top:none;}
+.dl-row .dl-t{flex:1;min-width:160px;color:var(--g1);font-weight:600;}
+.dl-tag{border-radius:4px;padding:1px 7px;font-weight:700;font-size:11px;}
+.dl-tag.done{background:rgba(70,211,105,.15);color:var(--green);}
+.dl-tag.re{background:rgba(245,197,24,.12);color:#f5c518;}
+.dl-tag.ing{background:rgba(74,158,255,.15);color:#4a9eff;}
 .fb-dot{background:#E50914;color:#fff;border-radius:10px;font-size:11px;font-weight:800;padding:1px 7px;margin-left:2px;}
 .fb-filter{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;align-items:center;}
 .fb-filter button{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:var(--g2);border-radius:16px;padding:7px 14px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font);}
@@ -474,6 +493,7 @@ table.matrix tbody tr:hover td.cell-ing{background:rgba(74,158,255,.14);}
     <button class="adm-tab" id="mt-videos"    onclick="switchTab('videos')"><span class="tab-icon">🎬</span><span class="tab-text">영상 관리</span></button>
     <button class="adm-tab" id="mt-students"  onclick="switchTab('students')"><span class="tab-icon">👥</span><span class="tab-text">수강생별</span></button>
     <button class="adm-tab" id="mt-matrix"    onclick="switchTab('matrix')"><span class="tab-icon">📋</span><span class="tab-text">출석 현황</span></button>
+    <button class="adm-tab" id="mt-daily"     onclick="switchTab('daily')"><span class="tab-icon">📅</span><span class="tab-text">일자별</span></button>
     <button class="adm-tab" id="mt-feedback"  onclick="switchTab('feedback')"><span class="tab-icon">✍️</span><span class="tab-text">소감·질문</span><span class="fb-dot" id="fb-unread" style="display:none"></span></button>
     <button class="adm-tab" id="mt-notice"    onclick="switchTab('notice')"><span class="tab-icon">📢</span><span class="tab-text">공지사항</span></button>
     <button class="adm-tab" id="mt-settings"  onclick="switchTab('settings')"><span class="tab-icon">⚙️</span><span class="tab-text">설정</span></button>
@@ -740,6 +760,18 @@ table.matrix tbody tr:hover td.cell-ing{background:rgba(74,158,255,.14);}
     </div>
   </div>
 
+  <!-- ═══ 📅 일자별 시청 ═══ -->
+  <div class="tab-section" id="ts-daily">
+    <div class="sec-title">📅 <em>일자별</em> 시청</div>
+    <div style="font-size:13px;color:var(--g3);margin:-10px 0 14px;">날짜를 누르면 그날 누가 어떤 강의를 몇 분 봤는지 보여요. (막대 = 그날 본 사람 수)</div>
+    <div class="dl-strip" id="dl-strip"></div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px;">
+      <input type="date" id="dl-date" onchange="loadDaily(this.value)" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:7px 10px;color:var(--white);font-family:var(--font);">
+      <button class="adm-btn" onclick="loadDaily(_dlDate,true)">🔄 새로고침</button>
+    </div>
+    <div id="dl-body"><p class="empty">불러오는 중…</p></div>
+  </div>
+
   <!-- ═══ 소감·질문 (수강생 → 관리자) ═══ -->
   <div class="tab-section" id="ts-feedback">
     <div class="sec-title">✍️ <em>소감·질문</em></div>
@@ -991,6 +1023,7 @@ function switchTab(t) {
   if (t==='matrix')   loadVideoData();
   if (t==='notice')   loadCurrentNotice();
   if (t==='feedback') loadFeedback(true);
+  if (t==='daily')    loadDaily(_dlDate || '');
   if (t==='settings') initSettings();
 }
 
@@ -1408,6 +1441,58 @@ function changeAdminPw() {
 }
 
 /* ── LOAD ALL ── */
+/* ════════════════════
+   📅 일자별 시청
+════════════════════ */
+let _dlDate = '', _dl = null;
+const DOW = ['일','월','화','수','목','금','토'];
+function dlLabel(d){ const t = new Date(d + 'T00:00:00+09:00'); return (t.getMonth()+1) + '/' + t.getDate() + ' (' + DOW[t.getDay()] + ')'; }
+async function loadDaily(date, fresh){
+  const body = document.getElementById('dl-body');
+  body.innerHTML = '<p class="empty">불러오는 중…</p>';
+  try {
+    const r = await api({ action: 'daily', pw: ADMIN_PW, days: 14, date: date || '', ...(fresh ? { fresh: 1 } : {}) });
+    if (!r || r.error) { body.innerHTML = '<p class="empty">불러오지 못했습니다.</p>'; return; }
+    _dl = r; _dlDate = r.date;
+    if (!vdData && typeof loadVideoData === 'function') { try { await loadVideoData(); } catch(e) {} }   // 안 본 수강생 계산용 명단
+    renderDaily();
+  } catch(e) { body.innerHTML = '<p class="empty">⚠️ 서버 연결 실패 — 새로고침을 눌러 주세요.</p>'; }
+}
+function renderDaily(){
+  const r = _dl; if (!r) return;
+  const max = Math.max(1, ...r.days.map(d => d.viewers));
+  document.getElementById('dl-strip').innerHTML = r.days.slice().reverse().map(d => `<div class="dl-day ${d.date===r.date?'on':''}" data-d="${d.date}" onclick="loadDaily(this.dataset.d)">
+      <div class="dl-d">${dlLabel(d.date).split(' ')[0]}</div><div class="dl-w">${dlLabel(d.date).split(' ')[1]}${d.date===r.today?' 오늘':''}</div>
+      <div class="dl-bar"><i style="height:${Math.round(d.viewers/max*100)}%"></i></div><div class="dl-n">${d.viewers}명</div></div>`).join('');
+  const st = document.getElementById('dl-strip'); const on = st.querySelector('.on'); if (on) on.scrollIntoView({ inline: 'center', block: 'nearest' });
+  document.getElementById('dl-date').value = r.date;
+  // 사람별로 묶기
+  const by = {}; r.rows.forEach(x => (by[x.name] = by[x.name] || []).push(x));
+  const names = Object.keys(by);
+  const played = r.rows.reduce((a, x) => a + (x.played || 0), 0);
+  const doneN = r.rows.filter(x => x.done).length;
+  // 이날 안 본 수강생 (관리자·인섬교 제외)
+  const staff = new Set([...((vdData && vdData.adminGroup) || []), ...((vdData && vdData.insemGroup) || [])]);
+  const all = (vdData && vdData.students) || [];
+  const none = all.filter(n => !by[n] && !staff.has(n));
+  window._dlNone = none;
+  const lt = v => (parseTitle(v.title || '').main || v.title || '(강의)');
+  const tl = d => { const t = new Date(d + 'T00:00:00+09:00'); return (t.getMonth()+1) + '월 ' + t.getDate() + '일(' + DOW[t.getDay()] + ')'; };
+  document.getElementById('dl-body').innerHTML = `
+    <div class="dl-sum"><span><b>${tl(r.date)}</b></span><span>👥 <b>${names.length}</b>명 시청</span><span>⏱ 실제 재생 <b>${Math.round(played)}</b>분</span><span>✅ 완료 <b>${doneN}</b>건</span>
+      ${all.length ? `<span>😴 안 본 수강생 <b>${none.length}</b>명 ${none.length ? '<button class="adm-btn" style="padding:4px 10px;font-size:12px" onclick="copyDlNone()">📋 이름 복사</button>' : ''}</span>` : '<span style="font-size:12px;color:var(--g3)">(출석 현황을 한 번 불러오면 안 본 수강생도 보여요)</span>'}</div>
+    ${names.length ? names.map(n => `<div class="dl-stu"><div class="dl-stu-h">${escHtml(n)} <span style="font-size:12px;color:var(--g3);font-weight:500">${by[n].length}개 강의</span></div>
+      ${by[n].map(x => `<div class="dl-row"><span class="dl-t">${escHtml(lt(x))}</span>
+        <span>🕒 ${escHtml(x.first)}${x.last !== x.first ? '~' + escHtml(x.last) : ''}</span>
+        <span>${x.played == null ? '위치 ' + x.pos + '분' : '⏱ ' + x.played + '분 재생'}</span>
+        ${x.re ? '<span class="dl-tag re">🔁 재시청</span>' : x.done ? '<span class="dl-tag done">✅ 완료</span>' : '<span class="dl-tag ing">▶ 시청 · ' + x.pos + '분 지점</span>'}
+      </div>`).join('')}</div>`).join('') : '<p class="empty">이날은 시청 기록이 없어요.</p>'}`;
+}
+function copyDlNone(){
+  const t = (window._dlNone || []).join(', ');
+  (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => showToast('📋 ' + (window._dlNone || []).length + '명 복사했습니다.')).catch(() => prompt('복사해서 사용하세요', t));
+}
+
 /* ════════════════════
    ✍️ 소감·질문
 ════════════════════ */

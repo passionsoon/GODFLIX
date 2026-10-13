@@ -3245,7 +3245,8 @@ function saveRecord(isFinal=true){
   if(!authTok)return;
   fetch(SHEET_URL,{method:'POST',mode:'no-cors',keepalive:true,headers:{'Content-Type':'text/plain'},
     body:JSON.stringify({type:'record',tok:authTok,videoId:currentVideo.id,grade:detectGrade(currentVideo),videoTitle:currentVideo.title,
-      date:currentVideo.date||'',lecturer:currentVideo.lecturer||'',startTime,completed,
+      date:currentVideo.date||'',lecturer:currentVideo.lecturer||'',startTime,completed:completed&&!wasDone,   // '완료'는 이번에 처음 끝까지 본 경우만 (다시 보기는 재시청으로)
+      
       watchedMinutes:Math.round(maxReachedSec/60*10)/10,replayCount,
       playedMinutes:Math.round(sessionPlayedSec/60*10)/10,
       rewatch:wasDone&&videoDuration>0&&sessionPlayedSec>=videoDuration*0.5})}).catch(()=>{});
