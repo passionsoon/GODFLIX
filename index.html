@@ -2834,6 +2834,7 @@ function sendPlayer(method,value,isFs=false){
 function saveRecord(isFinal=true){
   if(!userName||!currentVideo)return;
   if(window._awaitReady||!(videoDuration>0))return;   // 플레이어 준비 전에는 기록하지 않음
+  if(wasDone&&sessionPlayedSec<30)return;   // 다 본 강의를 잠깐 열어본 것은 시청기록에 남기지 않음
   if(recordSent)return;if(isFinal)recordSent=true;
   if(!authTok)return;
   fetch(SHEET_URL,{method:'POST',mode:'no-cors',keepalive:true,headers:{'Content-Type':'text/plain'},

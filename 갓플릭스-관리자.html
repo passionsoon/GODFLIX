@@ -2243,13 +2243,14 @@ function exportCSV(){
   const{students=[],rawProgress:rawP={}}=vdData;
 
   let csv='\uFEFF수강생,역할,'+allVideos.map(v=>'"'+v.title.replace(/"/g,'""')+'"').join(',')
-    +',완료율,완주횟수,마지막시청일,최근 7일 시청 강의 수,상태\n';
+    +',완료율,완료 강의 수,재시청 합계,마지막시청일,최근 7일 시청 강의 수,상태\n';
 
   students.forEach(n=>{
     const insemList = vdData.insemGroup || [];
     const adminList = vdData.adminGroup || [];
     const role = insemList.includes(n) ? '인섬교' : adminList.includes(n) ? '관리자' : '수강생';
-    let done=0;
+    let done=0, rewatch=0;
+    Object.values(rawP[n]||{}).forEach(p=>{ rewatch += Number(p && p.rewatch) || 0; });
     // 강의별 상태 셀
     const cells=allVideos.map(v=>{
       const p=rawP[n]?.[v.id], st=getStatus(p);
@@ -2272,7 +2273,7 @@ function exportCSV(){
     const lw = lastWatchMs(n);
     const state = !lw ? '시작 안 함' : (Date.now()-lw) >= 7*86400000 ? '7일 이상 미시청' : '진행 중';
     const q = v => '"'+String(v).replace(/"/g,'""')+'"';
-    csv+=q(n)+','+q(role)+','+cells.map(q).join(',')+','+pct+'%,'+done+','+q(dateStr)+','+week+','+q(state)+'\n';
+    csv+=q(n)+','+q(role)+','+cells.map(q).join(',')+','+pct+'%,'+done+','+rewatch+','+q(dateStr)+','+week+','+q(state)+'\n';
   });
 
   const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
@@ -2281,8 +2282,8 @@ function exportCSV(){
   a.href=url;
   const d=new Date(); const ymd=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
   a.download='갓플릭스_주간보고_'+ymd+'.csv';
-  a.click();
-  URL.revokeObjectURL(url);
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 10000);   // 바로 지우면 사파리 등에서 다운로드가 취소될 수 있음
   showToast('📥 CSV 다운로드 완료');
 }
 
