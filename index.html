@@ -2171,24 +2171,46 @@ function showBadgePop(list){
 }
 function wrapLines(ctx,text,maxW){ const out=[];let line='';for(const ch of String(text)){ if(ctx.measureText(line+ch).width>maxW&&line){out.push(line);line=ch;} else line+=ch; } if(line)out.push(line); return out; }
 async function makeCardCanvas(g){
-  const c=document.createElement('canvas'); c.width=1080; c.height=1350; const x=c.getContext('2d');
-  try{ await Promise.race([document.fonts.ready,new Promise(r=>setTimeout(r,1500))]); }catch(e){}
-  const F="'Pretendard Variable','Pretendard',-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif";
-  const vids=VIDEOS.filter(v=>detectGrade(v)===g);
-  let bg=x.createLinearGradient(0,0,0,1350); bg.addColorStop(0,'#1a1a1a'); bg.addColorStop(1,'#050505'); x.fillStyle=bg; x.fillRect(0,0,1080,1350);
-  const glow=x.createRadialGradient(540,380,40,540,380,620); glow.addColorStop(0,'rgba(229,9,20,.35)'); glow.addColorStop(1,'rgba(229,9,20,0)'); x.fillStyle=glow; x.fillRect(0,0,1080,1350);
-  x.strokeStyle='rgba(245,197,24,.55)'; x.lineWidth=4; x.strokeRect(48,48,984,1254);
-  x.strokeStyle='rgba(245,197,24,.2)'; x.lineWidth=2; x.strokeRect(66,66,948,1218);
-  x.textAlign='center'; x.textBaseline='alphabetic';
-  x.fillStyle='#E50914'; x.font=`900 72px ${F}`; x.fillText('GODFLIX',540,190);
-  x.fillStyle='#bbbbbb'; x.font=`600 36px ${F}`; x.fillText('완 주 카 드',540,250);
-  x.font=`170px ${F}`; x.fillText('🏆',540,500);
-  let fs=112; x.font=`800 ${fs}px ${F}`; const nm=userName+' 님'; while(x.measureText(nm).width>880&&fs>50){fs-=6;x.font=`800 ${fs}px ${F}`;}
-  x.fillStyle='#ffffff'; x.fillText(nm,540,690);
-  x.fillStyle='#f5c518'; x.font=`800 56px ${F}`; x.fillText(`${g} 과정 ${vids.length}강 완주`,540,800);
-  x.fillStyle='#dddddd'; x.font=`500 40px ${F}`; x.fillText('말씀의 여정을 끝까지 걸어오신 것을',540,920); x.fillText('진심으로 축복합니다',540,980);
-  const d=new Date(); x.fillStyle='#8a8a8a'; x.font=`500 36px ${F}`; x.fillText(`${d.getFullYear()}. ${d.getMonth()+1}. ${d.getDate()}.`,540,1170);
-  x.fillStyle='#E50914'; x.fillRect(440,1210,200,6);
+  const W=1080,H=1350, c=document.createElement('canvas'); c.width=W; c.height=H; const x=c.getContext('2d');
+  const vids=VIDEOS.filter(v=>detectGrade(v)===g), n=vids.length;
+  const d=new Date(), ymd=`${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
+  const PF="'Pretendard Variable',Pretendard,-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif", BB="'Bebas Neue',"+PF;
+  const ko=`${g} 과정 완주 강을 끝까지 해냈어요 ${userName} 갓플릭스 수강생 년 월`;
+  // 웹폰트는 쓰는 글자만 받아오므로, 카드에 쓸 글자를 미리 불러온 뒤 그림
+  try{ await Promise.race([Promise.all([
+    document.fonts.load(`800 120px 'Pretendard Variable'`,ko), document.fonts.load(`600 40px 'Pretendard Variable'`,ko),
+    document.fonts.load(`300px 'Bebas Neue'`,'GODFLIX COURSE COMPLETE 0123456789.')]), new Promise(r=>setTimeout(r,2500))]); }catch(e){}
+  const sp=v=>{ try{ x.letterSpacing=v; }catch(e){} };
+  // 배경: 깊은 검정 + 오른쪽 아래 붉은 빛
+  x.fillStyle='#0a0a0a'; x.fillRect(0,0,W,H);
+  let gl=x.createRadialGradient(W*.92,H*.86,0,W*.92,H*.86,W*.95); gl.addColorStop(0,'rgba(229,9,20,.55)'); gl.addColorStop(.45,'rgba(229,9,20,.12)'); gl.addColorStop(1,'rgba(229,9,20,0)');
+  x.fillStyle=gl; x.fillRect(0,0,W,H);
+  gl=x.createRadialGradient(0,0,0,0,0,W*.6); gl.addColorStop(0,'rgba(255,255,255,.06)'); gl.addColorStop(1,'rgba(255,255,255,0)'); x.fillStyle=gl; x.fillRect(0,0,W,H);
+  const L=96; x.textBaseline='alphabetic';
+  // 상단: 로고 · 날짜
+  x.textAlign='left'; sp('2px'); x.fillStyle='#E50914'; x.font=`64px ${BB}`; x.fillText('GODFLIX',L,150);
+  x.textAlign='right'; sp('3px'); x.fillStyle='rgba(255,255,255,.5)'; x.font=`40px ${BB}`; x.fillText(ymd,W-L,146);
+  // 라벨
+  x.textAlign='left'; sp('8px'); x.fillStyle='rgba(255,255,255,.55)'; x.font=`44px ${BB}`; x.fillText('COURSE COMPLETE',L,360);
+  // 과정 이름 + 완주
+  sp('-4px'); x.fillStyle='#fff'; let fs=132; x.font=`800 ${fs}px ${PF}`;
+  while(x.measureText(g+' 과정').width>W-L*2&&fs>70){fs-=6;x.font=`800 ${fs}px ${PF}`;}
+  x.fillText(g+' 과정',L,360+fs+20);
+  const gy=360+fs*2+30; const tg=x.createLinearGradient(L,0,L+300,0); tg.addColorStop(0,'#ff3b30'); tg.addColorStop(1,'#ff9f0a');
+  x.fillStyle=tg; x.font=`900 ${fs}px ${PF}`; x.fillText('완주',L,gy);
+  // 강의 수 + 한 줄
+  sp('0px'); x.fillStyle='#fff'; x.font=`230px ${BB}`; const num=String(n); x.fillText(num,L-6,gy+290);
+  const nw=x.measureText(num).width;
+  sp('-1px'); x.fillStyle='rgba(255,255,255,.88)'; x.font=`700 46px ${PF}`; x.fillText('강을',L+nw+24,gy+210); x.fillText('끝까지 해냈어요',L+nw+24,gy+272);
+  // 강의 칸 (모두 채워짐)
+  const by=gy+350, gap=10, bw=(W-L*2-gap*(n-1))/Math.max(n,1);
+  for(let i=0;i<n;i++){ x.fillStyle='#E50914'; x.beginPath(); const xx=L+i*(bw+gap); if(x.roundRect)x.roundRect(xx,by,bw,14,7); else x.rect(xx,by,bw,14); x.fill(); }
+  // 이름
+  sp('-3px'); x.fillStyle='#fff'; let nf=96; x.font=`800 ${nf}px ${PF}`;
+  while(x.measureText(userName).width>W-L*2&&nf>48){nf-=6;x.font=`800 ${nf}px ${PF}`;}
+  x.fillText(userName,L,H-150);
+  sp('0px'); x.fillStyle='rgba(255,255,255,.5)'; x.font=`500 34px ${PF}`; x.fillText(`갓플릭스 수강생 · ${d.getFullYear()}년 ${d.getMonth()+1}월`,L,H-92);
+  sp('0px');
   return c;
 }
 let _cardBlob=null,_cardName='';
