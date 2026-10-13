@@ -710,6 +710,18 @@ input{outline:none;font-family:'Pretendard Variable','Pretendard',-apple-system,
 #fb-count{font-size:12px;color:var(--g3);}
 #fb-send{background:var(--red);color:#fff;border:none;border-radius:22px;padding:11px 26px;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;}
 #fb-send:disabled{opacity:.6;cursor:default;}
+.btn-logout{white-space:nowrap;}
+@media(max-width:400px){.header-right .btn-logout{padding:5px 8px;}.header-right{gap:6px;}}
+.home-badges{margin:10px 4% 6px;display:flex;align-items:center;gap:12px;background:linear-gradient(90deg,rgba(245,197,24,.12),rgba(229,9,20,.08));border:1px solid rgba(245,197,24,.28);border-radius:12px;padding:12px 14px;cursor:pointer;font-family:'Pretendard Variable','Pretendard',-apple-system,sans-serif;}
+.home-badges:active{transform:scale(.99);}
+.hb-icons{font-size:22px;letter-spacing:2px;white-space:nowrap;}
+.hb-text{flex:1;min-width:0;}
+.hb-t1{font-size:14px;font-weight:800;color:#fff;}
+.hb-t2{font-size:12px;color:var(--g3);margin-top:2px;}
+.hb-go{font-size:12px;font-weight:800;color:#f5c518;white-space:nowrap;}
+.hb-stamps{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap;}
+.hb-stamps i{width:12px;height:12px;border-radius:50%;border:1.5px dashed rgba(255,255,255,.25);display:inline-block;}
+.hb-stamps i.on{background:#E50914;border:1.5px solid #E50914;}
 .fb-sub{font-size:14px;color:var(--g2);margin:-2px 0 10px;line-height:1.5;}
 .fb-mine-link{background:none;border:none;color:#9ecbff;font-size:13px;font-weight:700;cursor:pointer;padding:4px 6px;font-family:inherit;}
 .fb-skip{background:none;border:none;color:var(--g3);font-size:14px;cursor:pointer;padding:10px 6px;font-family:inherit;}
@@ -1399,6 +1411,7 @@ html{-webkit-overflow-scrolling:touch;}
       <span class="user-name" id="header-name"></span>
       <span id="header-role-badge" style="display:none;"></span>
     </div>
+    <button class="btn-logout" id="hdr-fb-btn" onclick="showMyFeedback()" title="내가 쓴 느낀 점·질문" aria-label="내가 쓴 느낀 점·질문">✍️</button>
     <button class="btn-logout" onclick="goToLogin()">나가기</button>
     <button class="btn-logout" onclick="openPwModal()" style="border-color:rgba(255,255,255,.15)">🔑</button>
   </div>
@@ -1502,6 +1515,8 @@ html{-webkit-overflow-scrolling:touch;}
     </div>
   </div>
   <div class="stats-row-hint" id="stats-row-hint" style="display:none;">📊 탭해서 내 학습 현황 보기</div>
+  <!-- 🏅 배지·도장판 바로 보기 -->
+  <div class="home-badges" id="home-badges" style="display:none" onclick="openMyStats()" role="button" tabindex="0"></div>
 
   <!-- RECENT ROW -->
   <div id="recent-row-wrap" style="display:none;"></div>
@@ -2086,7 +2101,7 @@ function buildMyStats() {
   VIDEOS.forEach(v=>{
     const p=progressMap[v.id]; if(!p)return;
     const maxR=parseFloat(p.maxReached)||0, dur=parseFloat(p.duration)||0;
-    if(p.completed||(dur>0&&maxR/dur>=0.9)){done++;}
+    if(p.completed||isFull(maxR,dur)){done++;}
     else if(maxR>30){ing++;}
     totalWatchedSec+=maxR;
   });
@@ -2098,7 +2113,7 @@ function buildMyStats() {
   const gradeColors={'기초':'#4a9eff','응용':'#46d369','심화':'#E50914'};
   const gradeStats=['기초','응용','심화'].map(g=>{
     const gv=VIDEOS.filter(v=>detectGrade(v)===g); if(!gv.length)return null;
-    const gd=gv.filter(v=>{const p=progressMap[v.id];if(!p)return false;const maxR=parseFloat(p.maxReached)||0,dur=parseFloat(p.duration)||0;return p.completed||(dur>0&&maxR/dur>=0.9);}).length;
+    const gd=gv.filter(v=>{const p=progressMap[v.id];if(!p)return false;const maxR=parseFloat(p.maxReached)||0,dur=parseFloat(p.duration)||0;return p.completed||isFull(maxR,dur);}).length;
     return{g,total:gv.length,done:gd,pct:Math.round(gd/gv.length*100)};
   }).filter(Boolean);
   // 연속 학습일
@@ -2110,8 +2125,8 @@ function buildMyStats() {
     localStorage.setItem(sKey,JSON.stringify(sd));
   }
   const streak=sd.days;
-  const doneVids=VIDEOS.filter(v=>{const p=progressMap[v.id];if(!p)return false;const maxR=parseFloat(p.maxReached)||0,dur=parseFloat(p.duration)||0;return p.completed||(dur>0&&maxR/dur>=0.9);}).slice(0,5);
-  const ingVids=VIDEOS.filter(v=>{const p=progressMap[v.id];if(!p)return false;const maxR=parseFloat(p.maxReached)||0,dur=parseFloat(p.duration)||0;return!(p.completed||(dur>0&&maxR/dur>=0.9))&&maxR>30;}).slice(0,5);
+  const doneVids=VIDEOS.filter(v=>{const p=progressMap[v.id];if(!p)return false;const maxR=parseFloat(p.maxReached)||0,dur=parseFloat(p.duration)||0;return p.completed||isFull(maxR,dur);}).slice(0,5);
+  const ingVids=VIDEOS.filter(v=>{const p=progressMap[v.id];if(!p)return false;const maxR=parseFloat(p.maxReached)||0,dur=parseFloat(p.duration)||0;return!(p.completed||isFull(maxR,dur))&&maxR>30;}).slice(0,5);
 
   return `
   ${buildBadgeSection()}
@@ -2138,7 +2153,7 @@ function buildMyStats() {
       <div class="ms-grade-bar-wrap"><div class="ms-grade-bar" style="width:${gs.pct}%;background:${gradeColors[gs.g]}"></div></div>
       <div class="ms-grade-pct" style="color:${gradeColors[gs.g]}">${gs.pct}%</div>
     </div>`).join('')}</div>`:''}
-  ${ingVids.length?`<div class="ms-section"><div class="ms-section-title">▶ 이어볼 강의</div>${ingVids.map(v=>{const p=progressMap[v.id],maxR=parseFloat(p?.maxReached)||0,dur=parseFloat(p?.duration)||0,vp=dur>0?Math.round(maxR/dur*100):0,pp=parseTitle(v.title);return`<div class="ms-vid-item"><div class="ms-vid-icon" style="color:var(--blue)">▶</div><div class="ms-vid-title">${pp.main||v.title}</div><div class="ms-vid-pct" style="color:var(--blue)">${vp}%</div></div>`;}).join('')}</div>`:''}
+  ${ingVids.length?`<div class="ms-section"><div class="ms-section-title">▶ 이어볼 강의</div>${ingVids.map(v=>{const p=progressMap[v.id],maxR=parseFloat(p?.maxReached)||0,dur=parseFloat(p?.duration)||0,vp=dur>0?Math.min(Math.round(maxR/dur*100),99):0,pp=parseTitle(v.title);return`<div class="ms-vid-item"><div class="ms-vid-icon" style="color:var(--blue)">▶</div><div class="ms-vid-title">${pp.main||v.title}</div><div class="ms-vid-pct" style="color:var(--blue)">${vp}%</div></div>`;}).join('')}</div>`:''}
   ${doneVids.length?`<div class="ms-section"><div class="ms-section-title">✅ 완료한 강의 (최근 ${doneVids.length}개)</div>${doneVids.map(v=>{const pp=parseTitle(v.title);return`<div class="ms-vid-item"><div class="ms-vid-icon">✅</div><div class="ms-vid-title">${pp.main||v.title}</div><div class="ms-vid-pct" style="color:var(--green)">완료</div></div>`;}).join('')}${done>5?`<div style="font-size:12px;color:var(--g3);text-align:center;padding:8px 0;">외 ${done-5}개 더 완료</div>`:''}</div>`:''}
   <div style="background:rgba(255,255,255,.04);border-radius:10px;padding:14px 16px;text-align:center;margin-bottom:8px;">
     <div style="font-size:20px;margin-bottom:6px;">${pct>=80?'🏆':pct>=50?'🔥':pct>=20?'💪':'🌱'}</div>
@@ -2175,6 +2190,21 @@ function buildBadgeSection(){
     ${cards.map(b=>`<button class="bd-card-btn" data-g="${escH(b.course)}" onclick="openCompletionCard(this.dataset.g)">🎉 ${escH(b.course)} 과정 완주 카드 받기</button>`).join('')}
   </div>
   <div class="ms-section"><div class="ms-section-title">📮 말씀 도장판</div>${stamps}</div>`;
+}
+// 홈 화면: 받은 배지 · 도장판 한눈에 (누르면 '내 학습 현황')
+function renderHomeBadges(){
+  const el=document.getElementById('home-badges'); if(!el)return;
+  if(!userName||!VIDEOS.length){el.style.display='none';return;}
+  const bs=earnedBadges(), got=bs.filter(b=>b.got), card=got.find(b=>b.course);
+  const done=VIDEOS.filter(v=>isDoneProg(progressMap[v.id])).length;
+  const next=bs.find(b=>!b.got);
+  el.innerHTML=`<div class="hb-icons">${got.length?got.slice(-3).map(b=>b.icon).join(''):'🌱'}</div>
+    <div class="hb-text"><div class="hb-t1">${got.length?'배지 '+got.length+'개 받았어요':'첫 배지를 받아 보세요'}</div>
+      <div class="hb-t2">${card?'🎉 '+escH(card.course)+' 과정 완주! 완주 카드를 받을 수 있어요':next?'다음 배지: '+escH(next.name)+' ('+escH(next.hint)+')':'모든 배지를 받았어요!'}</div>
+      <div class="hb-stamps">${courseGroups().flatMap(c=>c.vids).slice(0,40).map(v=>`<i class="${isDoneProg(progressMap[v.id])?'on':''}"></i>`).join('')}</div></div>
+    <div class="hb-go">${card?'카드 받기 ›':'도장판 ›'}</div>`;
+  el.setAttribute('aria-label',`배지 ${got.length}개, 강의 ${done}/${VIDEOS.length}개 완료. 눌러서 내 학습 현황 보기`);
+  el.style.display='flex';
 }
 let _bpTimer=null;
 function showBadgePop(list){
@@ -2253,6 +2283,17 @@ async function shareCard(){
 
 /* ══════════════ ✍️ 느낀점·질문 보내기 (관리자만 봄) ══════════════ */
 let _fbKind='느낀점',_fbSending=false,_fbFid=null,_fbFromFs=false;
+let _fbPromptVid=null;   // 처음 완료한 강의: 영상이 끝나면(또는 닫으면) 느낀점 쓰기 창을 한 번 띄움
+function maybeFbPrompt(delay){
+  if(!_fbPromptVid)return; const vid=_fbPromptVid; _fbPromptVid=null;
+  setTimeout(()=>{
+    if(document.getElementById('fb-modal').classList.contains('show'))return;
+    if(document.getElementById('card-modal').classList.contains('show'))return;
+    // 그사이 다른 강의를 열었으면 띄우지 않음 (휴대폰 '다음 강의' 버튼 등)
+    if(document.getElementById('player-overlay').classList.contains('show')&&currentVideo&&currentVideo.id!==vid)return;
+    openFeedback(vid,{after:true});
+  },delay||600);
+}
 // 휴대폰 강의 화면(가로 고정)에서 글을 쓸 때는 영상을 멈추고 화면을 '세로'로 돌려 편하게 쓰도록
 // (화면 방향 고정은 전체화면일 때만 되므로, 전체화면이 풀려 있으면 다시 켠 뒤 방향을 고정)
 function ensureFs(){
@@ -2520,6 +2561,7 @@ function goToLogin(){
   }
   document.getElementById('app').classList.remove('show');
   document.getElementById('stats-row').style.display='none';
+  { const hb=document.getElementById('home-badges'); if(hb)hb.style.display='none'; }
   document.getElementById('search-bar-wrap').style.display='none';
   document.getElementById('search-input').value='';
   currentSearchQuery='';
@@ -2577,6 +2619,7 @@ function filteredVideos(){
 
 /* ─ STATS ─ */
 function updateStats(){
+  setTimeout(renderHomeBadges,0);
   if(!VIDEOS.length)return;
   const total=VIDEOS.length;
   let done=0,ing=0;
@@ -2586,7 +2629,7 @@ function updateStats(){
     const maxR=parseFloat(p.maxReached)||0;
     const dur=parseFloat(p.duration)||0;
     // 완료: duration 대비 90% 이상 시청하거나 completed 플래그
-    if(p.completed||(dur>0&&maxR/dur>=0.9)){done++;}
+    if(p.completed||isFull(maxR,dur)){done++;}
     else if(maxR>30){ing++;}
   });
   const none=total-done-ing;
@@ -2653,7 +2696,7 @@ function makeCard(v, vi, i){
   const prog=progressMap[v.id];
   const maxR=prog?(parseFloat(prog.maxReached)||0):0;
   const dur=prog?(parseFloat(prog.duration)||0):0;
-  const isDone=prog&&(prog.completed||(dur>0&&maxR/dur>=0.9));
+  const isDone=prog&&(prog.completed||isFull(maxR,dur));
   const isWatched=!isDone&&maxR>30;
   const cardPct=isDone?100:(dur>0?Math.min(Math.round(maxR/dur*100),99):0);
   const grade=detectGrade(v);
@@ -2747,7 +2790,9 @@ function renderCatalog(){ _renderCatalogInner(); renderNextLecture(); }
 
 /* ── 다음에 볼 강의 + 과정 완료 현황 ── */
 function lectureNo(v,i){ const m=String(v.title||'').match(/(\d+)\s*강/); return m?Number(m[1]):1000+i; }
-function isDoneProg(p){ if(!p)return false; const mx=parseFloat(p.maxReached)||0, d=parseFloat(p.duration)||0; return !!(p.completed||(d>0&&mx/d>=0.9)); }
+// ✅ 완료 = 영상을 끝까지(100%) 본 것. 초 단위 반올림 차이만 2초 허용
+function isFull(mx,d){ mx=parseFloat(mx)||0; d=parseFloat(d)||0; return d>0&&mx>=d-2; }
+function isDoneProg(p){ if(!p)return false; return !!(p.completed||isFull(p.maxReached,p.duration)); }
 function renderNextLecture(){
   const box=document.getElementById('next-lecture'); if(!box)return;
   if(!userName||!VIDEOS.length||currentSearchQuery){ box.style.display='none'; return; }
@@ -2825,7 +2870,7 @@ async function selectVideo(index){
 
   currentVideo=VIDEOS[index];currentIndex=index;
   startTime=new Date().toLocaleString('ko-KR');
-  replayCount=0;recordSent=false;
+  replayCount=0;recordSent=false;_fbPromptVid=null;
   isPlaying=false;jumpBlock=false;videoDuration=0;
   lastPositionSec=0;watchedMinutesSinceLastRecord=0;
 
@@ -2887,6 +2932,7 @@ async function selectVideo(index){
 }
 
 function closePlayer(){
+  if(_fbPromptVid&&currentVideo&&currentVideo.id===_fbPromptVid)maybeFbPrompt(450); else _fbPromptVid=null;
   // 자동재생 타이머 정리
   _autoPlayCancelled = true;
   clearInterval(_autoPlayTimer);
@@ -3044,7 +3090,7 @@ window.addEventListener('message',function(e){
     if(dur>0&&t>dur+2)return;                       // 영상 길이보다 긴 위치는 무시
     if(videoDuration>0&&dur>0&&Math.abs(dur-videoDuration)>5)return; // 다른 영상의 신호
     if(dur>0)videoDuration=dur;
-    const fw=wasDone||(dur>0&&maxReachedSec>=dur*.95);   // 다 본 강의는 자유롭게 넘겨보기
+    const fw=wasDone||completed;   // 다 본 강의는 자유롭게 넘겨보기
     if(!fw&&!jumpBlock&&t>maxReachedSec+10){blockJump(isFs);return;}
     if(jumpBlock)return;
     if(_lastT!==null){const dt=t-_lastT;if(dt>0&&dt<=3)sessionPlayedSec+=dt;}   // 건너뛴 구간은 빼고 실제 재생 시간만
@@ -3059,7 +3105,7 @@ window.addEventListener('message',function(e){
       }
     }
     // duration 알면 정확한 %, 모르면 maxReached 기준 추정
-    const pct=dur>0?Math.min(maxReachedSec/dur*100,100):0;
+    const pct=dur>0?(completed||isFull(maxReachedSec,dur)?100:Math.min(maxReachedSec/dur*100,99)):0;   // 끝까지 봐야 100%
     document.getElementById('watch-bar').style.width=pct+'%';
     document.getElementById('watch-pct').textContent=Math.round(pct)+'%';
     document.getElementById('watch-label').textContent='시청 중 ('+fmtSec(t)+' / '+fmtSec(dur)+')';
@@ -3068,7 +3114,8 @@ window.addEventListener('message',function(e){
     // 카드 진행바 업데이트
     const cpf=document.getElementById('cpf-'+currentIndex);
     if(cpf)cpf.style.width=pct+'%';
-    if(!completed&&dur>0&&maxReachedSec>=dur*.9)triggerComplete(); // 카드 '완료' 기준(90%)과 통일
+    if(!completed&&isFull(maxReachedSec,dur))triggerComplete(); // 끝까지(100%) 봐야 완료
+    if(_fbPromptVid&&dur>0&&t>=dur-3)maybeFbPrompt(800);
     // MediaSession 재생 위치 업데이트 (잠금 화면 스크러버)
     if('mediaSession' in navigator&&'setPositionState' in navigator.mediaSession&&dur>0){
       try{navigator.mediaSession.setPositionState({duration:dur,playbackRate:1,position:t});}catch(e){}
@@ -3077,10 +3124,13 @@ window.addEventListener('message',function(e){
   if(ev==='seek'){
     if(jumpBlock)return;
     const tg=parseFloat(d.data.seconds)||0,dur=parseFloat(d.data.duration)||videoDuration;
-    if(!wasDone&&!(dur>0&&maxReachedSec>=dur*.95)&&tg>maxReachedSec+3)blockJump(isFs);
+    if(!wasDone&&!completed&&tg>maxReachedSec+3)blockJump(isFs);
     else{lastPositionSec=tg;_lastT=null;}   // 멈춘 상태에서 옮겨도 10초 버튼이 정확한 위치에서 동작
   }
-  if(ev==='finish'){isPlaying=false;if(!completed&&videoDuration>0&&maxReachedSec>=videoDuration*.9)triggerComplete();}
+  if(ev==='finish'){isPlaying=false;
+    // 영상이 끝까지 재생됨 → 마지막 몇 초 신호가 빠져도 끝까지 본 것으로 (건너뛰기로 끝에 간 경우는 막혀 있음)
+    if(!completed&&videoDuration>0&&maxReachedSec>=videoDuration-10){maxReachedSec=videoDuration;triggerComplete();}
+    maybeFbPrompt(800);}
 });
 
 function triggerComplete(){
@@ -3120,15 +3170,8 @@ function triggerComplete(){
   saveRecord(true);saveProgress();updateStats();
   // 🏅 이번 완료로 새로 받은 배지 알림
   try{ const nb=earnedBadges().filter(b=>b.got&&!_badgesBefore.has(b.key)); if(nb.length)setTimeout(()=>showBadgePop(nb),1400); }catch(e){}
-  // ✍️ 다 보면 느낀 점·궁금한 점 쓰기 창 (자동 다음 강의 대신)
-  const _doneVid=currentVideo&&currentVideo.id;
-  setTimeout(()=>{
-    if(!currentVideo||currentVideo.id!==_doneVid||!completed)return;
-    if(document.getElementById('fb-modal').classList.contains('show'))return;   // 이미 쓰는 중
-    if(document.getElementById('card-modal').classList.contains('show'))return;
-    try{ cancelAutoPlay(); }catch(e){}
-    openFeedback(_doneVid,{after:true});
-  },1800);
+  // ✍️ 느낀 점·궁금한 점 쓰기 창은 강의가 '끝까지' 끝났을 때(또는 그 전에 닫을 때) 띄움 — 90%에서 바로 띄우면 남은 부분을 못 봄
+  _fbPromptVid=currentVideo&&currentVideo.id;
   // 완료된 강의를 이어보기 행에서 제거
   renderRecentRow();
   // A. 다음 강의 추천
@@ -3146,7 +3189,7 @@ function skipBy(sec){
   if(dur>0)to=Math.min(to,dur-1);
   to=Math.max(0,to);
   if(sec>0){
-    const free=wasDone||(dur>0&&maxReachedSec>=dur*.95);
+    const free=wasDone||completed;
     if(!free&&to>maxReachedSec){
       skippedAhead+=to-Math.max(cur,maxReachedSec);
       maxReachedSec=to;   // 넘긴 곳까지 본 것으로 → 이어서 재생해도 '건너뛰기 막힘'이 뜨지 않음
@@ -3261,7 +3304,7 @@ function openDetail(index) {
   const prog = progressMap[v.id];
   const maxR = prog ? (parseFloat(prog.maxReached)||0) : 0;
   const dur  = prog ? (parseFloat(prog.duration)||0)  : 0;
-  const pct  = dur > 0 ? Math.min(Math.round(maxR/dur*100), 100) : 0;
+  const pct  = dur > 0 ? (isFull(maxR, dur) ? 100 : Math.min(Math.round(maxR/dur*100), 99)) : 0;
   const parsed = parseTitle(v.title);
 
   // 썸네일
@@ -3293,7 +3336,7 @@ function openDetail(index) {
   const progBox = document.getElementById('detail-progress');
   if (maxR > 10) {
     progBox.style.display = 'block';
-    const isDone = prog && (prog.completed || (dur > 0 && maxR / dur >= 0.9));
+    const isDone = prog && (prog.completed || isFull(maxR, dur));
     document.getElementById('detail-prog-label').textContent =
       isDone ? '✅ 시청 완료' : '▶ ' + fmtSec(maxR) + '까지 시청';
     document.getElementById('detail-prog-pct').textContent = isDone ? '100%' : pct + '%';
@@ -3338,7 +3381,7 @@ function renderRecentRow() {
     if (maxR <= 30) return false; // 거의 안 본 것 제외
     // 완료된 강의 제외
     const dur  = parseFloat(p.duration) || 0;
-    const isDone = p.completed || (dur > 0 && maxR / dur >= 0.9);
+    const isDone = p.completed || isFull(maxR, dur);
     return !isDone;
   });
 
@@ -3589,7 +3632,7 @@ function showNextVideoBtn() {
   for (let i = curPos + 1; i < sameGrade.length; i++) {
     const p = progressMap[sameGrade[i].id];
     const dur = parseFloat(p?.duration) || 0, maxR = parseFloat(p?.maxReached) || 0;
-    if (!(p?.completed || (dur > 0 && maxR / dur >= 0.9))) { nextVideo = sameGrade[i]; break; }
+    if (!(p?.completed || isFull(maxR, dur))) { nextVideo = sameGrade[i]; break; }
   }
   // (예전: 뒤에 볼 강의가 없으면 앞쪽 미완료 강의로 되돌아감 → 5강 끝나고 1강이 갑자기 열리는 문제. 제거)
 
@@ -3612,31 +3655,12 @@ function showNextVideoBtn() {
       if (fc) fc.innerHTML = '🎉 시청 완료! <button onclick="closeFullscreen();setTimeout(()=>selectVideo(' + VIDEOS.indexOf(nextVideo) + '),350)" style="margin-left:8px;background:#fff;color:#000;border:none;border-radius:4px;padding:6px 12px;font-weight:700;font-size:13px;font-family:inherit">▶ 다음 강의</button>';
       return;
     }
-    // ④ 5초 카운트다운 자동재생 (컴퓨터)
-    _autoPlayCancelled = false;
-    let remaining = 5;
-    const updateLabel = () => {
-      btn.textContent = `▶ 다음 강의 바로 보기 (${remaining}초 후 자동 재생)`;
-      sub.textContent = '다음: ' + (parsed.sub ? parsed.sub + ' ' : '') + (parsed.main || nextVideo.title);
-    };
-    updateLabel();
-
-    // CSS 카운트다운 바 시작
-    btn.style.setProperty('--countdown-duration', '5s');
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => btn.classList.add('counting'));
-    });
-
-    _autoPlayTimer = setInterval(() => {
-      if (_autoPlayCancelled) { clearInterval(_autoPlayTimer); return; }
-      remaining--;
-      if (remaining <= 0) {
-        clearInterval(_autoPlayTimer);
-        playNextVideo();
-      } else {
-        updateLabel();
-      }
-    }, 1000);
+    // 컴퓨터도 자동으로 넘기지 않음: '완료'는 90%에서 정해지므로, 자동 재생하면 남은 강의 끝부분이 잘림
+    _autoPlayCancelled = true; clearInterval(_autoPlayTimer);
+    btn.classList.remove('counting');
+    btn.textContent = '▶ 다음 강의 바로 보기';
+    if (cancel) cancel.style.display = 'none';
+    sub.textContent = '다음: ' + (parsed.sub ? parsed.sub + ' ' : '') + (parsed.main || nextVideo.title);
 
   } else {
     // 모든 강의 완료

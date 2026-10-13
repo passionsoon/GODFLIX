@@ -978,6 +978,9 @@ function handleExpired() {
   setTimeout(() => { _expiredShown = false; }, 3000);
 }
 
+/* 완료 = 끝까지(100%) 시청 (초 반올림 2초 허용) */
+function isFullA(p){ const d=Number(p&&p.duration)||0, m=Number(p&&p.maxReached)||0; return d>0&&m>=d-2; }
+
 /* ── TABS ── */
 function switchTab(t) {
   document.querySelectorAll('.adm-tab').forEach(b => b.classList.remove('active'));
@@ -1525,12 +1528,12 @@ function escHtml(t){ return String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&a
 function getStatus(p) {
   if (!p || p.maxReached < 10) return 'none';
   if (p.completed) return 'done';
-  if (p.duration > 0 && p.maxReached / p.duration >= 0.9) return 'done';
+  if (isFullA(p)) return 'done';
   return 'ing';
 }
 function getPct(p) {
   if (!p) return 0;
-  if (p.duration > 0) return Math.min(Math.round(p.maxReached/p.duration*100), 100);
+  if (p.duration > 0) return isFullA(p) ? 100 : Math.min(Math.round(p.maxReached/p.duration*100), 99);   // 끝까지 안 봤으면 99%까지만
   return p.maxReached > 0 ? Math.min(Math.round(p.maxReached/3600*100), 99) : 0;
 }
 function fmtSec(sec) {
@@ -1562,7 +1565,7 @@ function renderVideoList() {
         viewCount++;
         watchedMin += (p.maxReached||0)/60;
         const pct = p.duration>0 ? p.maxReached/p.duration : 0;
-        if (p.completed || pct>=0.9) doneCount++;
+        if (p.completed || isFullA(p)) doneCount++;
       });
       const viewRate = students.length>0 ? Math.round(viewCount/students.length*100) : 0;
       const doneRate = students.length>0 ? Math.round(doneCount/students.length*100) : 0;
@@ -1961,7 +1964,7 @@ function renderDashboard() {
     const p=rawP[n]?.[v.id];
     if(!p)return;
     const pct=p.duration>0?p.maxReached/p.duration:0;
-    if(p.completed||pct>=0.9)totalViews++;
+    if(p.completed||isFullA(p))totalViews++;
   }));
 
   document.getElementById('dk-students').textContent=students.length;
@@ -2006,7 +2009,7 @@ function renderDashboard() {
     const pct=vids.find(vv=>vv.videoId===v.id)?.avgCompletionPct||0;
     const watchedCount=students.filter(n=>{const p=rawP[n]?.[v.id];return p&&p.maxReached>10;}).length;
     const watchRate=students.length>0?Math.round(watchedCount/students.length*100):0;
-    const doneList=students.filter(n=>{const p=rawP[n]?.[v.id];if(!p)return false;return p.completed||(p.duration>0&&p.maxReached/p.duration>=0.9);});
+    const doneList=students.filter(n=>{const p=rawP[n]?.[v.id];if(!p)return false;return p.completed||isFullA(p);});
     const ingList=students.filter(n=>{const p=rawP[n]?.[v.id];return p&&p.maxReached>10&&!doneList.includes(n);});
     const noneList=students.filter(n=>!doneList.includes(n)&&!ingList.includes(n));
     const doneCount=doneList.length;
@@ -2043,7 +2046,7 @@ function renderDashboard() {
 
   // 랭킹
   const ranking=students.map(n=>{
-    const done=allVideos.filter(v=>{const p=rawP[n]?.[v.id];return p&&(p.completed||(p.duration>0&&p.maxReached/p.duration>=0.9));}).length;
+    const done=allVideos.filter(v=>{const p=rawP[n]?.[v.id];return p&&(p.completed||isFullA(p));}).length;
     const pct=allVideos.length>0?Math.round(done/allVideos.length*100):0;
     return{name:n,pct,done};
   }).sort((a,b)=>b.pct-a.pct);
@@ -2497,7 +2500,7 @@ function renderChart() {
   const data = students.map(n => {
     const done = allVideos.filter(v => {
       const p = rawP[n]?.[v.id]; if (!p) return false;
-      return p.completed || (p.duration>0 && p.maxReached/p.duration>=0.9);
+      return p.completed || isFullA(p);
     }).length;
     return { name:n, pct: allVideos.length>0?Math.round(done/allVideos.length*100):0, done };
   }).sort((a,b) => b.pct-a.pct);
