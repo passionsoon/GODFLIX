@@ -2235,26 +2235,32 @@ async function shareCard(){
 
 /* ══════════════ ✍️ 느낀점·질문 보내기 (관리자만 봄) ══════════════ */
 let _fbKind='느낀점',_fbSending=false,_fbFid=null,_fbFromFs=false;
-// 휴대폰 강의 화면(가로 고정)에서 글을 쓸 때는 영상을 멈추고 가로 고정·전체화면을 풀어 세로로 편하게 쓰도록
+// 휴대폰 강의 화면(가로 고정)에서 글을 쓸 때는 영상을 멈추고 화면을 '세로'로 돌려 편하게 쓰도록
+// (화면 방향 고정은 전체화면일 때만 되므로, 전체화면이 풀려 있으면 다시 켠 뒤 방향을 고정)
+function ensureFs(){
+  const o=document.getElementById('fs-overlay');
+  if(document.fullscreenElement||document.webkitFullscreenElement)return Promise.resolve();
+  try{
+    const r=o.requestFullscreen?o.requestFullscreen():(o.webkitRequestFullscreen?o.webkitRequestFullscreen():null);
+    return (r&&r.then)?r:Promise.resolve();
+  }catch(e){ return Promise.resolve(); }
+}
+function lockTo(dir){
+  try{ if(screen.orientation&&screen.orientation.lock)return screen.orientation.lock(dir).catch(()=>{}); }catch(e){}
+  return Promise.resolve();
+}
 function leaveFsForWriting(){
   const o=document.getElementById('fs-overlay');
   _fbFromFs=!!(o&&o.classList.contains('open'));
   if(!_fbFromFs)return;
   try{ sendPlayer('pause',null,true); }catch(e){}
-  try{ if(screen.orientation&&screen.orientation.unlock)screen.orientation.unlock(); }catch(e){}
-  try{
-    if(document.fullscreenElement&&document.exitFullscreen)document.exitFullscreen().catch(()=>{});
-    else if(document.webkitFullscreenElement&&document.webkitExitFullscreen)document.webkitExitFullscreen();
-  }catch(e){}
+  ensureFs().then(()=>lockTo('portrait-primary'),()=>{});
 }
-// 글쓰기를 마치면 다시 전체화면 + 가로로 (강의 화면이 아직 열려 있을 때만)
+// 글을 다 쓰거나 닫으면 다시 가로로 (강의 화면이 아직 열려 있을 때만)
 function backToFsAfterWriting(){
   if(!_fbFromFs)return; _fbFromFs=false;
   const o=document.getElementById('fs-overlay'); if(!o||!o.classList.contains('open'))return;
-  try{
-    const r=o.requestFullscreen?o.requestFullscreen():(o.webkitRequestFullscreen?o.webkitRequestFullscreen():null);
-    if(r&&r.then)r.then(lockLandscape,()=>{}); else lockLandscape();
-  }catch(e){}
+  ensureFs().then(()=>lockTo('landscape'),()=>{});
 }
 const fbDraftKey=()=>'gf_fb_draft_'+userName;
 function setFbKind(k){ _fbKind=k==='질문'?'질문':'느낀점'; document.querySelectorAll('.fb-kind').forEach(b=>b.classList.toggle('on',b.dataset.k===_fbKind)); saveFbDraft(); }
@@ -2903,7 +2909,8 @@ function lockLandscape(){
 // 재생 중 전체화면이 바뀌어도(비메오 자체 전체화면 등) 강의 화면이 열려 있으면 다시 가로로 고정
 ['fullscreenchange','webkitfullscreenchange'].forEach(ev=>document.addEventListener(ev,()=>{
   const open=document.getElementById('fs-overlay')?.classList.contains('open');
-  if(open&&(document.fullscreenElement||document.webkitFullscreenElement))lockLandscape();
+  const writing=document.getElementById('fb-modal')?.classList.contains('show');   // 글 쓰는 중엔 세로 유지
+  if(open&&!writing&&(document.fullscreenElement||document.webkitFullscreenElement))lockLandscape();
 }));
 function openFullscreen(videoId,title){
   const o=document.getElementById('fs-overlay');
