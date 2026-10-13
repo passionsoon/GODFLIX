@@ -710,6 +710,16 @@ input{outline:none;font-family:'Pretendard Variable','Pretendard',-apple-system,
 #fb-count{font-size:12px;color:var(--g3);}
 #fb-send{background:var(--red);color:#fff;border:none;border-radius:22px;padding:11px 26px;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;}
 #fb-send:disabled{opacity:.6;cursor:default;}
+.fb-sub{font-size:14px;color:var(--g2);margin:-2px 0 10px;line-height:1.5;}
+.fb-mine-link{background:none;border:none;color:#9ecbff;font-size:13px;font-weight:700;cursor:pointer;padding:4px 6px;font-family:inherit;}
+.fb-skip{background:none;border:none;color:var(--g3);font-size:14px;cursor:pointer;padding:10px 6px;font-family:inherit;}
+.my-fb{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:12px 14px;margin-bottom:8px;}
+.my-fb-meta{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center;font-size:12px;color:var(--g3);margin-bottom:6px;}
+.my-fb-tag{border-radius:4px;padding:1px 7px;font-weight:700;font-size:11px;}
+.my-fb-tag.q{background:rgba(74,158,255,.15);color:#4a9eff;}
+.my-fb-tag.f{background:rgba(245,197,24,.12);color:#f5c518;}
+.my-fb-read{margin-left:auto;font-weight:700;}
+.my-fb-text{white-space:pre-wrap;word-break:break-word;font-size:14px;line-height:1.65;color:var(--g1);}
 .fb-open-btn{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);color:var(--white);border-radius:22px;padding:9px 16px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Pretendard Variable','Pretendard',-apple-system,sans-serif;}
 #fs-fb-btn{background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.3);color:var(--white);border-radius:20px;padding:8px 14px;font-size:13px;font-weight:700;min-height:40px;pointer-events:all;font-family:'Pretendard Variable','Pretendard',-apple-system,sans-serif;margin-right:6px;}
 
@@ -1652,7 +1662,13 @@ html{-webkit-overflow-scrolling:touch;}
 <!-- ══ 느낀점·질문 보내기 (관리자만 봄) ══ -->
 <div id="fb-modal" onclick="if(this===event.target)closeFeedback()">
   <div class="fb-box">
-    <div class="fb-head"><div class="fb-title">✍️ 느낀점·질문 보내기</div><button class="fb-x" onclick="closeFeedback()" aria-label="닫기">✕</button></div>
+    <div class="fb-head"><div class="fb-title" id="fb-title">✍️ 느낀점·질문 보내기</div><div style="display:flex;align-items:center;gap:2px"><button class="fb-mine-link" id="fb-mine-link" onclick="showMyFeedback()">📂 내가 쓴 글</button><button class="fb-x" onclick="closeFeedback()" aria-label="닫기">✕</button></div></div>
+    <div id="fb-mine-view" style="display:none">
+      <div id="fb-mine-list"></div>
+      <button class="fb-open-btn" style="width:100%;padding:12px;margin-top:6px" onclick="showFbCompose()">✍️ 새 글 쓰기</button>
+    </div>
+    <div id="fb-compose">
+    <div class="fb-sub" id="fb-sub" style="display:none"></div>
     <div class="fb-note">🔒 관리자(선생님)만 볼 수 있어요. 다른 수강생에게는 보이지 않아요.</div>
     <label class="fb-label" for="fb-video">어떤 강의에 대한 글인가요?</label>
     <select id="fb-video"></select>
@@ -1661,7 +1677,8 @@ html{-webkit-overflow-scrolling:touch;}
       <button class="fb-kind" data-k="질문" onclick="setFbKind('질문')">❓ 궁금한 점</button>
     </div>
     <textarea id="fb-text" maxlength="2000" placeholder="강의를 보고 느낀 점이나 궁금한 점을 자유롭게 적어 주세요."></textarea>
-    <div class="fb-foot"><span id="fb-count">0 / 2000</span><button id="fb-send" onclick="sendFeedback()">보내기</button></div>
+    <div class="fb-foot"><span id="fb-count">0 / 2000</span><span><button class="fb-skip" id="fb-skip" style="display:none" onclick="closeFeedback()">다음에 쓸게요</button><button id="fb-send" onclick="sendFeedback()">보내기</button></span></div>
+    </div>
   </div>
 </div>
 
@@ -2127,7 +2144,8 @@ function buildMyStats() {
     <div style="font-size:20px;margin-bottom:6px;">${pct>=80?'🏆':pct>=50?'🔥':pct>=20?'💪':'🌱'}</div>
     <div style="font-size:13px;color:var(--g1);line-height:1.7;">${pct>=80?'<strong>대단합니다!</strong> 거의 다 왔어요.<br>마지막까지 완주해봐요!':pct>=50?'<strong>절반을 넘었어요!</strong> 이 속도라면<br>충분히 완주할 수 있습니다.':pct>=20?'<strong>시작이 반!</strong> 꾸준히 하다보면<br>어느새 완주해 있을 거예요.':'<strong>첫 걸음을 내디뎠군요.</strong><br>말씀의 여정, 함께 걸어봐요. 🙏'}</div>
   </div>
-  <button class="fb-open-btn" style="width:100%;padding:12px;margin:4px 0 8px;font-size:14px" onclick="closeMyStats();openFeedback()">✍️ 선생님께 느낀 점·궁금한 점 보내기</button>`;
+  <button class="fb-open-btn" style="width:100%;padding:12px;margin:4px 0 8px;font-size:14px" onclick="closeMyStats();openFeedback()">✍️ 선생님께 느낀 점·궁금한 점 보내기</button>
+  <button class="fb-open-btn" style="width:100%;padding:12px;margin:0 0 8px;font-size:14px;background:none" onclick="closeMyStats();showMyFeedback()">📂 내가 쓴 느낀 점·질문 보기</button>`;
 }
 
 /* ══════════════ 🏅 배지 · 도장판 · 완주 카드 ══════════════ */
@@ -2265,7 +2283,8 @@ function backToFsAfterWriting(){
 const fbDraftKey=()=>'gf_fb_draft_'+userName;
 function setFbKind(k){ _fbKind=k==='질문'?'질문':'느낀점'; document.querySelectorAll('.fb-kind').forEach(b=>b.classList.toggle('on',b.dataset.k===_fbKind)); saveFbDraft(); }
 function saveFbDraft(){ try{ localStorage.setItem(fbDraftKey(),JSON.stringify({vid:document.getElementById('fb-video').value,kind:_fbKind,text:document.getElementById('fb-text').value})); }catch(e){} }
-function openFeedback(vid){
+function openFeedback(vid,opts){
+  opts=opts||{};
   if(!authTok){showToast('로그인 후 이용해 주세요');return;}
   let d={}; try{ d=JSON.parse(localStorage.getItem(fbDraftKey())||'{}')||{}; }catch(e){}
   const sel=document.getElementById('fb-video');
@@ -2276,6 +2295,14 @@ function openFeedback(vid){
   document.getElementById('fb-text').value=d.text||'';
   setFbKind(d.kind||'느낀점');
   updFbCount();
+  // 강의를 다 본 직후에 뜨는 경우: 반가운 안내 + '다음에 쓸게요'
+  const after=!!opts.after, v=VIDEOS.find(x=>x.id===sel.value);
+  document.getElementById('fb-title').textContent=after?'🎉 수고하셨어요!':'✍️ 느낀점·질문 보내기';
+  const sub=document.getElementById('fb-sub');
+  sub.style.display=after?'':'none';
+  sub.textContent=after?`「${v?(parseTitle(v.title).main||v.title):'오늘 강의'}」 어떠셨나요? 느낀 점이나 궁금한 점을 자유롭게 남겨 주세요.`:'';
+  document.getElementById('fb-skip').style.display=after?'':'none';
+  showFbCompose(true);
   document.getElementById('toast').classList.remove('show');   // 아래쪽 안내가 '보내기' 버튼을 가리지 않게
   leaveFsForWriting();
   hostIt(document.getElementById('fb-modal')).classList.add('show');
@@ -2287,6 +2314,37 @@ document.addEventListener('DOMContentLoaded',()=>{
   const t=document.getElementById('fb-text'); if(t)t.addEventListener('input',()=>{updFbCount();saveFbDraft();_fbFid=null;});
   const s=document.getElementById('fb-video'); if(s)s.addEventListener('change',()=>{saveFbDraft();_fbFid=null;});
 });
+function showFbCompose(silent){
+  document.getElementById('fb-mine-view').style.display='none';
+  document.getElementById('fb-compose').style.display='';
+  document.getElementById('fb-mine-link').style.display='';
+  if(!silent&&!isMobile)setTimeout(()=>document.getElementById('fb-text').focus(),50);
+}
+// 📂 내가 쓴 느낀점·질문 (본인 글만, 선생님이 읽었는지도 표시)
+async function showMyFeedback(){
+  if(!authTok){showToast('로그인 후 이용해 주세요');return;}
+  const m=document.getElementById('fb-modal');
+  if(!m.classList.contains('show')){ document.getElementById('toast').classList.remove('show'); hostIt(m).classList.add('show'); }
+  saveFbDraft();
+  document.getElementById('fb-title').textContent='📂 내가 쓴 글';
+  document.getElementById('fb-compose').style.display='none';
+  document.getElementById('fb-mine-link').style.display='none';
+  document.getElementById('fb-mine-view').style.display='';
+  const box=document.getElementById('fb-mine-list');
+  box.innerHTML='<div style="text-align:center;padding:2rem;color:var(--g3)">불러오는 중…</div>';
+  try{
+    const r=await gasApi({action:'feedback_mine',tok:authTok});
+    if(r&&r.invalid){closeFeedback();forceRelogin();return;}
+    const items=(r&&r.items)||[];
+    box.innerHTML=items.length?items.map(x=>{
+      const v=VIDEOS.find(y=>y.id===x.videoId), t=v?(parseTitle(v.title).main||v.title):(x.title||'강의 선택 안 함');
+      return `<div class="my-fb"><div class="my-fb-meta"><span class="my-fb-tag ${x.kind==='질문'?'q':'f'}">${x.kind==='질문'?'❓ 궁금한 점':'💛 느낀 점'}</span><span>${escH(t)}</span><span>${escH(String(x.at||'').slice(0,16))}</span>
+        <span class="my-fb-read" style="color:${x.read?'var(--green)':'var(--g3)'}">${x.read?'✓ 선생님이 읽었어요':'전달됨'}</span></div>
+        <div class="my-fb-text">${escH(String(x.text||'').replace(/^'/,''))}</div></div>`;
+    }).join(''):'<div style="text-align:center;padding:2rem;color:var(--g3);line-height:1.7">아직 쓴 글이 없어요.<br>강의를 보고 느낀 점이나 궁금한 점을 남겨 보세요.</div>';
+  }catch(e){ box.innerHTML='<div style="text-align:center;padding:2rem;color:var(--g3)">⚠️ 불러오지 못했어요. 잠시 후 다시 열어 주세요.</div>'; }
+}
+
 async function sendFeedback(){
   if(_fbSending)return;
   const text=document.getElementById('fb-text').value.trim();
@@ -2933,6 +2991,9 @@ function openFullscreen(videoId,title){
   if(currentVideo)setMediaSession(title,currentVideo.thumbnail||'');
 }
 function closeFullscreen(){
+  // 강의 화면 안에 떠 있던 글쓰기 창도 함께 닫음 (적은 글은 임시 저장)
+  const fm=document.getElementById('fb-modal');
+  if(fm&&fm.classList.contains('show')&&fm.parentNode&&fm.parentNode.id==='fs-overlay'){ _fbFromFs=false; saveFbDraft(); fm.classList.remove('show'); }
   closePlayer();   // 진도·기록 저장, 저장 타이머 정지, 플레이어 화면 닫기
   document.getElementById('fs-overlay').classList.remove('open');
   document.getElementById('fs-player').src='';
@@ -3059,6 +3120,15 @@ function triggerComplete(){
   saveRecord(true);saveProgress();updateStats();
   // 🏅 이번 완료로 새로 받은 배지 알림
   try{ const nb=earnedBadges().filter(b=>b.got&&!_badgesBefore.has(b.key)); if(nb.length)setTimeout(()=>showBadgePop(nb),1400); }catch(e){}
+  // ✍️ 다 보면 느낀 점·궁금한 점 쓰기 창 (자동 다음 강의 대신)
+  const _doneVid=currentVideo&&currentVideo.id;
+  setTimeout(()=>{
+    if(!currentVideo||currentVideo.id!==_doneVid||!completed)return;
+    if(document.getElementById('fb-modal').classList.contains('show'))return;   // 이미 쓰는 중
+    if(document.getElementById('card-modal').classList.contains('show'))return;
+    try{ cancelAutoPlay(); }catch(e){}
+    openFeedback(_doneVid,{after:true});
+  },1800);
   // 완료된 강의를 이어보기 행에서 제거
   renderRecentRow();
   // A. 다음 강의 추천
