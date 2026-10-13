@@ -2234,7 +2234,28 @@ async function shareCard(){
 }
 
 /* ══════════════ ✍️ 느낀점·질문 보내기 (관리자만 봄) ══════════════ */
-let _fbKind='느낀점',_fbSending=false,_fbFid=null;
+let _fbKind='느낀점',_fbSending=false,_fbFid=null,_fbFromFs=false;
+// 휴대폰 강의 화면(가로 고정)에서 글을 쓸 때는 영상을 멈추고 가로 고정·전체화면을 풀어 세로로 편하게 쓰도록
+function leaveFsForWriting(){
+  const o=document.getElementById('fs-overlay');
+  _fbFromFs=!!(o&&o.classList.contains('open'));
+  if(!_fbFromFs)return;
+  try{ sendPlayer('pause',null,true); }catch(e){}
+  try{ if(screen.orientation&&screen.orientation.unlock)screen.orientation.unlock(); }catch(e){}
+  try{
+    if(document.fullscreenElement&&document.exitFullscreen)document.exitFullscreen().catch(()=>{});
+    else if(document.webkitFullscreenElement&&document.webkitExitFullscreen)document.webkitExitFullscreen();
+  }catch(e){}
+}
+// 글쓰기를 마치면 다시 전체화면 + 가로로 (강의 화면이 아직 열려 있을 때만)
+function backToFsAfterWriting(){
+  if(!_fbFromFs)return; _fbFromFs=false;
+  const o=document.getElementById('fs-overlay'); if(!o||!o.classList.contains('open'))return;
+  try{
+    const r=o.requestFullscreen?o.requestFullscreen():(o.webkitRequestFullscreen?o.webkitRequestFullscreen():null);
+    if(r&&r.then)r.then(lockLandscape,()=>{}); else lockLandscape();
+  }catch(e){}
+}
 const fbDraftKey=()=>'gf_fb_draft_'+userName;
 function setFbKind(k){ _fbKind=k==='질문'?'질문':'느낀점'; document.querySelectorAll('.fb-kind').forEach(b=>b.classList.toggle('on',b.dataset.k===_fbKind)); saveFbDraft(); }
 function saveFbDraft(){ try{ localStorage.setItem(fbDraftKey(),JSON.stringify({vid:document.getElementById('fb-video').value,kind:_fbKind,text:document.getElementById('fb-text').value})); }catch(e){} }
@@ -2250,10 +2271,11 @@ function openFeedback(vid){
   setFbKind(d.kind||'느낀점');
   updFbCount();
   document.getElementById('toast').classList.remove('show');   // 아래쪽 안내가 '보내기' 버튼을 가리지 않게
+  leaveFsForWriting();
   hostIt(document.getElementById('fb-modal')).classList.add('show');
   if(!isMobile)setTimeout(()=>document.getElementById('fb-text').focus(),50);
 }
-function closeFeedback(){ saveFbDraft(); document.getElementById('fb-modal').classList.remove('show'); }
+function closeFeedback(){ saveFbDraft(); document.getElementById('fb-modal').classList.remove('show'); backToFsAfterWriting(); }
 function updFbCount(){ document.getElementById('fb-count').textContent=document.getElementById('fb-text').value.length+' / 2000'; }
 document.addEventListener('DOMContentLoaded',()=>{
   const t=document.getElementById('fb-text'); if(t)t.addEventListener('input',()=>{updFbCount();saveFbDraft();_fbFid=null;});
@@ -2273,12 +2295,13 @@ async function sendFeedback(){
   let ok=false;
   for(let i=0;i<5&&!ok;i++){
     await new Promise(r=>setTimeout(r,i?1500:700));
-    try{ const r=await gasApi({action:'feedback_ok',tok:authTok,fid}); if(r&&r.invalid){_fbSending=false;btn.disabled=false;btn.textContent='보내기';closeFeedback();forceRelogin();return;} ok=!!(r&&r.ok); }catch(e){}
+    try{ const r=await gasApi({action:'feedback_ok',tok:authTok,fid}); if(r&&r.invalid){_fbSending=false;btn.disabled=false;btn.textContent='보내기';_fbFromFs=false;closeFeedback();forceRelogin();return;} ok=!!(r&&r.ok); }catch(e){}
   }
   _fbSending=false; btn.disabled=false; btn.textContent='보내기';
   if(ok){
     _fbFid=null; document.getElementById('fb-text').value=''; try{localStorage.removeItem(fbDraftKey());}catch(e){}
     document.getElementById('fb-modal').classList.remove('show');
+    backToFsAfterWriting();
     showToast('✅ 보냈어요! 선생님만 볼 수 있어요 🙏');
   } else showToast('⚠️ 전송을 확인하지 못했어요. 인터넷을 확인하고 다시 눌러 주세요. (적은 글은 그대로 있어요)');
 }
