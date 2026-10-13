@@ -773,16 +773,19 @@ input{outline:none;font-family:'Pretendard Variable','Pretendard',-apple-system,
 }
 .skip-btn:hover{background:rgba(255,255,255,.16);}
 .skip-btn:active{transform:scale(.96);}
+.fs-zone{position:absolute;top:28%;height:44%;width:26%;z-index:11;display:flex;align-items:center;-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
+.fs-zone.left{left:0;justify-content:flex-start;padding-left:max(10px,env(safe-area-inset-left,0px));}
+.fs-zone.right{right:0;justify-content:flex-end;padding-right:max(10px,env(safe-area-inset-right,0px));}
 .fs-skip{
-  position:absolute;top:50%;z-index:11;transform:translateY(-50%);
+  pointer-events:none;
   width:62px;height:62px;border-radius:50%;border:1px solid rgba(255,255,255,.3);
   background:rgba(0,0,0,.45);color:#fff;font-size:13px;font-weight:800;line-height:1.1;
   font-family:'Pretendard Variable','Pretendard',-apple-system,sans-serif;
-  -webkit-tap-highlight-color:transparent;touch-action:manipulation;
+  opacity:0;transform:scale(.85);transition:opacity .25s,transform .25s;
 }
-.fs-skip:active{background:rgba(229,9,20,.6);}
-#fs-skip-back{left:max(10px,env(safe-area-inset-left,0px));}
-#fs-skip-fwd{right:max(10px,env(safe-area-inset-right,0px));}
+/* 평소엔 숨김 → 화면 왼쪽/오른쪽을 톡 누르거나 일시정지하면 나타남 (넷플릭스처럼) */
+.fs-zone.vis .fs-skip{opacity:1;transform:scale(1);}
+.fs-zone.hit .fs-skip{background:rgba(229,9,20,.6);}
 #fs-complete{display:none;color:var(--green);font-weight:700;font-size:13px;margin-top:5px;}
 
 /* ═══════════════════════════
@@ -1659,8 +1662,8 @@ html{-webkit-overflow-scrolling:touch;}
 <!-- ══ MOBILE FULLSCREEN ══ -->
 <div id="fs-overlay">
   <iframe id="fs-player" src="" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
-  <button class="fs-skip" id="fs-skip-back" onclick="skipBy(-10)">⟲<br>10초</button>
-  <button class="fs-skip" id="fs-skip-fwd" onclick="skipBy(10)">⟳<br>10초</button>
+  <div class="fs-zone left" id="fs-zone-back" onclick="fsZoneTap(this,-10)"><button class="fs-skip" id="fs-skip-back" tabindex="-1" aria-label="10초 뒤로">⟲<br>10초</button></div>
+  <div class="fs-zone right" id="fs-zone-fwd" onclick="fsZoneTap(this,10)"><button class="fs-skip" id="fs-skip-fwd" tabindex="-1" aria-label="10초 앞으로">⟳<br>10초</button></div>
   <div id="fs-header">
     <div id="fs-title">강의 재생 중</div>
     <div style="display:flex;align-items:center;pointer-events:none;"><button id="fs-fb-btn" onclick="openFeedback()">✍️ 질문</button><button id="fs-close-btn" onclick="closeFullscreen()">✕ 닫기</button></div>
@@ -1726,6 +1729,7 @@ let progressSaveInterval=null,watchedMinutesSinceLastRecord=0;
 let featuredIndex=0,currentGrade='전체';
 let _wakeLock=null; // Screen Wake Lock 핸들
 const isMobile=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+const isIOS=/iPhone|iPad|iPod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
 
 /* ─ HELPERS ─ */
 function parseTitle(t){
@@ -3022,12 +3026,14 @@ function openFullscreen(videoId,title){
   document.getElementById('fs-label').textContent='로딩 중…';
   document.getElementById('fs-watch-bar').style.width='0%';
   const fcEl=document.getElementById('fs-complete'); fcEl.style.display='none'; fcEl.innerHTML='🎉 시청 완료!';
+  revealSkip(0);   // 재생 전(멈춤)에는 10초 버튼 보임 → 재생하면 2초 뒤 숨김
   document.getElementById('vimeo-player').src='';
   // background=1 → 화면 꺼짐 / PiP 상태에서도 오디오 계속 재생
   document.getElementById('fs-player').src=
-    `https://player.vimeo.com/video/${videoId}?badge=0&autopause=0&app_id=58479&api=1&player_id=fs-player&autoplay=0&muted=0&quality=auto&background=0&playsinline=1`;
+    `https://player.vimeo.com/video/${videoId}?badge=0&autopause=0&app_id=58479&api=1&player_id=fs-player&autoplay=0&muted=0&quality=auto&background=0&playsinline=${isIOS?0:1}`;
   // 휴대폰은 자동 재생하면 소리가 꺼진 채로만 재생됨 → 재생 버튼을 직접 눌러야 소리가 나옴
-  // playsinline=1: 재생을 눌러도 비메오가 자기 전체화면으로 바꾸지 않음 → 가로 화면이 세로로 풀리지 않음
+  // 안드로이드: playsinline=1 → 재생해도 비메오가 자기 전체화면을 잡지 않아 가로 고정이 유지됨
+  // 아이폰: 사이트가 화면 방향을 바꿀 수 없음 → playsinline=0 으로 아이폰 기본 전체화면 플레이어(폰을 돌리면 가로)
   o.classList.add('open');
   if(o.requestFullscreen)o.requestFullscreen().catch(()=>{});
   else if(o.webkitRequestFullscreen)o.webkitRequestFullscreen();
@@ -3077,12 +3083,12 @@ window.addEventListener('message',function(e){
     }
   }
   if(ev==='play'){
-    isPlaying=true;
+    isPlaying=true; if(isFs)revealSkip(2000);
     if('mediaSession' in navigator)navigator.mediaSession.playbackState='playing';
     requestWakeLock();
   }
   if(ev==='pause'){
-    isPlaying=false;
+    isPlaying=false; if(isFs)revealSkip(0);   // 멈추면 10초 버튼 보여줌
     if('mediaSession' in navigator)navigator.mediaSession.playbackState='paused';
   }
   if(ev==='playProgress'){
@@ -3091,7 +3097,8 @@ window.addEventListener('message',function(e){
     if(videoDuration>0&&dur>0&&Math.abs(dur-videoDuration)>5)return; // 다른 영상의 신호
     if(dur>0)videoDuration=dur;
     const fw=wasDone||completed;   // 다 본 강의는 자유롭게 넘겨보기
-    if(!fw&&!jumpBlock&&t>maxReachedSec+10){blockJump(isFs);return;}
+    // 조금씩 앞으로 넘기기(10초 버튼·아이폰 기본 플레이어의 15초 넘기기)는 허용, 크게 건너뛰기는 막음
+    if(!fw&&!jumpBlock&&t>maxReachedSec+16){blockJump(isFs);return;}
     if(jumpBlock)return;
     if(_lastT!==null){const dt=t-_lastT;if(dt>0&&dt<=3)sessionPlayedSec+=dt;}   // 건너뛴 구간은 빼고 실제 재생 시간만
     _lastT=t;
@@ -3124,7 +3131,7 @@ window.addEventListener('message',function(e){
   if(ev==='seek'){
     if(jumpBlock)return;
     const tg=parseFloat(d.data.seconds)||0,dur=parseFloat(d.data.duration)||videoDuration;
-    if(!wasDone&&!completed&&tg>maxReachedSec+3)blockJump(isFs);
+    if(!wasDone&&!completed&&tg>maxReachedSec+16)blockJump(isFs);
     else{lastPositionSec=tg;_lastT=null;}   // 멈춘 상태에서 옮겨도 10초 버튼이 정확한 위치에서 동작
   }
   if(ev==='finish'){isPlaying=false;
@@ -3180,6 +3187,19 @@ function triggerComplete(){
 // 넷플릭스처럼 10초 앞으로/뒤로.
 // 안 본 구간도 10초 버튼으로는 자유롭게 넘길 수 있음(생각하는 시간 등 빈 구간용).
 // 진행바를 끌어서 크게 건너뛰는 것은 그대로 막힘(blockJump).
+let _skipT=null;
+function revealSkip(ms){
+  document.querySelectorAll('.fs-zone').forEach(z=>z.classList.add('vis'));
+  clearTimeout(_skipT);
+  if(ms)_skipT=setTimeout(()=>{ if(isPlaying)document.querySelectorAll('.fs-zone').forEach(z=>z.classList.remove('vis')); },ms);
+}
+function hideSkip(){ clearTimeout(_skipT); document.querySelectorAll('.fs-zone').forEach(z=>z.classList.remove('vis')); }
+// 숨어 있을 때 누르면 버튼만 보여주고, 보일 때 누르면 10초 이동
+function fsZoneTap(zone,sec){
+  if(!zone.classList.contains('vis')){ revealSkip(2500); return; }
+  skipBy(sec); revealSkip(2500);
+  zone.classList.add('hit'); setTimeout(()=>zone.classList.remove('hit'),180);
+}
 function skipBy(sec){
   if(!currentVideo||window._awaitReady)return;
   const isFs=document.getElementById('fs-overlay')?.classList.contains('open');
