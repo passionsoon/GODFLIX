@@ -3048,7 +3048,7 @@ function openFullscreen(videoId,title,startAt){
   // 휴대폰은 자동 재생하면 소리가 꺼진 채로만 재생됨 → 재생 버튼을 직접 눌러야 소리가 나옴
   // 안드로이드: playsinline=1 → 재생해도 비메오가 자기 전체화면을 잡지 않아 가로 고정이 유지됨
   // 아이폰: 사이트가 화면 방향을 바꿀 수 없음 → playsinline=0 으로 아이폰 기본 전체화면 플레이어(폰을 돌리면 가로)
-  o.classList.add('open');
+  o.classList.add('open'); layoutZones(); setTimeout(layoutZones,500);
   if(o.requestFullscreen)o.requestFullscreen().catch(()=>{});
   else if(o.webkitRequestFullscreen)o.webkitRequestFullscreen();
   lockLandscape();
@@ -3204,6 +3204,18 @@ function triggerComplete(){
 // 안 본 구간도 10초 버튼으로는 자유롭게 넘길 수 있음(생각하는 시간 등 빈 구간용).
 // 진행바를 끌어서 크게 건너뛰는 것은 그대로 막힘(blockJump).
 let _skipT=null;
+// 10초 버튼 영역을 '영상 화면' 안쪽 가운데 높이에만 둠 → 비메오 재생 버튼·진행바(영상 아래쪽)를 가리지 않도록
+// (세로 화면에선 영상이 가운데 가로 띠로만 보여서, 예전 위치가 왼쪽 아래 재생 버튼을 덮고 있었음)
+function layoutZones(){
+  const o=document.getElementById('fs-overlay'); if(!o||!o.classList.contains('open'))return;
+  const W=o.clientWidth,H=o.clientHeight; if(!W||!H)return;
+  const vh=Math.min(H,W*9/16), top0=(H-vh)/2;
+  const top=top0+vh*0.18, bottom=top0+vh-Math.max(80,vh*0.3);
+  const h=Math.max(44,bottom-top);
+  document.querySelectorAll('.fs-zone').forEach(z=>{ z.style.top=Math.round(top)+'px'; z.style.height=Math.round(h)+'px'; });
+}
+window.addEventListener('resize',()=>{ layoutZones(); setTimeout(layoutZones,300); });
+window.addEventListener('orientationchange',()=>setTimeout(layoutZones,400));
 function revealSkip(ms){
   document.querySelectorAll('.fs-zone').forEach(z=>z.classList.add('vis'));
   clearTimeout(_skipT);
