@@ -2875,7 +2875,7 @@ async function selectVideo(index){
 
   currentVideo=VIDEOS[index];currentIndex=index;
   startTime=new Date().toLocaleString('ko-KR');
-  replayCount=0;recordSent=false;_fbPromptVid=null;clearTimeout(window._iosResetT);_ended=false;
+  replayCount=0;recordSent=false;_fbPromptVid=null;clearTimeout(window._iosResetT);_ended=false;window._seekOnPlay=0;
   isPlaying=false;jumpBlock=false;videoDuration=0;
   lastPositionSec=0;watchedMinutesSinceLastRecord=0;
 
@@ -3024,14 +3024,16 @@ function lockLandscape(){
 // 휴대폰 강의 화면 주소 (#t=초 → 비메오가 그 위치에서 시작. 비메오가 기억한 '끝 위치'로 열리는 것 방지)
 function fsSrc(videoId,startAt){
   return `https://player.vimeo.com/video/${videoId}?badge=0&autopause=0&app_id=58479&api=1&player_id=fs-player&autoplay=0&muted=0&quality=auto&background=0&playsinline=${isIOS?0:1}`+
-    (startAt!=null?`#t=${Math.max(0,Math.floor(startAt))}s`:'');
+    (startAt!=null&&!(isIOS&&startAt>0)?`#t=${Math.max(0,Math.floor(startAt))}s`:'');   // 아이폰은 재생 전 위치 이동 시 재생 버튼이 사라짐 → 0초로 열고 재생 누른 뒤 이동
 }
 // 아이폰: 끝까지 재생된 비메오 플레이어는 위치 이동 명령을 무시하고 끝에 멈춰 있음 → 플레이어를 새로 불러 원하는 위치에서 다시 시작
 function reloadFsAt(sec){
   const f=document.getElementById('fs-player'); if(!f||!currentVideo)return;
   window._pendingMaxReached=maxReachedSec; window._pendingResume=0;
-  _ended=false; isPlaying=false; lastPositionSec=Math.max(0,sec); _lastT=null;
-  f.src=fsSrc(extractVimeoId(currentVideo.url),sec);
+  _ended=false; isPlaying=false; _lastT=null;
+  window._iosPlayedOnce=false;
+  if(isIOS){ window._seekOnPlay=sec>1?sec:0; lastPositionSec=0; f.src=fsSrc(extractVimeoId(currentVideo.url),0); }
+  else { lastPositionSec=Math.max(0,sec); f.src=fsSrc(extractVimeoId(currentVideo.url),sec); }
   revealSkip(0);
 }
 function openFullscreen(videoId,title,startAt){
@@ -3043,7 +3045,7 @@ function openFullscreen(videoId,title,startAt){
   revealSkip(0);   // 재생 전(멈춤)에는 10초 버튼 보임 → 재생하면 2초 뒤 숨김
   document.getElementById('vimeo-player').src='';
   // background=1 → 화면 꺼짐 / PiP 상태에서도 오디오 계속 재생
-  _ended=false;
+  _ended=false; window._iosPlayedOnce=false; window._seekOnPlay=(isIOS&&startAt>10)?startAt:0;
   document.getElementById('fs-player').src=fsSrc(videoId,startAt);
   // 휴대폰은 자동 재생하면 소리가 꺼진 채로만 재생됨 → 재생 버튼을 직접 눌러야 소리가 나옴
   // 안드로이드: playsinline=1 → 재생해도 비메오가 자기 전체화면을 잡지 않아 가로 고정이 유지됨
@@ -3086,6 +3088,7 @@ window.addEventListener('message',function(e){
     maxReachedSec=window._pendingMaxReached||0;
     ['play','pause','finish','seek','playProgress'].forEach(n=>sendPlayer('addEventListener',n,isFs));
     // 이어보기: 모바일(fs)과 데스크탑 모두 처리
+    if(window._pendingResume>0&&isFs&&isIOS){ window._pendingResume=0; }   // 아이폰은 재생을 누른 뒤 이동 (_seekOnPlay)
     if(window._pendingResume>0){
       const resumeTo=window._pendingResume;
       window._pendingResume=0;
@@ -3097,7 +3100,10 @@ window.addEventListener('message',function(e){
     }
   }
   if(ev==='play'){
-    isPlaying=true; _ended=false; if(isFs)revealSkip(2000);
+    isPlaying=true; _ended=false; window._iosPlayedOnce=true; if(isFs)revealSkip(2000);
+    // 아이폰: 재생이 시작된 뒤에야 위치 이동이 됨 → 보려던 위치(이어보기·끝난 뒤 10초 뒤로)로 이동
+    if(window._seekOnPlay>0){ const sp=window._seekOnPlay; window._seekOnPlay=0;
+      setTimeout(()=>{ if(Math.abs((lastPositionSec||0)-sp)>5){ jumpBlock=true; sendPlayer('setCurrentTime',sp,isFs); lastPositionSec=sp; _lastT=null; setTimeout(()=>{jumpBlock=false;},1500); } },700); }
     if('mediaSession' in navigator)navigator.mediaSession.playbackState='playing';
     requestWakeLock();
   }
@@ -3150,7 +3156,7 @@ window.addEventListener('message',function(e){
   }
   if(ev==='finish'){isPlaying=false; _ended=true;
     // 아이폰: 끝난 상태의 플레이어는 되감기·진행바·처음부터가 먹지 않음 → 잠시 뒤 처음 위치로 새로 불러 둠
-    if(isFs&&isIOS){ clearTimeout(window._iosResetT); window._iosResetT=setTimeout(()=>{ if(_ended&&currentVideo&&document.getElementById('fs-overlay').classList.contains('open')){ reloadFsAt(0); showToast('처음 위치로 돌아왔어요 · ▶ 다시 보기 / 진행바로 원하는 곳 이동'); } },1500); }
+    if(isFs&&isIOS){ clearTimeout(window._iosResetT); window._iosResetT=setTimeout(()=>{ if(_ended&&currentVideo&&document.getElementById('fs-overlay').classList.contains('open')){ reloadFsAt(0); showToast('▶ 를 누르면 가로 화면으로 다시 볼 수 있어요 · 진행바로 원하는 곳 이동'); } },700); }
     // 영상이 끝까지 재생됨 → 마지막 몇 초 신호가 빠져도 끝까지 본 것으로 (건너뛰기로 끝에 간 경우는 막혀 있음)
     if(!completed&&videoDuration>0&&maxReachedSec>=videoDuration-10){maxReachedSec=videoDuration;triggerComplete();}
     maybeFbPrompt(800);}
@@ -3229,11 +3235,13 @@ function fsZoneTap(zone,sec){
   zone.classList.add('hit'); setTimeout(()=>zone.classList.remove('hit'),180);
 }
 let _ended=false;
+// 아이폰: 새로 불러온 뒤 아직 한 번도 재생하지 않은 플레이어인지 (재생 전엔 위치 이동이 안 먹음)
+function _iosFresh(){ return !window._iosPlayedOnce; }
 function skipBy(sec){
   if(!currentVideo||window._awaitReady)return;
   const isFs=document.getElementById('fs-overlay')?.classList.contains('open');
   const dur=videoDuration;
-  const cur=lastPositionSec||0;
+  const cur=(isIOS&&window._seekOnPlay>0)?window._seekOnPlay:(lastPositionSec||0);
   let to=cur+sec;
   if(dur>0)to=Math.min(to,dur-1);
   to=Math.max(0,to);
@@ -3247,7 +3255,10 @@ function skipBy(sec){
     }
   }
   if(Math.abs(to-cur)<0.5)return;
-  if(_ended&&isFs&&isIOS){ clearTimeout(window._iosResetT); reloadFsAt(to); return; }   // 끝난 플레이어는 새로 불러서 이동
+  if(isFs&&isIOS&&(_ended||_iosFresh())){   // 아이폰: 끝난 플레이어·아직 재생 전인 플레이어는 위치 이동이 안 먹음
+    clearTimeout(window._iosResetT);
+    if(_ended)reloadFsAt(to); else window._seekOnPlay=to;
+    showToast('▶ 를 누르면 '+fmtSec(to)+'부터 이어서 나와요'); return; }   // 끝난 플레이어는 새로 불러서 이동
   jumpBlock=true;clearTimeout(window._skipT);
   sendPlayer('setCurrentTime',to,isFs);
   lastPositionSec=to;_lastT=null;
