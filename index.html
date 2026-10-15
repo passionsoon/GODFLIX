@@ -3120,7 +3120,7 @@ window.addEventListener('message',function(e){
     // 조금씩 앞으로 넘기기(10초 버튼·아이폰 기본 플레이어의 15초 넘기기)는 허용, 크게 건너뛰기는 막음
     if(!fw&&!jumpBlock&&t>maxReachedSec+16){blockJump(isFs);return;}
     if(jumpBlock)return;
-    if(_lastT!==null){const dt=t-_lastT;if(dt>0&&dt<=3)sessionPlayedSec+=dt;}   // 건너뛴 구간은 빼고 실제 재생 시간만
+    if(_lastT!==null){const dt=t-_lastT;if(dt>0&&dt<=3){sessionPlayedSec+=dt;window._iosPlayedOnce=true;}}   // 건너뛴 구간은 빼고 실제 재생 시간만
     _lastT=t;
     lastPositionSec=t;
     if(t>maxReachedSec){
