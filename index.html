@@ -2875,7 +2875,7 @@ async function selectVideo(index){
 
   currentVideo=VIDEOS[index];currentIndex=index;
   startTime=new Date().toLocaleString('ko-KR');
-  replayCount=0;recordSent=false;_fbPromptVid=null;clearTimeout(window._iosResetT);_ended=false;window._seekOnPlay=0;
+  replayCount=0;recordSent=false;_fbPromptVid=null;clearTimeout(window._iosResetT);_ended=false;window._seekOnPlay=0;window._seekPending=0;
   isPlaying=false;jumpBlock=false;videoDuration=0;
   lastPositionSec=0;watchedMinutesSinceLastRecord=0;
 
@@ -3102,8 +3102,8 @@ window.addEventListener('message',function(e){
   if(ev==='play'){
     isPlaying=true; _ended=false; window._iosPlayedOnce=true; if(isFs)revealSkip(2000);
     // 아이폰: 재생이 시작된 뒤에야 위치 이동이 됨 → 보려던 위치(이어보기·끝난 뒤 10초 뒤로)로 이동
-    if(window._seekOnPlay>0){ const sp=window._seekOnPlay; window._seekOnPlay=0;
-      setTimeout(()=>{ if(Math.abs((lastPositionSec||0)-sp)>5){ jumpBlock=true; sendPlayer('setCurrentTime',sp,isFs); lastPositionSec=sp; _lastT=null; setTimeout(()=>{jumpBlock=false;},1500); } },700); }
+    if(window._seekOnPlay>0){ const sp=window._seekOnPlay; window._seekOnPlay=0; window._seekPending=sp;
+      setTimeout(()=>{ window._seekPending=0; if(Math.abs((lastPositionSec||0)-sp)>5){ jumpBlock=true; sendPlayer('setCurrentTime',sp,isFs); lastPositionSec=sp; _lastT=null; setTimeout(()=>{jumpBlock=false;},1500); } },700); }
     if('mediaSession' in navigator)navigator.mediaSession.playbackState='playing';
     requestWakeLock();
   }
@@ -3297,18 +3297,20 @@ function saveProgress(force=false){
   if(!userName||!currentVideo||!authTok)return;
   if(window._awaitReady||!(videoDuration>0))return;   // 플레이어 준비 전 저장 → 길이 0으로 덮어쓰는 문제 방지
   if(!progressMap[currentVideo.id])progressMap[currentVideo.id]={lastPosition:0,maxReached:0,duration:0};
-  progressMap[currentVideo.id].lastPosition=Math.floor(lastPositionSec);
+  // 아이폰: 재생 누른 직후 이어볼 위치로 넘어가기 전에 저장되면 이어보기 위치가 0으로 덮이지 않도록
+  const _pos=window._seekOnPlay>0?window._seekOnPlay:(window._seekPending>0?window._seekPending:lastPositionSec);
+  progressMap[currentVideo.id].lastPosition=Math.floor(_pos);
   progressMap[currentVideo.id].maxReached=Math.floor(videoDuration>0?Math.min(maxReachedSec,videoDuration):maxReachedSec);
   if(videoDuration>0)progressMap[currentVideo.id].duration=Math.floor(videoDuration);
   progressMap[currentVideo.id].savedAt=Date.now();
   saveProgLocal();
   // 위치가 바뀌지 않았으면 서버에 보내지 않음 (불필요한 요청 줄이기)
-  const sig=currentVideo.id+':'+Math.floor(lastPositionSec)+':'+Math.floor(maxReachedSec);
+  const sig=currentVideo.id+':'+Math.floor(_pos)+':'+Math.floor(maxReachedSec);
   if(!force&&sig===_lastSaved)return;
   _lastSaved=sig;
   fetch(SHEET_URL,{method:'POST',mode:'no-cors',keepalive:true,headers:{'Content-Type':'text/plain'},
     body:JSON.stringify({type:'progress',tok:authTok,videoId:currentVideo.id,
-      lastPosition:Math.floor(lastPositionSec),maxReached:Math.floor(videoDuration>0?Math.min(maxReachedSec,videoDuration):maxReachedSec),
+      lastPosition:Math.floor(_pos),maxReached:Math.floor(videoDuration>0?Math.min(maxReachedSec,videoDuration):maxReachedSec),
       duration:Math.floor(videoDuration||0)})}).catch(()=>{});
 }
 window.addEventListener('beforeunload',()=>{if(userName&&currentVideo&&maxReachedSec>5){saveRecord(true);saveProgress();}});
