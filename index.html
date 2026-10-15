@@ -3836,6 +3836,38 @@ function showIosInstallGuide() {
 }
 
 init();
+
+/* ─ 새 버전 안내: 사이트를 새로 올리면 열려 있는 화면에 '새 버전' 띠를 띄움 ─ */
+const APP_VER='2026.10.15-1';
+(function(){
+  const PAGE=()=>{ const p=location.pathname; return p.endsWith('/')?p+'index.html':p; };
+  let newVer=null, shown=false;
+  const busy=()=>{ try{ return ['player-overlay','fb-modal','card-modal'].some(id=>{const e=document.getElementById(id);return e&&e.classList.contains('show');})||document.getElementById('fs-overlay')?.classList.contains('open'); }catch(e){ return false; } };
+  function banner(){
+    if(shown||!newVer||busy())return; shown=true;
+    const b=document.createElement('div'); b.id='upd-bar';
+    b.style.cssText='position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:100000;display:flex;align-items:center;gap:10px;width:min(440px,calc(100vw - 32px));box-sizing:border-box;padding:10px 10px 10px 16px;border-radius:14px;background:#1f1f1f;color:#fff;border:1px solid rgba(255,255,255,.15);box-shadow:0 8px 30px rgba(0,0,0,.5);font-size:14px;font-family:inherit;';
+    b.innerHTML='<span style="flex:1;line-height:1.35">🔄 새 버전이 나왔어요</span>'+
+      '<button id="upd-go" style="border:0;border-radius:10px;padding:8px 14px;background:#e50914;color:#fff;font-weight:700;font-size:14px;font-family:inherit;cursor:pointer;white-space:nowrap">지금 업데이트</button>'+
+      '<button id="upd-x" aria-label="닫기" style="border:0;background:none;color:#aaa;font-size:18px;padding:4px 6px;cursor:pointer">✕</button>';
+    document.body.appendChild(b);
+    b.querySelector('#upd-go').onclick=()=>{ try{ sessionStorage.setItem('gf_updated','1'); }catch(e){} location.reload(); };
+    b.querySelector('#upd-x').onclick=()=>b.remove();
+  }
+  async function check(){
+    if(document.hidden||newVer||location.protocol==='file:')return;
+    try{
+      const r=await fetch(PAGE()+'?v='+Date.now(),{cache:'no-store'}); if(!r.ok)return;
+      const m=(await r.text()).match(/const APP_VER='([^']+)'/);
+      if(m&&m[1]!==APP_VER){ newVer=m[1]; banner(); }
+    }catch(e){}
+  }
+  try{ if(sessionStorage.getItem('gf_updated')){ sessionStorage.removeItem('gf_updated'); setTimeout(()=>{ try{ showToast('✅ 최신 버전으로 업데이트됐어요'); }catch(e){} },1500); } }catch(e){}
+  setTimeout(check,8000);
+  setInterval(check,15*60*1000);
+  setInterval(banner,4000);   // 강의를 보는 중이면 다 보고 닫은 뒤에 띄움
+  document.addEventListener('visibilitychange',()=>{ if(!document.hidden)check(); });
+})();
 </script>
 </body>
 </html>
