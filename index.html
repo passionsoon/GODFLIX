@@ -3814,6 +3814,40 @@ async function installPwa() {
   }
 }
 
+/* ─ 카카오톡 안에서 열렸을 때: 사파리(안드로이드는 크롬)로 바로 열기 ─
+   카톡 안 브라우저에서는 '홈 화면에 추가'가 안 되고, 열 때마다 카톡을 거치게 됨 */
+const _UA = navigator.userAgent;
+const IN_KAKAO = /KAKAOTALK/i.test(_UA);
+const IN_APP = IN_KAKAO || /NAVER\(inapp|Instagram|FBAN|FBAV|Line\/|DaumApps|everytimeApp|BAND\//i.test(_UA);
+const IS_STANDALONE = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
+function openInBrowser(){
+  const url = location.href.split('#')[0];
+  if (IN_KAKAO) { location.href = 'kakaotalk://web/openExternal?url=' + encodeURIComponent(url); return; }
+  showToast(/iPhone|iPad|iPod/.test(_UA) ? '오른쪽 아래 ··· 또는 공유 버튼 → "Safari로 열기"를 눌러 주세요' : '오른쪽 위 ⋮ 메뉴 → "다른 브라우저로 열기"를 눌러 주세요');
+}
+function showInAppBar(){
+  if (!IN_APP || IS_STANDALONE || document.getElementById('inapp-bar')) return;
+  const ios = /iPhone|iPad|iPod/.test(_UA);
+  const b = document.createElement('div'); b.id = 'inapp-bar';
+  b.style.cssText = 'position:fixed;left:0;right:0;top:0;z-index:100001;display:flex;align-items:center;gap:10px;padding:calc(10px + env(safe-area-inset-top,0px)) 12px 10px 16px;background:#e50914;color:#fff;font-size:13.5px;line-height:1.35;font-family:inherit;box-shadow:0 4px 16px rgba(0,0,0,.4);';
+  b.innerHTML = '<span style="flex:1">카카오톡 안에서 열려 있어요.<br><b>' + (ios ? 'Safari' : '크롬') + '로 열어 홈 화면에 앱으로 추가</b>해 주세요</span>' +
+    '<button id="inapp-go" style="border:0;border-radius:10px;padding:9px 12px;background:#fff;color:#e50914;font-weight:800;font-size:13.5px;font-family:inherit;white-space:nowrap">' + (ios ? 'Safari로 열기' : '크롬으로 열기') + '</button>' +
+    '<button id="inapp-x" aria-label="닫기" style="border:0;background:none;color:#fff;font-size:18px;padding:4px 2px">✕</button>';
+  if (!IN_KAKAO) b.querySelector('span').innerHTML = '앱 안의 브라우저에서 열려 있어요.<br><b>' + (ios ? 'Safari' : '크롬') + '로 열어 홈 화면에 추가</b>해 주세요';
+  document.body.appendChild(b);
+  b.querySelector('#inapp-go').onclick = openInBrowser;
+  b.querySelector('#inapp-x').onclick = () => b.remove();
+}
+if (IN_APP && !IS_STANDALONE) {
+  // 카톡: 처음 한 번은 자동으로 사파리/크롬으로 넘김 (안 넘어가면 위쪽 버튼으로)
+  let tried = false; try { tried = sessionStorage.getItem('gf_ext_tried') === '1'; sessionStorage.setItem('gf_ext_tried', '1'); } catch(e) { tried = true; }
+  if (IN_KAKAO && !tried) setTimeout(openInBrowser, 300);
+  setTimeout(showInAppBar, 800);
+} else if (/iPhone|iPad|iPod/.test(_UA) && !IS_STANDALONE) {
+  // 아이폰 사파리: 'beforeinstallprompt'가 없어서 안내가 안 떴음 → 한 번 안내
+  setTimeout(() => { if (userName) showPwaPrompt(); }, 6000);
+}
+
 function showIosInstallGuide() {
   const isIos = /iPhone|iPad|iPod/.test(navigator.userAgent);
   if (!isIos) { showToast('브라우저 메뉴에서 "홈 화면에 추가"를 선택하세요.'); return; }
@@ -3824,9 +3858,11 @@ function showIosInstallGuide() {
     <div style="background:#1f1f1f;border-radius:16px 16px 0 0;padding:24px;width:100%;animation:slideUp .3s cubic-bezier(.16,1,.3,1);">
       <div style="font-size:17px;font-weight:700;margin-bottom:6px;">📱 홈화면에 추가하기</div>
       <div style="font-size:13px;color:var(--g2);line-height:1.7;margin-bottom:20px;">
-        1. 하단 <strong style="color:var(--white)">공유 버튼</strong> 탭 <span style="font-size:16px">⎋</span><br>
-        2. 스크롤해서 <strong style="color:var(--white)">"홈 화면에 추가"</strong> 선택<br>
-        3. <strong style="color:var(--white)">"추가"</strong> 탭
+        1. Safari 아래쪽 <strong style="color:var(--white)">공유 버튼</strong>(네모에 위쪽 화살표) 탭<br>
+        &nbsp;&nbsp;&nbsp;· 안 보이면 <strong style="color:var(--white)">···</strong> 버튼을 누르면 '공유'가 있어요<br>
+        2. 아래로 내려 <strong style="color:var(--white)">"홈 화면에 추가"</strong> 선택<br>
+        3. 오른쪽 위 <strong style="color:var(--white)">"추가"</strong> 탭 → 홈 화면의 갓플릭스 아이콘으로 열기<br>
+        <span style="color:var(--g3)">※ 앱에서 처음 한 번은 다시 로그인해 주세요</span>
       </div>
       <button onclick="this.closest('[style]').remove();localStorage.setItem('pwa_prompted','1')"
         style="width:100%;background:var(--red);color:var(--white);border:none;border-radius:8px;padding:14px;font-size:15px;font-weight:700;font-family:inherit;">확인</button>
@@ -3838,7 +3874,7 @@ function showIosInstallGuide() {
 init();
 
 /* ─ 새 버전 안내: 사이트를 새로 올리면 열려 있는 화면에 '새 버전' 띠를 띄움 ─ */
-const APP_VER='2026.10.15-1';
+const APP_VER='2026.10.16-1';
 (function(){
   const PAGE=()=>{ const p=location.pathname; return p.endsWith('/')?p+'index.html':p; };
   let newVer=null, shown=false;

@@ -959,6 +959,7 @@ async function doLogin() {
 document.getElementById('pw-in').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
 function doLogout() {
   try { sessionStorage.removeItem(ADMIN_SESSION_KEY); } catch(e) {}
+  acClear();
   document.getElementById('admin-app').style.display = 'none';
   document.getElementById('login-screen').style.display = 'flex';
   document.getElementById('pw-in').value = '';
@@ -1378,19 +1379,26 @@ function calcTodayWatchers() {
   loadTodayCount();
 }
 
-async function loadTodayCount() {
-  try {
-    const r = await api({ action: 'getTodayStats', pw: ADMIN_PW });
-    if (r && r.count !== undefined) {
-      document.getElementById('dk-today').textContent = r.count;
-      document.getElementById('dk-today-sub').innerHTML =
-        `오늘 <strong>${r.count}명</strong>이 강의 시청`;
-      document.getElementById('dk-today-badge').textContent =
-        new Date().toLocaleDateString('ko-KR',{month:'numeric',day:'numeric'});
-    }
-  } catch(e) {
-    document.getElementById('dk-today').textContent = '-';
-  }
+let _todayAt = 0, _todayP = null;
+function showTodayCount(r){
+  if (!r || r.count === undefined) return;
+  document.getElementById('dk-today').textContent = r.count;
+  document.getElementById('dk-today-sub').innerHTML = `오늘 <strong>${r.count}명</strong>이 강의 시청`;
+  document.getElementById('dk-today-badge').textContent = new Date().toLocaleDateString('ko-KR',{month:'numeric',day:'numeric'});
+}
+async function loadTodayCount(force) {
+  // 대시보드를 그릴 때마다 서버에 묻지 않도록 1분에 한 번만
+  if (_todayP) return _todayP;
+  if (!force && Date.now() - _todayAt < 60000) { const td = acGet('today'); if (td && td.v) showTodayCount(td.v); return; }
+  _todayP = (async () => {
+    try {
+      const r = await api({ action: 'getTodayStats', pw: ADMIN_PW });
+      if (r && r.count !== undefined) { _todayAt = Date.now(); acSet('today', r); showTodayCount(r); }
+    } catch(e) {
+      if (!acGet('today')) document.getElementById('dk-today').textContent = '-';
+    } finally { _todayP = null; }
+  })();
+  return _todayP;
 }
 
 /* ════════════════════
@@ -1449,14 +1457,19 @@ const DOW = ['일','월','화','수','목','금','토'];
 function dlLabel(d){ const t = new Date(d + 'T00:00:00+09:00'); return (t.getMonth()+1) + '/' + t.getDate() + ' (' + DOW[t.getDay()] + ')'; }
 async function loadDaily(date, fresh){
   const body = document.getElementById('dl-body');
-  body.innerHTML = '<p class="empty">불러오는 중…</p>';
+  const ck = 'daily_' + (date || 'today');
+  const cached = !fresh && acGet(ck);
+  if (cached && cached.v) { _dl = cached.v; _dlDate = cached.v.date; renderDaily(); }
+  else body.innerHTML = '<p class="empty">불러오는 중…</p>';
   try {
+    // 안 본 수강생 계산용 명단(출석 통계)도 동시에 요청
+    const sp = vdData ? null : fetchStats(false).catch(() => null);
     const r = await api({ action: 'daily', pw: ADMIN_PW, days: 14, date: date || '', ...(fresh ? { fresh: 1 } : {}) });
-    if (!r || r.error) { body.innerHTML = '<p class="empty">불러오지 못했습니다.</p>'; return; }
-    _dl = r; _dlDate = r.date;
-    if (!vdData && typeof loadVideoData === 'function') { try { await loadVideoData(); } catch(e) {} }   // 안 본 수강생 계산용 명단
+    if (!r || r.error) { if (!cached) body.innerHTML = '<p class="empty">불러오지 못했습니다.</p>'; return; }
+    _dl = r; _dlDate = r.date; acSet(ck, r);
+    if (sp) await sp;
     renderDaily();
-  } catch(e) { body.innerHTML = '<p class="empty">⚠️ 서버 연결 실패 — 새로고침을 눌러 주세요.</p>'; }
+  } catch(e) { if (!cached) body.innerHTML = '<p class="empty">⚠️ 서버 연결 실패 — 새로고침을 눌러 주세요.</p>'; }
 }
 function renderDaily(){
   const r = _dl; if (!r) return;
@@ -1500,10 +1513,11 @@ let _fbItems = [], _fbFilter = 'all';
 function setFbFilter(f){ _fbFilter = f; document.querySelectorAll('.fb-filter [data-f]').forEach(b => b.classList.toggle('on', b.dataset.f === f)); renderFeedback(); }
 function setFbBadge(n){ const el = document.getElementById('fb-unread'); if (!el) return; el.textContent = n; el.style.display = n > 0 ? '' : 'none'; }
 async function loadFeedback(show){
+  if (show && _fbItems.length) renderFeedback();   // 저장된 목록 먼저
   try {
     const r = await api({ action: 'feedback_list', pw: ADMIN_PW });
     if (!r || r.error) { if (show) document.getElementById('fb-list').innerHTML = '<p class="empty">불러오지 못했습니다.</p>'; return; }
-    _fbItems = r.items || []; setFbBadge(r.unread || 0);
+    _fbItems = r.items || []; setFbBadge(r.unread || 0); acSet('fb', { items: _fbItems, unread: r.unread || 0 });
     if (show || document.getElementById('ts-feedback').classList.contains('active')) renderFeedback();
   } catch(e) { if (show) document.getElementById('fb-list').innerHTML = '<p class="empty">⚠️ 서버 연결 실패 — 새로고침을 눌러 주세요.</p>'; }
 }
@@ -1545,12 +1559,54 @@ function copyFb(fid){
   (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => showToast('📋 복사했습니다.')).catch(() => { prompt('복사해서 사용하세요', t); });
 }
 
+/* ── 빠른 화면: 마지막으로 받은 데이터를 이 컴퓨터에 저장해 두고 먼저 보여준 뒤, 서버 최신 데이터로 바로 바꿔 끼움 ── */
+const ACACHE = 'gf_adm_cache_v1';
+function acGet(k){ try { const o = JSON.parse(localStorage.getItem(ACACHE + '_' + k) || 'null'); return o && o.v !== undefined ? o : null; } catch(e) { return null; } }
+function acSet(k, v){ try { localStorage.setItem(ACACHE + '_' + k, JSON.stringify({ t: Date.now(), v })); } catch(e) {} }
+function acClear(){ try { Object.keys(localStorage).filter(k => k.indexOf(ACACHE) === 0).forEach(k => localStorage.removeItem(k)); } catch(e) {} }
+let _statsAt = 0, _statsP = null;
+function renderMatrixNow(){ if (!vdData) return; if (window.innerWidth <= 768) renderMatrixCards(vdData); else renderMatrix(vdData); }
+function renderStatsAll(){
+  try { populateStudentFilter(); } catch(e) {}
+  renderMatrixNow(); renderStudentCards(); renderDashboard(); updateStudentSelect(); renderVideoList();
+  if (_dl && document.getElementById('ts-daily').classList.contains('active')) { try { renderDaily(); } catch(e) {} }
+}
+// 출석 통계는 한 번에 하나만 요청 (여러 화면이 동시에 불러도 서버에 한 번만)
+function fetchStats(fresh){
+  if (_statsP && !fresh) return _statsP;
+  const p = api({ action:'videostats', pw:ADMIN_PW, ...(fresh ? { fresh:1 } : {}) }).then(r => {
+    if (!r || r.error) throw new Error(r ? r.error : '응답 없음');
+    vdData = r; _statsAt = Date.now(); acSet('stats', r); renderStatsAll(); return r;
+  });
+  _statsP = p; p.then(() => { if (_statsP === p) _statsP = null; }, () => { if (_statsP === p) _statsP = null; });
+  return p;
+}
+let _bootDone = false;
+function bootFromCache(){
+  if (_bootDone) return; _bootDone = true;
+  const v = acGet('videos'); if (v && Array.isArray(v.v)) { allVideos = v.v; renderVideoList(); updateStudentSelect(); }
+  const st = acGet('stats'); if (st && st.v && st.v.students) { vdData = st.v; _statsAt = 0; renderStatsAll(); }
+  const fb = acGet('fb'); if (fb && fb.v) { _fbItems = fb.v.items || []; setFbBadge(fb.v.unread || 0); }
+  const td = acGet('today'); if (td && td.v) showTodayCount(td.v);
+}
 async function loadAll(retry = 0) {
-  if (retry === 0) { showToast('📡 서버 연결 중…'); setTimeout(() => loadFeedback(false), 1500); }
+  if (retry === 0) {
+    const hadCache = !!acGet('videos');
+    bootFromCache();
+    showToast(hadCache ? '🔄 최신 데이터 확인 중…' : '📡 서버 연결 중…');
+    // 필요한 데이터를 한꺼번에(동시에) 요청 → 탭을 눌렀을 때 바로 보임
+    fetchStats(false).catch(() => {});
+    loadFeedback(false);
+    loadTodayCount(true);
+    // 일자별(오늘)도 미리 받아 두기 → 탭을 열면 바로 보임
+    api({ action: 'daily', pw: ADMIN_PW, days: 14, date: '' }).then(r => { if (r && !r.error) { acSet('daily_today', r); } }).catch(() => {});
+  }
   if (retry === 1) showToast('⏳ 서버 응답 대기 중… (첫 실행 시 30초 걸릴 수 있어요)');
   try {
     const r = await api({ action:'videos' });
     allVideos = r.videos || r.items || [];
+    acSet('videos', allVideos);
+    if (vdData) { renderMatrixNow(); renderStudentCards(); }   // 출석 통계가 먼저 도착했으면 강의 목록 받은 뒤 다시 그림
     renderVideoList();
     renderDashboard();
     updateStudentSelect();
@@ -2156,27 +2212,19 @@ function renderDashboard() {
 /* ── VIDEO DATA LOAD (출석 현황 탭 진입 시 자동 로드) ── */
 async function loadVideoData() {
   if (vdData) {
-    // 이미 로드됐으면 재사용 (최신 데이터가 필요하면 "강제 갱신" 버튼 사용)
-    if (window.innerWidth <= 768) renderMatrixCards(vdData);
-    else renderMatrix(vdData);
+    // 저장된 데이터를 먼저 보여주고, 1분이 지났으면 뒤에서 최신으로 갱신
+    renderMatrixNow();
+    if (Date.now() - _statsAt > 60000) fetchStats(false).catch(() => {});
     return;
   }
   document.getElementById('matrix-area').innerHTML='<div class="spinner"></div>';
   document.getElementById('matrix-summary').innerHTML='';
   try {
-    const r=await api({action:'videostats',pw:ADMIN_PW,..._statsFresh?{fresh:1}:{}}); _statsFresh=false;
-    if (!r||r.error) { document.getElementById('matrix-area').innerHTML=`<p class="empty">오류: ${r?r.error:'응답 없음'}</p>`; return; }
-    vdData=r;
-    populateStudentFilter(); // ② 수강생 필터 드롭다운 채우기
-    // ③ 모바일이면 카드 뷰
-    if (window.innerWidth <= 768) renderMatrixCards(r);
-    else renderMatrix(r);
-    renderStudentCards(); renderDashboard(); updateStudentSelect();
-    // 영상 목록도 갱신 (시청 통계 표시)
-    renderVideoList();
+    const fresh = _statsFresh; _statsFresh = false;
+    await fetchStats(fresh);
     showToast('✅ 데이터 불러오기 완료');
   } catch(e) {
-    document.getElementById('matrix-area').innerHTML=`<div style="padding:2rem;text-align:center"><p style="color:var(--red);font-size:15px;font-weight:700;margin-bottom:8px">⚠️ 불러오기 실패</p><p style="color:var(--g3);font-size:13px">${e.message}</p></div>`;
+    document.getElementById('matrix-area').innerHTML=`<div style="padding:2rem;text-align:center"><p style="color:var(--red);font-size:15px;font-weight:700;margin-bottom:8px">⚠️ 불러오기 실패</p><p style="color:var(--g3);font-size:13px">${escHtml(e.message||'')}</p></div>`;
   }
 }
 
@@ -2626,9 +2674,7 @@ function toggleAutoRefresh() {
     _autoRefreshTimer = setInterval(async () => {
       if (!_autoRefreshOn) return;
       if (document.visibilityState !== 'visible') return;  // 다른 탭을 보고 있으면 쉬기
-      vdData = null;
-      await loadVideoData();
-      showToast('🔄 자동 갱신 완료');
+      try { await fetchStats(false); showToast('🔄 자동 갱신 완료'); } catch(e) {}
     }, 60000);
     showToast('✅ 1분마다 자동 새로고침 시작 (이 화면을 보고 있을 때만)');
   }
@@ -2653,7 +2699,7 @@ window.addEventListener('keydown',e=>{if(e.key==='Escape')closePopup();});
 })();
 
 /* ─ 새 버전 안내: 사이트를 새로 올리면 열려 있는 화면에 '새 버전' 띠를 띄움 ─ */
-const APP_VER='2026.10.15-1';
+const APP_VER='2026.10.16-1';
 (function(){
   const PAGE=()=>location.pathname;
   let newVer=null, shown=false;
