@@ -719,6 +719,17 @@ input{outline:none;font-family:'Pretendard Variable','Pretendard',-apple-system,
 .hb-t1{font-size:14px;font-weight:800;color:#fff;}
 .hb-t2{font-size:12px;color:var(--g3);margin-top:2px;}
 .hb-go{font-size:12px;font-weight:800;color:#f5c518;white-space:nowrap;}
+.my-week{margin:6px 4% 6px;display:flex;align-items:center;gap:14px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:12px 14px;font-family:'Pretendard Variable','Pretendard',-apple-system,sans-serif;}
+.mw-main{flex:1;min-width:0;}
+.mw-t0{font-size:11.5px;color:var(--g3);font-weight:700;letter-spacing:.02em;}
+.mw-t1{font-size:17px;font-weight:800;color:#fff;margin-top:1px;}
+.mw-t2{font-size:12.5px;color:var(--g2);margin-top:3px;display:flex;gap:8px;flex-wrap:wrap;}
+.mw-up{color:#46d369;font-weight:700;}
+.mw-down{color:#f5c518;font-weight:700;}
+.mw-fire{color:#ff8a3d;font-weight:800;}
+.mw-bars{display:flex;align-items:flex-end;gap:4px;height:40px;}
+.mw-bars i{width:9px;border-radius:3px 3px 0 0;background:rgba(255,255,255,.18);min-height:3px;display:block;}
+.mw-bars i.now{background:#E50914;}
 .hb-stamps{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap;}
 .hb-stamps i{width:12px;height:12px;border-radius:50%;border:1.5px dashed rgba(255,255,255,.25);display:inline-block;}
 .hb-stamps i.on{background:#E50914;border:1.5px solid #E50914;}
@@ -1520,6 +1531,8 @@ html{-webkit-overflow-scrolling:touch;}
   <div class="stats-row-hint" id="stats-row-hint" style="display:none;">📊 탭해서 내 학습 현황 보기</div>
   <!-- 🏅 배지·도장판 바로 보기 -->
   <div class="home-badges" id="home-badges" style="display:none" onclick="openMyStats()" role="button" tabindex="0"></div>
+  <!-- 📅 나의 이번 주 -->
+  <div class="my-week" id="my-week" style="display:none" aria-live="polite"></div>
 
   <!-- RECENT ROW -->
   <div id="recent-row-wrap" style="display:none;"></div>
@@ -2574,7 +2587,7 @@ function goToLogin(){
   document.getElementById('header-user-area').style.display='none';
   document.getElementById('id-input').value='';
   document.getElementById('pw-input').value='';
-  userName='';authTok='';progressMap={};currentVideo=null;userRole='수강생';
+  userName='';authTok='';progressMap={};currentVideo=null;userRole='수강생';_mw=null;_mwAt=0;renderMyWeek();
   const roleArea=document.getElementById('header-role-badge');
   if(roleArea){roleArea.style.display='none';roleArea.textContent='';}
 }
@@ -2623,8 +2636,47 @@ function filteredVideos(){
 }
 
 /* ─ STATS ─ */
+/* ─ 📅 나의 이번 주: 이번 주·지난주 시청 시간, 연속 시청 주 ─ */
+let _mw=null,_mwAt=0,_mwP=null;
+const mwKey=()=>'gf_myweek_'+userName, mwLogKey=()=>'gf_mwlog_'+userName;
+function kstMonday(t){ const d=new Date(t+9*3600000); const dow=d.getUTCDay(); const m=new Date(Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate())-((dow+6)%7)*86400000); return m.getTime()-9*3600000; }
+function mwLog(){ try{ return JSON.parse(localStorage.getItem(mwLogKey())||'[]'); }catch(e){ return []; } }
+function mwAddLocal(sec){   // 방금 본 시간 → 서버 집계(최대 10분 늦음)가 따라오기 전까지 화면에 바로 반영
+  if(!userName||!(sec>=30))return;
+  try{ const a=mwLog().filter(x=>Date.now()-x.t<8*86400000); a.push({t:Date.now(),m:Math.round(sec/6)/10}); localStorage.setItem(mwLogKey(),JSON.stringify(a.slice(-50))); }catch(e){}
+  renderMyWeek();
+}
+function loadMyWeek(force){
+  if(!userName||!authTok)return;
+  if(!_mw){ try{ const c=JSON.parse(localStorage.getItem(mwKey())||'null'); if(c&&c.weeks)_mw=c; }catch(e){} renderMyWeek(); }
+  if(_mwP||(!force&&Date.now()-_mwAt<180000))return;
+  _mwP=gasApi({action:'myweek',tok:authTok}).then(r=>{
+    if(r&&r.weeks){ _mw=r; _mwAt=Date.now(); try{ localStorage.setItem(mwKey(),JSON.stringify(r)); }catch(e){} renderMyWeek(); }
+  }).catch(()=>{}).finally(()=>{_mwP=null;});
+}
+function fmtMinS(m){ m=Math.round(m||0); if(m<60)return m+'분'; const h=Math.floor(m/60),r=m%60; return h+'시간'+(r?' '+r+'분':''); }
+function renderMyWeek(){
+  const el=document.getElementById('my-week'); if(!el)return;
+  if(!userName||!_mw){ el.style.display='none'; return; }
+  const mon=kstMonday(Date.now()), srvMon=new Date(_mw.weeks[_mw.weeks.length-1]+'T00:00:00+09:00').getTime();
+  let w=_mw.w.slice(), streak=_mw.streak||0;
+  if(srvMon<mon){ w=w.slice(1).concat([0]); }   // 서버 값이 지난주 것이면 한 칸 밀기
+  const add=mwLog().filter(x=>x.t>(_mw.at||0)&&x.t>=mon).reduce((a,x)=>a+x.m,0);
+  w[w.length-1]+=add;
+  const tw=w[w.length-1], lw=w[w.length-2]||0;
+  if(tw>0&&!(_mw.w[_mw.w.length-1]>0)&&srvMon>=mon) streak=(_mw.streak||0)+1;
+  const diff=Math.round(tw-lw), max=Math.max(1,...w);
+  const cmp=lw>0||tw>0?(diff>0?`<span class="mw-up">지난주보다 +${fmtMinS(diff)}</span>`:diff<0?`<span>지난주 ${fmtMinS(lw)} · <span class="mw-down">${fmtMinS(-diff)} 더 보면 따라잡아요</span></span>`:'<span>지난주와 같아요</span>'):'';
+  el.innerHTML=`<div class="mw-main"><div class="mw-t0">📅 나의 이번 주</div>
+      <div class="mw-t1">${tw>0?fmtMinS(tw)+' 시청':'이번 주 첫 강의를 시작해 볼까요?'}</div>
+      <div class="mw-t2">${cmp}${streak>=2?`<span class="mw-fire">🔥 ${streak}주 연속</span>`:''}</div></div>
+    <div class="mw-bars" title="최근 6주">${w.map((v,i)=>`<i class="${i===w.length-1?'now':''}" style="height:${Math.max(3,Math.round(v/max*40))}px"></i>`).join('')}</div>`;
+  el.setAttribute('aria-label',`나의 이번 주 ${fmtMinS(tw)} 시청, 지난주 ${fmtMinS(lw)}`);
+  el.style.display='flex';
+}
 function updateStats(){
   setTimeout(renderHomeBadges,0);
+  setTimeout(()=>loadMyWeek(false),0);
   if(!VIDEOS.length)return;
   const total=VIDEOS.length;
   let done=0,ing=0;
@@ -3282,7 +3334,7 @@ function saveRecord(isFinal=true){
   if(!userName||!currentVideo)return;
   if(window._awaitReady||!(videoDuration>0))return;   // 플레이어 준비 전에는 기록하지 않음
   if(wasDone&&sessionPlayedSec<30)return;   // 다 본 강의를 잠깐 열어본 것은 시청기록에 남기지 않음
-  if(recordSent)return;if(isFinal)recordSent=true;
+  if(recordSent)return;if(isFinal){recordSent=true;mwAddLocal(sessionPlayedSec);}
   if(!authTok)return;
   fetch(SHEET_URL,{method:'POST',mode:'no-cors',keepalive:true,headers:{'Content-Type':'text/plain'},
     body:JSON.stringify({type:'record',tok:authTok,videoId:currentVideo.id,grade:detectGrade(currentVideo),videoTitle:currentVideo.title,
@@ -3874,7 +3926,7 @@ function showIosInstallGuide() {
 init();
 
 /* ─ 새 버전 안내: 사이트를 새로 올리면 열려 있는 화면에 '새 버전' 띠를 띄움 ─ */
-const APP_VER='2026.10.16-1';
+const APP_VER='2026.10.26-1';
 (function(){
   const PAGE=()=>{ const p=location.pathname; return p.endsWith('/')?p+'index.html':p; };
   let newVer=null, shown=false;
