@@ -1129,14 +1129,14 @@ input{outline:none;font-family:'Pretendard Variable','Pretendard',-apple-system,
 }
 #confetti-canvas.active{opacity:1;}
 
-/* 공지사항 배너 — 헤더 바로 아래 고정 */
+/* 공지사항 배너 — 헤더 바로 아래 (페이지와 함께 스크롤, 히어로는 공지 높이만큼 아래로) */
 #notice-banner{
   display:none;
-  position:fixed;
-  top:68px; /* 헤더 높이 */
+  position:absolute;
+  top:68px; /* 헤더 높이 — 실제 높이는 layoutNotice()가 맞춤 */
   left:0;right:0;
   z-index:250; /* 헤더(300) 아래, 일반 콘텐츠 위 */
-  background:linear-gradient(90deg,rgba(229,9,20,.18),rgba(229,9,20,.1));
+  background:linear-gradient(90deg,#3a0d10,#1f0b0d);
   border-bottom:1px solid rgba(229,9,20,.25);
   padding:9px 4%;
   backdrop-filter:blur(8px);
@@ -1154,12 +1154,9 @@ input{outline:none;font-family:'Pretendard Variable','Pretendard',-apple-system,
   display:flex;align-items:center;justify-content:center;
 }
 .notice-close:hover{color:var(--white);}
-/* 공지 표시 중일 때 앱 상단 여백 추가 */
-#app.has-notice .hero-banner{margin-top:38px;}
 @media(max-width:700px){
   #notice-banner{top:52px;padding:8px 4%;}
-  #app.has-notice .hero-banner{margin-top:34px;}
-  .notice-text{font-size:12px;}
+  .notice-text{font-size:12.5px;}
 }
 #pw-modal{
   display:none;position:fixed;inset:0;z-index:700;
@@ -3727,13 +3724,25 @@ async function loadNotice(){
       document.getElementById('notice-text').textContent=r.text;
       document.getElementById('notice-banner').classList.add('show');
       document.getElementById('app').classList.add('has-notice');
+      layoutNotice(); setTimeout(layoutNotice,400);
     }
   }catch(e){ /* 공지 없으면 조용히 숨김 */ }
 }
 function closeNotice(){
   document.getElementById('notice-banner').classList.remove('show');
   document.getElementById('app').classList.remove('has-notice');
+  layoutNotice();
 }
+// 공지 길이(줄 수)·헤더 높이에 맞춰 위치를 잡고, 히어로를 공지 높이만큼 내려서 겹치지 않게
+function layoutNotice(){
+  const nb=document.getElementById('notice-banner'), hd=document.getElementById('gf-header'), hero=document.querySelector('.hero-banner');
+  if(!nb)return;
+  const on=nb.classList.contains('show');
+  if(on&&hd)nb.style.top=hd.offsetHeight+'px';
+  if(hero)hero.style.marginTop=on?(hd?hd.offsetHeight:0)+nb.offsetHeight+'px':'';
+}
+window.addEventListener('resize',()=>{ if(document.getElementById('app')?.classList.contains('has-notice'))layoutNotice(); });
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{ if(document.getElementById('app')?.classList.contains('has-notice'))layoutNotice(); });
 
 /* ════════════════════════════
    A. 다음 강의 자동 추천
@@ -3926,7 +3935,7 @@ function showIosInstallGuide() {
 init();
 
 /* ─ 새 버전 안내: 사이트를 새로 올리면 열려 있는 화면에 '새 버전' 띠를 띄움 ─ */
-const APP_VER='2026.10.26-1';
+const APP_VER='2026.10.27-1';
 (function(){
   const PAGE=()=>{ const p=location.pathname; return p.endsWith('/')?p+'index.html':p; };
   let newVer=null, shown=false;
