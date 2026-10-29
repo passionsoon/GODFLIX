@@ -47,8 +47,8 @@ input{outline:none;font-family:'Pretendard Variable','Pretendard',-apple-system,
 .nf-header{
   position:fixed;top:0;left:0;right:0;z-index:300;
   display:flex;align-items:center;justify-content:space-between;
-  padding:0 4%;
-  height:68px;
+  padding:var(--safe-top) 4% 0;   /* 홈 화면 앱(아이폰)에서 시계·배터리 줄 아래로 */
+  height:calc(68px + var(--safe-top));
   background:linear-gradient(to bottom,rgba(0,0,0,.85) 0%,transparent 100%);
   transition:background .3s;
 }
@@ -539,7 +539,7 @@ input{outline:none;font-family:'Pretendard Variable','Pretendard',-apple-system,
 }
 @keyframes slideUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
 .player-close-btn{
-  position:fixed;top:calc(var(--safe-top)+14px);right:4%;z-index:600;
+  position:fixed;top:calc(var(--safe-top) + 14px);right:4%;z-index:600;
   background:rgba(0,0,0,.8);border:1.5px solid rgba(255,255,255,.25);
   color:var(--white);border-radius:50%;width:48px;height:48px;
   font-size:18px;display:flex;align-items:center;justify-content:center;
@@ -553,7 +553,7 @@ input{outline:none;font-family:'Pretendard Variable','Pretendard',-apple-system,
 @media(max-width:700px){
   .player-close-btn{
     width:56px;height:56px;font-size:20px;
-    top:calc(var(--safe-top)+10px);right:3%;
+    top:calc(var(--safe-top) + 10px);right:3%;
     /* 시각적으로 더 눈에 띄게 */
     background:rgba(0,0,0,.85);
     border:2px solid rgba(255,255,255,.3);
@@ -671,7 +671,7 @@ input{outline:none;font-family:'Pretendard Variable','Pretendard',-apple-system,
 #fs-player{position:absolute;top:0;left:0;width:100%;height:100%;border:none;}
 #fs-header{
   position:absolute;top:0;left:0;right:0;z-index:10;pointer-events:none;
-  padding:calc(var(--safe-top)+10px) 12px 20px 16px;
+  padding:calc(var(--safe-top) + 10px) 12px 20px 16px;
   background:linear-gradient(to bottom,rgba(0,0,0,.75) 0%,transparent 100%);
   display:flex;align-items:flex-start;justify-content:space-between;gap:12px;
 }
@@ -760,7 +760,7 @@ input{outline:none;font-family:'Pretendard Variable','Pretendard',-apple-system,
 .stamp.on{border:2px solid #E50914;background:rgba(229,9,20,.18);color:#fff;transform:rotate(-10deg);box-shadow:0 0 0 2px rgba(229,9,20,.15) inset;}
 .stamp-label{font-size:12px;color:var(--g2);font-weight:700;}
 .bd-card-btn{display:block;width:100%;margin-top:10px;background:linear-gradient(90deg,#f5c518,#e8a500);color:#000;border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;}
-#badge-pop{position:fixed;left:50%;top:calc(var(--safe-top) + 14px);transform:translate(-50%,-140%);z-index:10070;background:#1c1c1c;border:1px solid rgba(245,197,24,.5);border-radius:16px;padding:12px 16px;display:flex;align-items:center;gap:12px;box-shadow:0 10px 30px rgba(0,0,0,.6);transition:transform .35s cubic-bezier(.16,1,.3,1);width:max-content;max-width:min(92vw,440px);font-family:'Pretendard Variable','Pretendard',-apple-system,sans-serif;}
+#badge-pop{position:fixed;left:50%;top:calc(var(--safe-top) + 14px);transform:translate(-50%,calc(-100% - var(--safe-top) - 40px));z-index:10070;background:#1c1c1c;border:1px solid rgba(245,197,24,.5);border-radius:16px;padding:12px 16px;display:flex;align-items:center;gap:12px;box-shadow:0 10px 30px rgba(0,0,0,.6);transition:transform .35s cubic-bezier(.16,1,.3,1);width:max-content;max-width:min(92vw,440px);font-family:'Pretendard Variable','Pretendard',-apple-system,sans-serif;}
 #badge-pop>div:nth-child(2){flex:1;min-width:0;word-break:keep-all;}
 #badge-pop.show{transform:translate(-50%,0);}
 #badge-pop .bp-ic{font-size:34px;}
@@ -947,7 +947,7 @@ input{outline:none;font-family:'Pretendard Variable','Pretendard',-apple-system,
 @media(max-width:700px){
 
   /* ── 헤더 ── */
-  .nf-header{height:52px;padding:0 4%;}
+  .nf-header{height:calc(52px + var(--safe-top));padding:var(--safe-top) 4% 0;}
   .nf-logo{font-size:24px;letter-spacing:2px;}
   .user-name{display:none;}
   /* 로그아웃 버튼 — 더 탭하기 쉽게 */
@@ -1037,7 +1037,7 @@ input{outline:none;font-family:'Pretendard Variable','Pretendard',-apple-system,
   .btn-tool{padding:10px 14px;font-size:12px;min-height:44px;}
 
   /* ── 플레이어 모달 ── */
-  .player-modal{padding:calc(var(--safe-top)+52px) 4% 32px;}
+  .player-modal{padding:calc(var(--safe-top) + 52px) 4% 32px;}
   .player-title-main{font-size:20px;line-height:1.3;}
 
   /* ── 상세 모달 ── */
@@ -3935,7 +3935,7 @@ function showIosInstallGuide() {
 init();
 
 /* ─ 새 버전 안내: 사이트를 새로 올리면 열려 있는 화면에 '새 버전' 띠를 띄움 ─ */
-const APP_VER='2026.10.27-1';
+const APP_VER='2026.10.29-1';
 (function(){
   const PAGE=()=>{ const p=location.pathname; return p.endsWith('/')?p+'index.html':p; };
   let newVer=null, shown=false;
