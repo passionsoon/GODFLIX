@@ -2978,7 +2978,7 @@ async function selectVideo(index){
   if(isMobile){openFullscreen(extractVimeoId(currentVideo.url),currentVideo.title,resumeFrom>10?resumeFrom:0);}
   else{
     document.getElementById('vimeo-player').src=
-      `https://player.vimeo.com/video/${extractVimeoId(currentVideo.url)}?badge=0&autopause=0&app_id=58479&api=1&player_id=vimeo-player&autoplay=1&playsinline=1`;
+      `https://player.vimeo.com/video/${extractVimeoId(currentVideo.url)}?badge=0&autopause=0&app_id=58479&api=1&player_id=vimeo-player&autoplay=1&playsinline=1&speed=0`;
     setMediaSession(currentVideo.title,currentVideo.thumbnail||'');
   }
 
@@ -3075,7 +3075,7 @@ function lockLandscape(){
 }));
 // 휴대폰 강의 화면 주소 (#t=초 → 비메오가 그 위치에서 시작. 비메오가 기억한 '끝 위치'로 열리는 것 방지)
 function fsSrc(videoId,startAt){
-  return `https://player.vimeo.com/video/${videoId}?badge=0&autopause=0&app_id=58479&api=1&player_id=fs-player&autoplay=0&muted=0&quality=auto&background=0&playsinline=${isIOS?0:1}`+
+  return `https://player.vimeo.com/video/${videoId}?badge=0&autopause=0&app_id=58479&api=1&player_id=fs-player&autoplay=0&muted=0&quality=auto&background=0&speed=0&playsinline=${isIOS?0:1}`+
     (startAt!=null&&!(isIOS&&startAt>0)?`#t=${Math.max(0,Math.floor(startAt))}s`:'');   // 아이폰은 재생 전 위치 이동 시 재생 버튼이 사라짐 → 0초로 열고 재생 누른 뒤 이동
 }
 // 아이폰: 끝까지 재생된 비메오 플레이어는 위치 이동 명령을 무시하고 끝에 멈춰 있음 → 플레이어를 새로 불러 원하는 위치에서 다시 시작
@@ -3138,7 +3138,8 @@ window.addEventListener('message',function(e){
   if(ev==='ready'){
     window._awaitReady=false;
     maxReachedSec=window._pendingMaxReached||0;
-    ['play','pause','finish','seek','playProgress'].forEach(n=>sendPlayer('addEventListener',n,isFs));
+    ['play','pause','finish','seek','playProgress','playbackratechange'].forEach(n=>sendPlayer('addEventListener',n,isFs));
+    sendPlayer('setPlaybackRate',1,isFs);
     // 이어보기: 모바일(fs)과 데스크탑 모두 처리
     if(window._pendingResume>0&&isFs&&isIOS){ window._pendingResume=0; }   // 아이폰은 재생을 누른 뒤 이동 (_seekOnPlay)
     if(window._pendingResume>0){
@@ -3163,6 +3164,10 @@ window.addEventListener('message',function(e){
     isPlaying=false; if(isFs)revealSkip(0);   // 멈추면 10초 버튼 보여줌
     if('mediaSession' in navigator)navigator.mediaSession.playbackState='paused';
   }
+  if(ev==='playbackratechange'){   // 갓플릭스는 1배속으로만 (아이폰 기본 플레이어의 속도 메뉴 등으로 바꿔도 되돌림)
+    const r=parseFloat(d.data&&d.data.playbackRate);
+    if(r&&Math.abs(r-1)>0.01){ sendPlayer('setPlaybackRate',1,isFs); showToast('갓플릭스 강의는 1배속으로만 들을 수 있어요'); }
+  }
   if(ev==='playProgress'){
     const t=parseFloat(d.data.seconds)||0,dur=parseFloat(d.data.duration)||0;
     if(dur>0&&t>dur+2)return;                       // 영상 길이보다 긴 위치는 무시
@@ -3172,8 +3177,12 @@ window.addEventListener('message',function(e){
     // 조금씩 앞으로 넘기기(10초 버튼·아이폰 기본 플레이어의 15초 넘기기)는 허용, 크게 건너뛰기는 막음
     if(!fw&&!jumpBlock&&t>maxReachedSec+16){blockJump(isFs);return;}
     if(jumpBlock)return;
-    if(_lastT!==null){const dt=t-_lastT;if(dt>0&&dt<=3){sessionPlayedSec+=dt;window._iosPlayedOnce=true;}}   // 건너뛴 구간은 빼고 실제 재생 시간만
-    _lastT=t;
+    const _now=performance.now();
+    if(_lastT!==null){const dt=t-_lastT, wall=(_now-(window._lastWall||_now))/1000;
+      // 건너뛴 구간은 빼고, 배속으로 빨리 넘어간 만큼도 빼고 → '실제로 흐른 시간'만 시청 시간으로
+      window._wallCredit=Math.min(5,(window._wallCredit||0)+Math.max(0,Math.min(wall,3)));
+      if(dt>0&&dt<=3){const add=Math.min(dt,window._wallCredit);window._wallCredit-=add;sessionPlayedSec+=add;window._iosPlayedOnce=true;}}
+    _lastT=t; window._lastWall=_now;
     lastPositionSec=t;
     if(t>maxReachedSec){
       maxReachedSec=t;
@@ -3938,7 +3947,7 @@ function showIosInstallGuide() {
 init();
 
 /* ─ 새 버전 안내: 사이트를 새로 올리면 열려 있는 화면에 '새 버전' 띠를 띄움 ─ */
-const APP_VER='2026.10.30-1';
+const APP_VER='2026.10.30-2';
 (function(){
   const PAGE=()=>{ const p=location.pathname; return p.endsWith('/')?p+'index.html':p; };
   let newVer=null, shown=false;
