@@ -59,8 +59,15 @@ input{outline:none;font-family:'Pretendard Variable','Pretendard',-apple-system,
   text-shadow:0 0 20px var(--red-glow);user-select:none;flex-shrink:0;
 }
 .nf-logo span{color:var(--white);font-size:24px;letter-spacing:1px;}
-.header-right{display:flex;align-items:center;gap:16px;}
-.user-info{display:flex;align-items:center;gap:10px;}
+.header-right{display:flex;align-items:center;gap:16px;position:relative;}
+.user-info{display:flex;align-items:center;gap:10px;cursor:pointer;border-radius:8px;padding:3px 6px 3px 3px;transition:background .15s;-webkit-tap-highlight-color:transparent;}
+.user-info:hover,.user-info[aria-expanded="true"]{background:rgba(255,255,255,.1);}
+.hdr-caret{font-size:11px;color:var(--g2);margin-left:-4px;}
+.hdr-menu{position:absolute;top:calc(100% + 8px);right:0;min-width:200px;background:#1f1f1f;border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:6px;box-shadow:0 12px 32px rgba(0,0,0,.6);display:none;z-index:400;}
+.hdr-menu.show{display:block;animation:fadeUp .15s ease;}
+.hdr-menu button{display:block;width:100%;text-align:left;background:none;border:0;color:var(--g1);font-size:14px;font-weight:600;padding:11px 12px;border-radius:8px;font-family:'Pretendard Variable','Pretendard',-apple-system,sans-serif;cursor:pointer;}
+.hdr-menu button:hover{background:rgba(255,255,255,.08);color:#fff;}
+.hdr-menu button.danger{color:#ff8a80;border-top:1px solid rgba(255,255,255,.08);border-radius:0 0 8px 8px;margin-top:4px;}
 .user-avatar{
   width:32px;height:32px;border-radius:4px;
   overflow:hidden;flex-shrink:0;
@@ -732,6 +739,22 @@ input{outline:none;font-family:'Pretendard Variable','Pretendard',-apple-system,
 .mw-bars{display:flex;align-items:flex-end;gap:4px;height:40px;}
 .mw-bars i{width:9px;border-radius:3px 3px 0 0;background:rgba(255,255,255,.18);min-height:3px;display:block;}
 .mw-bars i.now{background:#E50914;}
+.my-learn{margin:14px 4% 14px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.09);border-radius:14px;overflow:hidden;}
+.my-learn .stats-row{background:none;border-bottom:0;padding:16px 18px 14px;}
+.my-learn .stats-row:hover{background:rgba(255,255,255,.03);}
+.my-learn .ml-sub{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid rgba(255,255,255,.07);}
+.my-learn .home-badges,.my-learn .my-week{margin:0;border:0;border-radius:0;background:none;padding:14px 18px;}
+.my-learn .home-badges{background:linear-gradient(90deg,rgba(245,197,24,.07),transparent);}
+.my-learn .my-week{border-left:1px solid rgba(255,255,255,.07);}
+.my-learn .ml-sub>:only-child{grid-column:1/-1;border-left:0;}
+@media(max-width:700px){
+  .my-learn{margin:12px 4%;}
+  .my-learn .ml-sub{grid-template-columns:1fr;}
+  .my-learn .my-week{border-left:0;border-top:1px solid rgba(255,255,255,.07);}
+  .my-learn .stats-row{padding:14px 14px 12px;}
+  .my-learn .home-badges,.my-learn .my-week{padding:12px 14px;}
+}
+#next-lecture{scroll-margin-top:80px;}
 .hb-stamps{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap;}
 .hb-stamps i{width:12px;height:12px;border-radius:50%;border:1.5px dashed rgba(255,255,255,.25);display:inline-block;}
 .hb-stamps i.on{background:#E50914;border:1.5px solid #E50914;}
@@ -1403,7 +1426,7 @@ html{-webkit-overflow-scrolling:touch;}
 <header class="nf-header" id="gf-header">
   <div class="nf-logo">G<span>ODFLIX</span></div>
   <div class="header-right" id="header-user-area" style="display:none">
-    <div class="user-info">
+    <div class="user-info" id="hdr-menu-btn" role="button" tabindex="0" aria-haspopup="true" aria-expanded="false" onclick="toggleHdrMenu(event)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleHdrMenu(event);}" title="내 메뉴">
       <div class="user-avatar" id="header-avatar">
         <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
           <rect width="32" height="32" fill="#4a90d9" rx="4"/>
@@ -1425,11 +1448,16 @@ html{-webkit-overflow-scrolling:touch;}
         </svg>
       </div>
       <span class="user-name" id="header-name"></span>
+      <span class="hdr-caret" aria-hidden="true">▾</span>
       <span id="header-role-badge" style="display:none;"></span>
     </div>
-    <button class="btn-logout" id="hdr-fb-btn" onclick="showMyFeedback()" title="내가 쓴 느낀 점·질문" aria-label="내가 쓴 느낀 점·질문">✍️</button>
-    <button class="btn-logout" onclick="goToLogin()">나가기</button>
-    <button class="btn-logout" onclick="openPwModal()" style="border-color:rgba(255,255,255,.15)">🔑</button>
+    <button class="btn-logout hdr-fb" id="hdr-fb-btn" onclick="openFeedback()" title="강의를 보고 느낀 점·궁금한 점 보내기">✍️ 질문·소감</button>
+    <div class="hdr-menu" id="hdr-menu" role="menu">
+      <button role="menuitem" onclick="hdrMenuGo('stats')">📊 내 학습 현황</button>
+      <button role="menuitem" onclick="hdrMenuGo('mine')">📂 내가 쓴 글</button>
+      <button role="menuitem" onclick="hdrMenuGo('pw')">🔑 비밀번호 변경</button>
+      <button role="menuitem" class="danger" onclick="hdrMenuGo('out')">🚪 나가기</button>
+    </div>
   </div>
 </header>
 
@@ -1514,8 +1542,9 @@ html{-webkit-overflow-scrolling:touch;}
     <div class="hero-dots" id="hero-dots"></div>
   </div>
 
-  <!-- STATS -->
-  <div class="stats-row" id="stats-row" style="display:none;" onclick="openMyStats()" title="클릭해서 상세 학습 현황 보기">
+  <!-- 📚 나의 학습 (수강 현황 + 배지 + 이번 주를 한 카드로) -->
+  <div class="my-learn" id="my-learn" style="display:none">
+  <div class="stats-row" id="stats-row" style="display:none;" onclick="openMyStats()" title="눌러서 내 학습 현황 자세히 보기">
     <div class="stats-row-top">
       <div class="stats-row-label" id="stats-label">전체 강의 현황</div>
       <div class="stats-row-pct" id="stats-pct">0%</div>
@@ -1530,11 +1559,16 @@ html{-webkit-overflow-scrolling:touch;}
       <div class="stat-cell"><div class="stat-num gold" id="st-none">0</div><div class="stat-label">미시청</div></div>
     </div>
   </div>
-  <div class="stats-row-hint" id="stats-row-hint" style="display:none;">📊 탭해서 내 학습 현황 보기</div>
+  <div class="stats-row-hint" id="stats-row-hint" style="display:none;"></div>
+  <div class="ml-sub">
   <!-- 🏅 배지·도장판 바로 보기 -->
   <div class="home-badges" id="home-badges" style="display:none" onclick="openMyStats()" role="button" tabindex="0"></div>
   <!-- 📅 나의 이번 주 -->
   <div class="my-week" id="my-week" style="display:none" aria-live="polite"></div>
+  </div>
+  </div>
+  <!-- ▶ 이어서 볼 강의 (가장 먼저 눈에 띄게 '나의 학습' 바로 아래) -->
+  <div id="next-lecture" style="display:none"></div>
 
   <!-- RECENT ROW -->
   <div id="recent-row-wrap" style="display:none;"></div>
@@ -1559,12 +1593,11 @@ html{-webkit-overflow-scrolling:touch;}
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display:inline;vertical-align:-1px;margin-right:4px"><path d="M3 6h18M7 12h10M11 18h2"/></svg>
         <span id="sort-label">날짜순</span>
       </button>
-      <button class="btn-tool" id="sync-btn" onclick="syncProgress()">
+      <button class="btn-tool" id="sync-btn" onclick="syncProgress()" style="display:none">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display:inline;vertical-align:-1px;margin-right:4px"><path d="M1 4v6h6"/><path d="M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
         진도 새로고침
       </button>
     </div>
-    <div id="next-lecture" style="display:none"></div>
     <div id="rows-container"></div>
   </div>
   </div><!-- /catalog-view -->
@@ -2136,15 +2169,8 @@ function buildMyStats() {
     const gd=gv.filter(v=>{const p=progressMap[v.id];if(!p)return false;const maxR=parseFloat(p.maxReached)||0,dur=parseFloat(p.duration)||0;return isFull(maxR,dur);}).length;
     return{g,total:gv.length,done:gd,pct:Math.round(gd/gv.length*100)};
   }).filter(Boolean);
-  // 연속 학습일
-  const sKey='gf_streak_'+userName, today=new Date().toISOString().split('T')[0];
-  let sd=JSON.parse(localStorage.getItem(sKey)||'{"days":0,"last":""}');
-  if(sd.last!==today){
-    const yd=new Date();yd.setDate(yd.getDate()-1);
-    sd={days:sd.last===yd.toISOString().split('T')[0]?sd.days+1:1,last:today};
-    localStorage.setItem(sKey,JSON.stringify(sd));
-  }
-  const streak=sd.days;
+  // 연속 시청 주 (실제 시청 기록 기준 — '나의 이번 주'와 같은 값)
+  const ws=window._mwState||null;
   const doneVids=VIDEOS.filter(v=>{const p=progressMap[v.id];if(!p)return false;const maxR=parseFloat(p.maxReached)||0,dur=parseFloat(p.duration)||0;return isFull(maxR,dur);}).slice(0,5);
   const ingVids=VIDEOS.filter(v=>{const p=progressMap[v.id];if(!p)return false;const maxR=parseFloat(p.maxReached)||0,dur=parseFloat(p.duration)||0;return!(isFull(maxR,dur))&&maxR>30;}).slice(0,5);
 
@@ -2153,20 +2179,20 @@ function buildMyStats() {
   <div class="ms-hero">
     <div class="ms-hero-card"><div class="ms-hero-num" style="color:var(--green)">${pct}%</div><div class="ms-hero-label">전체 완료율</div></div>
     <div class="ms-hero-card"><div class="ms-hero-num" style="color:var(--white)">${done}<span style="font-size:14px;color:var(--g3)">/${total}</span></div><div class="ms-hero-label">완료한 강의</div></div>
-    <div class="ms-hero-card"><div class="ms-hero-num" style="color:var(--blue)">${timeStr}</div><div class="ms-hero-label">총 학습 시간</div></div>
+    <div class="ms-hero-card"><div class="ms-hero-num" style="color:var(--blue)">${timeStr}</div><div class="ms-hero-label">들은 강의 분량</div></div>
   </div>
-  <div class="ms-section">
+  ${ws?`<div class="ms-section">
     <div class="ms-streak">
-      <div class="ms-streak-icon">${streak>=7?'🔥':streak>=3?'⚡':'📅'}</div>
+      <div class="ms-streak-icon">${ws.streak>=4?'🔥':ws.streak>=2?'⚡':'📅'}</div>
       <div>
         <div style="display:flex;align-items:baseline;gap:6px;">
-          <div class="ms-streak-val">${streak}일</div>
-          <div style="font-size:13px;font-weight:700;color:var(--white)">연속 학습 중</div>
+          <div class="ms-streak-val">${ws.streak>=1?ws.streak+'주':fmtMinS(ws.tw)}</div>
+          <div style="font-size:13px;font-weight:700;color:var(--white)">${ws.streak>=1?'연속 시청 중':'이번 주 시청'}</div>
         </div>
-        <div class="ms-streak-label">${streak>=7?'🔥 대단해요! 일주일 이상 연속 학습 중입니다!':streak>=3?'⚡ 좋아요! 연속 학습 습관이 만들어지고 있어요.':'오늘도 말씀 앞에 나오셨군요. 내일도 이어가요! 💪'}</div>
+        <div class="ms-streak-label">${ws.streak>=1?'이번 주 '+fmtMinS(ws.tw)+' 시청 · ':''}${ws.streak>=4?'🔥 한 달 넘게 매주 말씀 앞에 나오셨어요!':ws.streak>=2?'⚡ 좋아요! 매주 듣는 습관이 만들어지고 있어요.':'이번 주도 한 강의 들어 볼까요? 💪'}</div>
       </div>
     </div>
-  </div>
+  </div>`:''}
   ${gradeStats.length?`<div class="ms-section"><div class="ms-section-title">📚 과정별 진도</div>${gradeStats.map(gs=>`
     <div class="ms-grade-row">
       <div class="ms-grade-label">${gs.g}</div>
@@ -2225,6 +2251,7 @@ function renderHomeBadges(){
     <div class="hb-go">${card?'카드 받기 ›':'도장판 ›'}</div>`;
   el.setAttribute('aria-label',`배지 ${got.length}개, 강의 ${done}/${VIDEOS.length}개 완료. 눌러서 내 학습 현황 보기`);
   el.style.display='flex';
+  syncMyLearn();
 }
 let _bpTimer=null;
 function showBadgePop(list){
@@ -2590,7 +2617,7 @@ function goToLogin(){
   document.getElementById('header-user-area').style.display='none';
   document.getElementById('id-input').value='';
   document.getElementById('pw-input').value='';
-  userName='';authTok='';progressMap={};currentVideo=null;userRole='수강생';_mw=null;_mwAt=0;renderMyWeek();
+  userName='';authTok='';progressMap={};currentVideo=null;userRole='수강생';_mw=null;_mwAt=0;renderMyWeek();syncMyLearn();
   const roleArea=document.getElementById('header-role-badge');
   if(roleArea){roleArea.style.display='none';roleArea.textContent='';}
 }
@@ -2660,7 +2687,7 @@ function loadMyWeek(force){
 function fmtMinS(m){ m=Math.round(m||0); if(m<60)return m+'분'; const h=Math.floor(m/60),r=m%60; return h+'시간'+(r?' '+r+'분':''); }
 function renderMyWeek(){
   const el=document.getElementById('my-week'); if(!el)return;
-  if(!userName||!_mw){ el.style.display='none'; return; }
+  if(!userName||!_mw){ el.style.display='none'; syncMyLearn(); return; }
   const mon=kstMonday(Date.now()), srvMon=new Date(_mw.weeks[_mw.weeks.length-1]+'T00:00:00+09:00').getTime();
   let w=_mw.w.slice(), streak=_mw.streak||0;
   if(srvMon<mon){ w=w.slice(1).concat([0]); }   // 서버 값이 지난주 것이면 한 칸 밀기
@@ -2668,6 +2695,7 @@ function renderMyWeek(){
   w[w.length-1]+=add;
   const tw=w[w.length-1], lw=w[w.length-2]||0;
   if(tw>0&&!(_mw.w[_mw.w.length-1]>0)&&srvMon>=mon) streak=(_mw.streak||0)+1;
+  window._mwState={tw,lw,streak};
   const diff=Math.round(tw-lw), max=Math.max(1,...w);
   const cmp=lw>0||tw>0?(diff>0?`<span class="mw-up">지난주보다 +${fmtMinS(diff)}</span>`:diff<0?`<span>지난주 ${fmtMinS(lw)} · <span class="mw-down">${fmtMinS(-diff)} 더 보면 따라잡아요</span></span>`:'<span>지난주와 같아요</span>'):'';
   el.innerHTML=`<div class="mw-main"><div class="mw-t0">📅 나의 이번 주</div>
@@ -2676,9 +2704,16 @@ function renderMyWeek(){
     <div class="mw-bars" title="최근 6주">${w.map((v,i)=>`<i class="${i===w.length-1?'now':''}" style="height:${Math.max(3,Math.round(v/max*40))}px"></i>`).join('')}</div>`;
   el.setAttribute('aria-label',`나의 이번 주 ${fmtMinS(tw)} 시청, 지난주 ${fmtMinS(lw)}`);
   el.style.display='flex';
+  syncMyLearn();
+}
+function syncMyLearn(){
+  const box=document.getElementById('my-learn'); if(!box)return;
+  const any=['stats-row','home-badges','my-week'].some(id=>{const e=document.getElementById(id);return e&&e.style.display!=='none';});
+  box.style.display=userName&&any?'':'none';
 }
 function updateStats(){
   setTimeout(renderHomeBadges,0);
+  setTimeout(syncMyLearn,0);
   setTimeout(()=>loadMyWeek(false),0);
   if(!VIDEOS.length)return;
   const total=VIDEOS.length;
@@ -2853,9 +2888,21 @@ function lectureNo(v,i){ const m=String(v.title||'').match(/(\d+)\s*강/); retur
 // ✅ 완료 = 영상을 끝까지(100%) 본 것. 초 단위 반올림 차이만 2초 허용
 function isFull(mx,d){ mx=parseFloat(mx)||0; d=parseFloat(d)||0; return d>0&&mx>=d-2; }
 function isDoneProg(p){ if(!p)return false; return isFull(p.maxReached,p.duration); }   // 기기에 남은 예전 '완료' 표시(90% 기준)는 보지 않음
+// 다음에 볼 강의 계산 (이어서 볼 강의 카드·이어보기 줄이 같은 강의를 두 번 보여주지 않도록 공유)
+function nextLectureInfo(){
+  if(!userName||!VIDEOS.length)return null;
+  let g=null, last=0;
+  Object.entries(progressMap||{}).forEach(([id,p])=>{ const v=VIDEOS.find(x=>x.id===id); const t=p.savedAt||Date.parse(String(p.updatedAt||'').replace(' ','T')+'+09:00')||0; if(v&&(p.maxReached||0)>0&&t>=last){ last=t; g=detectGrade(v); } });
+  if(currentGrade!=='전체') g=currentGrade;
+  if(!g){ const order=['기초','응용','심화','기타']; g=order.find(x=>VIDEOS.some(v=>detectGrade(v)===x)); }
+  const list=VIDEOS.map((v,i)=>({v,i})).filter(o=>detectGrade(o.v)===g).sort((a,b)=>lectureNo(a.v,a.i)-lectureNo(b.v,b.i));
+  if(!list.length)return null;
+  return {g,list,next:list.find(o=>!isDoneProg(progressMap[o.v.id]))};
+}
 function renderNextLecture(){
   const box=document.getElementById('next-lecture'); if(!box)return;
   if(!userName||!VIDEOS.length||currentSearchQuery){ box.style.display='none'; return; }
+  try{ renderRecentRow(); }catch(e){}
   // 가장 최근에 본 강의의 과정 → 없으면 첫 과정
   let g=null, last=0;
   Object.entries(progressMap||{}).forEach(([id,p])=>{ const v=VIDEOS.find(x=>x.id===id); const t=p.savedAt||Date.parse(String(p.updatedAt||'').replace(' ','T')+'+09:00')||0; if(v&&(p.maxReached||0)>0&&t>=last){ last=t; g=detectGrade(v); } });
@@ -3530,16 +3577,35 @@ function renderRecentRow() {
     return !isDone;
   });
 
-  if (!recent.length) { container.style.display = 'none'; return; }
+  // '이어서 볼 강의' 카드에 이미 나온 강의는 빼기 (같은 강의가 두 번 보이지 않게)
+  const nx = !currentSearchQuery && nextLectureInfo();
+  const nextId = nx && nx.next ? nx.next.v.id : null;
+  const rest = recent.filter(v => v.id !== nextId);
+  if (!rest.length) { container.style.display = 'none'; return; }
+  recent.length = 0; rest.forEach(v => recent.push(v));
 
   container.style.display = 'block';
   const globalIdx = v => VIDEOS.indexOf(v);
   const row = makeRow(
-    userName ? `<em>${userName}</em> 님의 이어보기` : '이어보기',
+    '보다 만 다른 강의',
     recent, globalIdx
   );
   container.innerHTML = '';
   if (row) container.appendChild(row);
+}
+
+/* ── 내 메뉴 (프로필 사진을 누르면) ── */
+function toggleHdrMenu(e){
+  if(e)e.stopPropagation();
+  const m=document.getElementById('hdr-menu'), b=document.getElementById('hdr-menu-btn');
+  const on=!m.classList.contains('show'); m.classList.toggle('show',on); b.setAttribute('aria-expanded',String(on));
+}
+function closeHdrMenu(){ const m=document.getElementById('hdr-menu'); if(m&&m.classList.contains('show')){ m.classList.remove('show'); document.getElementById('hdr-menu-btn').setAttribute('aria-expanded','false'); } }
+document.addEventListener('click',e=>{ if(!e.target.closest('#hdr-menu'))closeHdrMenu(); });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape')closeHdrMenu(); });
+function hdrMenuGo(k){
+  closeHdrMenu();
+  if(k==='stats')openMyStats(); else if(k==='mine')showMyFeedback(); else if(k==='pw')openPwModal(); else if(k==='out')goToLogin();
 }
 
 /* ══════════════════════════════════
@@ -3656,6 +3722,15 @@ function sortVideos(){
 /* ══════════════════════════════════
    8. 진도 새로고침 (다른 기기 동기화)
 ══════════════════════════════════ */
+// 앱으로 다시 돌아오면(다른 기기에서 본 기록 포함) 진도를 조용히 새로 받아옴 — '진도 새로고침' 버튼 대신
+let _autoSyncAt=Date.now();
+document.addEventListener('visibilitychange',async()=>{
+  if(document.visibilityState!=='visible'||!userName||!authTok)return;
+  if(document.getElementById('player-overlay')?.classList.contains('show'))return;   // 강의 보는 중엔 건드리지 않음
+  if(Date.now()-_autoSyncAt<60000)return;
+  _autoSyncAt=Date.now();
+  try{ await loadProgress(); }catch(e){}
+});
 async function syncProgress(){
   if(!userName){showToast('로그인 후 이용하세요');return;}
   const btn=document.getElementById('sync-btn');
@@ -3967,7 +4042,7 @@ function showIosInstallGuide() {
 init();
 
 /* ─ 새 버전 안내: 사이트를 새로 올리면 열려 있는 화면에 '새 버전' 띠를 띄움 ─ */
-const APP_VER='2026.10.30-3';
+const APP_VER='2026.10.30-5';
 (function(){
   const PAGE=()=>{ const p=location.pathname; return p.endsWith('/')?p+'index.html':p; };
   let newVer=null, shown=false;
