@@ -90,6 +90,31 @@ input,textarea,select{font-family:var(--font);outline:none;}
 .do-svg{width:100%;height:150px;display:block;}
 .do-hint{font-size:13px;color:var(--g2);margin-top:8px;line-height:1.5;}
 .do-hint b{color:#fff;}
+.sd-panel{margin-bottom:16px;}
+.sd-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
+.sd-range button.on{border-color:var(--red);background:rgba(229,9,20,.18);color:#fff;}
+.sd-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:14px;}
+.sd-heat-wrap{overflow-x:auto;padding-bottom:4px;margin-bottom:6px;}
+.sd-heat{display:inline-grid;grid-auto-flow:column;grid-template-rows:repeat(7,14px);gap:3px;}
+.sd-heat i{width:14px;height:14px;border-radius:3px;background:rgba(255,255,255,.06);display:block;cursor:pointer;}
+.sd-heat i.l1{background:rgba(229,9,20,.28);}.sd-heat i.l2{background:rgba(229,9,20,.5);}.sd-heat i.l3{background:rgba(229,9,20,.75);}.sd-heat i.l4{background:#e50914;}
+.sd-heat i.sel{outline:2px solid #fff;outline-offset:1px;}
+.sd-heat i.fut{visibility:hidden;}
+.sd-heat-lbl{display:grid;grid-template-rows:repeat(7,14px);gap:3px;font-size:10px;color:var(--g3);margin-right:6px;}
+.sd-legend{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--g3);margin:4px 0 14px;}
+.sd-legend i{width:11px;height:11px;border-radius:2px;display:inline-block;}
+.sd-bars{display:flex;align-items:flex-end;gap:4px;height:56px;}
+.sd-bars div{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;}
+.sd-bars i{width:100%;max-width:22px;background:rgba(229,9,20,.7);border-radius:3px 3px 0 0;min-height:2px;display:block;}
+.sd-bars span{font-size:10px;color:var(--g3);margin-top:3px;}
+.sd-insight{font-size:13px;color:var(--g2);line-height:1.7;background:rgba(255,255,255,.04);border-radius:8px;padding:10px 12px;margin-bottom:14px;}
+.sd-insight b{color:#fff;}
+.sd-day{border-top:1px solid rgba(255,255,255,.07);padding:10px 0;}
+.sd-day.sel{background:rgba(229,9,20,.06);border-radius:8px;padding:10px 8px;}
+.sd-day-h{display:flex;align-items:baseline;gap:8px;font-size:14px;font-weight:800;color:#fff;margin-bottom:6px;}
+.sd-day-h span{font-size:12px;color:var(--g3);font-weight:600;}
+.sd-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:13px;color:var(--g2);padding:3px 0 3px 4px;}
+.sd-row .t{color:#fff;font-weight:600;flex:1;min-width:140px;}
 .rg-quick{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;}
 .rg-quick button.on{border-color:var(--red);background:rgba(229,9,20,.18);color:#fff;}
 .rg-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin:12px 0 16px;}
@@ -781,6 +806,7 @@ table.matrix tbody tr:hover td.cell-ing{background:rgba(74,158,255,.14);}
           <option value="">-- 선택 --</option>
         </select>
       </div>
+      <div id="stu-daily"></div>
       <div id="stu-detail-content"></div>
     </div>
   </div>
@@ -1587,7 +1613,7 @@ function renderDaily(){
   document.getElementById('dl-body').innerHTML = `
     <div class="dl-sum"><span><b>${tl(r.date)}</b></span><span>👥 <b>${names.length}</b>명 시청</span><span>⏱ 실제 재생 <b>${Math.round(played)}</b>분</span><span>✅ 완료 <b>${doneN}</b>건</span>
       ${all.length ? `<span>😴 안 본 수강생 <b>${none.length}</b>명 ${none.length ? '<button class="adm-btn" style="padding:4px 10px;font-size:12px" onclick="copyDlNone()">📋 이름 복사</button>' : ''}</span>` : '<span style="font-size:12px;color:var(--g3)">(출석 현황을 한 번 불러오면 안 본 수강생도 보여요)</span>'}</div>
-    ${names.length ? names.map(n => `<div class="dl-stu"><div class="dl-stu-h">${escHtml(n)} <span style="font-size:12px;color:var(--g3);font-weight:500">${by[n].length}개 강의</span></div>
+    ${names.length ? names.map(n => `<div class="dl-stu"><div class="dl-stu-h" style="cursor:pointer" data-n="${escHtml(n)}" onclick="openStudentDetail(this.dataset.n)" title="일자별 기록 보기">${escHtml(n)} <span style="font-size:12px;color:var(--g3);font-weight:500">${by[n].length}개 강의</span></div>
       ${by[n].map(x => `<div class="dl-row"><span class="dl-t">${escHtml(lt(x))}</span>
         <span>🕒 ${escHtml(x.first)}${x.last !== x.first ? '~' + escHtml(x.last) : ''}</span>
         <span>${x.played == null ? '위치 ' + x.pos + '분' : '⏱ ' + x.played + '분 재생'}</span>
@@ -1689,7 +1715,7 @@ function renderRange(){
       ${th('name', '이름')}${th('played', '총 시청 시간')}${th('days', '시청한 날')}${th('lectures', '본 강의')}${th('sessions', '시청 횟수')}${th('done', '완료')}${th('re', '재시청')}${th('last', '마지막 시청')}${wk.length > 1 ? '<th style="cursor:default">주차별</th>' : ''}
     </tr></thead><tbody>
     ${rows.map(x => `<tr class="${x.sessions ? '' : 'zero'}">
-      <td class="nm">${escHtml(x.name)}${x.group !== '수강생' ? ' <span style="font-size:11px;color:var(--g3);font-weight:500">' + escHtml(x.group) + '</span>' : ''}${x.mgr ? ' <span class="care-chip m" style="font-size:11px;padding:1px 6px">' + escHtml(x.mgr) + '</span>' : ''}</td>
+      <td class="nm" style="cursor:pointer" data-n="${escHtml(x.name)}" onclick="openStudentDetail(this.dataset.n)" title="${escHtml(x.name)} 님 일자별 기록 보기">${escHtml(x.name)}${x.group !== '수강생' ? ' <span style="font-size:11px;color:var(--g3);font-weight:500">' + escHtml(x.group) + '</span>' : ''}${x.mgr ? ' <span class="care-chip m" style="font-size:11px;padding:1px 6px">' + escHtml(x.mgr) + '</span>' : ''}</td>
       <td>${x.sessions ? fmtMin(x.played) : '😴 0'}<span class="rg-bar" style="width:${Math.round(x.played / maxP * 60)}px"></span></td>
       <td>${x.days}일</td><td>${x.lectures}개</td><td>${x.sessions}번</td><td>${x.done || '-'}</td><td>${x.re || '-'}</td>
       <td>${x.last ? escHtml(x.last.slice(5).replace('-', '/')) : '-'}</td>
@@ -1847,6 +1873,96 @@ function showDoNames(id){
   const n = (window._doNames || {})[id] || [];
   showToast(n.length ? '⏸ ' + n.join(', ') : '없음');
 }
+/* ── 📅 수강생별 일자별 시청 기록·분석 ── */
+let _sd = null, _sdDays = 84, _sdSel = '', _sdName = '';
+const SD_DOW = ['일','월','화','수','목','금','토'];
+async function loadStudentDaily(name, fresh){
+  const box = document.getElementById('stu-daily'); if (!box) return;
+  if (!name) { box.innerHTML = ''; _sd = null; return; }
+  if (name !== _sdName) { _sdSel = ''; _sdName = name; }
+  const ck = 'sd_' + name + '_' + _sdDays;
+  const cached = !fresh && acGet(ck);
+  if (cached && cached.v) { _sd = cached.v; renderStudentDaily(); }
+  else box.innerHTML = '<div class="panel"><div class="spinner"></div></div>';
+  try {
+    const r = await api({ action: 'student_daily', pw: ADMIN_PW, name, days: _sdDays, ...(fresh ? { fresh: 1 } : {}) });
+    if (document.getElementById('stu-select').value !== name) return;   // 그사이 다른 수강생을 골랐으면 무시
+    if (!r || r.error) { if (!cached) box.innerHTML = '<div class="panel"><p class="empty">불러오지 못했습니다.</p></div>'; return; }
+    _sd = r; acSet(ck, r); renderStudentDaily();
+  } catch(e) { if (!cached) box.innerHTML = '<div class="panel"><p class="empty">⚠️ 서버 연결 실패</p></div>'; }
+}
+function sdSetDays(d){ _sdDays = d; _sdSel = ''; loadStudentDaily(_sdName); }
+function sdPick(d){ _sdSel = _sdSel === d ? '' : d; renderStudentDaily(); const el = document.getElementById('sd-d-' + d); if (el && _sdSel) el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+function sdDate(d){ const t = new Date(d + 'T12:00:00+09:00'); return (t.getUTCMonth() + 1) + '/' + t.getUTCDate() + '(' + SD_DOW[t.getUTCDay()] + ')'; }
+function renderStudentDaily(){
+  const r = _sd, box = document.getElementById('stu-daily'); if (!r || !box) return;
+  const byDate = {}; r.days.forEach(d => { byDate[d.date] = d; });
+  // 달력: 시작 주의 월요일부터 오늘까지 (세로 = 월~일)
+  const todayT = new Date(r.today + 'T12:00:00+09:00').getTime(), fromT = new Date(r.from + 'T12:00:00+09:00').getTime();
+  const startT = fromT - ((new Date(fromT).getUTCDay() + 6) % 7) * 86400000;
+  const cells = [];
+  for (let t = startT; t <= todayT + ((7 - new Date(todayT).getUTCDay()) % 7) * 86400000; t += 86400000) {
+    const d = new Date(t + 9 * 3600000).toISOString().slice(0, 10), x = byDate[d], m = x ? x.played : 0;
+    const lv = t > todayT || t < fromT ? 'fut' : m <= 0 ? '' : m < 15 ? 'l1' : m < 30 ? 'l2' : m < 60 ? 'l3' : 'l4';
+    cells.push(`<i class="${lv}${d === _sdSel ? ' sel' : ''}" title="${sdDate(d)} ${m ? fmtMin(m) : '안 봄'}" ${x ? `onclick="sdPick('${d}')"` : ''}></i>`);
+  }
+  // 분석
+  const recent7 = r.days.filter(d => todayT - new Date(d.date + 'T12:00:00+09:00').getTime() < 7 * 86400000).reduce((a, d) => a + d.played, 0);
+  const prev7 = r.days.filter(d => { const g = todayT - new Date(d.date + 'T12:00:00+09:00').getTime(); return g >= 7 * 86400000 && g < 14 * 86400000; }).reduce((a, d) => a + d.played, 0);
+  const wdOrder = [1, 2, 3, 4, 5, 6, 0];
+  const topWd = wdOrder.slice().sort((a, b) => r.weekday[b] - r.weekday[a]).filter(i => r.weekday[i] > 0).slice(0, 2);
+  const slots = [['새벽', 0, 6], ['오전', 6, 12], ['오후', 12, 18], ['저녁', 18, 22], ['밤', 22, 24]].map(([n, a, b]) => [n, r.hours.slice(a, b).reduce((x, y) => x + y, 0), a, b]);
+  const topSlot = slots.slice().sort((a, b) => b[1] - a[1])[0];
+  const maxWd = Math.max(1, ...r.weekday), maxSlot = Math.max(1, ...slots.map(x => x[1]));
+  const lastDay = r.days[0];
+  const daysSince = lastDay ? Math.round((todayT - new Date(lastDay.date + 'T12:00:00+09:00').getTime()) / 86400000) : null;
+  const insight = r.activeDays ? [
+    `주로 <b>${topWd.map(i => SD_DOW[i] + '요일').join('·')}</b> <b>${topSlot[0]}(${topSlot[2]}~${topSlot[3]}시)</b>에 봐요.`,
+    `최근 7일 <b>${fmtMin(recent7)}</b> · 그 전 7일 ${fmtMin(prev7)} ${recent7 > prev7 ? '📈' : recent7 < prev7 ? '📉' : ''}`,
+    `마지막 시청: <b>${daysSince === 0 ? '오늘' : daysSince === 1 ? '어제' : daysSince + '일 전'}</b> · 지금 연속 <b>${r.current}일</b> · 가장 긴 연속 ${r.longest}일`,
+    `전체 기간: ${r.life.first ? sdDate(r.life.first) + '부터 ' : ''}<b>${r.life.days}일</b> 동안 총 <b>${fmtMin(r.life.played)}</b>`
+  ].join('<br>') : '이 기간에는 시청 기록이 없어요.';
+  const daysList = (_sdSel ? r.days.filter(d => d.date === _sdSel) : r.days);
+  const showN = box.dataset.all === _sdName ? daysList.length : 14;
+  box.innerHTML = `<div class="panel sd-panel">
+    <div class="sd-head">
+      <div class="panel-title" style="margin:0">📅 ${escHtml(r.name)} 님 일자별 시청 기록</div>
+      <span style="flex:1"></span>
+      <span class="sd-range">${[[28, '4주'], [84, '12주'], [182, '6개월'], [365, '1년']].map(([d, l]) => `<button class="adm-btn ${_sdDays === d ? 'on' : ''}" onclick="sdSetDays(${d})">${l}</button>`).join(' ')}</span>
+      <button class="adm-btn" onclick="loadStudentDaily(_sdName,true)">🔄</button>
+    </div>
+    <div class="sd-kpis">
+      <div class="rg-kpi"><div class="k">⏱ 이 기간 시청</div><div class="v">${fmtMin(r.total)}</div><div class="s">${r.est > 0.5 ? '예전 기록 ' + fmtMin(r.est) + ' 추정 포함' : '실제 재생 기준'}</div></div>
+      <div class="rg-kpi"><div class="k">📆 본 날</div><div class="v">${r.activeDays}<span style="font-size:14px;color:var(--g3)">일</span></div><div class="s">${Math.round(r.activeDays / Math.max(1, (todayT - fromT) / 86400000 + 1) * 100)}% 날에 시청</div></div>
+      <div class="rg-kpi"><div class="k">🙋 본 날 평균</div><div class="v">${fmtMin(r.activeDays ? r.total / r.activeDays : 0)}</div><div class="s">하루에</div></div>
+      <div class="rg-kpi"><div class="k">🔥 지금 연속</div><div class="v">${r.current}<span style="font-size:14px;color:var(--g3)">일</span></div><div class="s">최장 ${r.longest}일</div></div>
+    </div>
+    <div style="display:flex;align-items:flex-start">
+      <div class="sd-heat-lbl"><span>월</span><span></span><span>수</span><span></span><span>금</span><span></span><span>일</span></div>
+      <div class="sd-heat-wrap"><div class="sd-heat">${cells.join('')}</div></div>
+    </div>
+    <div class="sd-legend">적게 <i style="background:rgba(255,255,255,.06)"></i><i style="background:rgba(229,9,20,.28)"></i><i style="background:rgba(229,9,20,.5)"></i><i style="background:rgba(229,9,20,.75)"></i><i style="background:#e50914"></i> 많이 <span style="margin-left:8px">(칸을 누르면 그날 기록만 보여요)</span></div>
+    <div class="sd-insight">${insight}</div>
+    ${r.activeDays ? `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin-bottom:14px">
+      <div><div style="font-size:12px;color:var(--g3);font-weight:700;margin-bottom:6px">요일별</div><div class="sd-bars">${wdOrder.map(i => `<div title="${SD_DOW[i]}요일 ${fmtMin(r.weekday[i])}"><i style="height:${Math.round(r.weekday[i] / maxWd * 40)}px"></i><span>${SD_DOW[i]}</span></div>`).join('')}</div></div>
+      <div><div style="font-size:12px;color:var(--g3);font-weight:700;margin-bottom:6px">시간대별</div><div class="sd-bars">${slots.map(x => `<div title="${x[0]} ${fmtMin(x[1])}"><i style="height:${Math.round(x[1] / maxSlot * 40)}px"></i><span>${x[0]}</span></div>`).join('')}</div></div>
+    </div>` : ''}
+    <div style="display:flex;align-items:center;gap:8px;margin:6px 0 2px">
+      <div style="font-size:13px;font-weight:700;color:var(--g2)">${_sdSel ? sdDate(_sdSel) + ' 기록' : '날짜별 기록 (최근 순)'}</div>
+      ${_sdSel ? `<button class="adm-btn" style="padding:3px 10px;font-size:11.5px" onclick="sdPick('${_sdSel}')">전체 보기</button>` : ''}
+    </div>
+    ${daysList.slice(0, showN).map(d => `<div class="sd-day ${d.date === _sdSel ? 'sel' : ''}" id="sd-d-${d.date}">
+      <div class="sd-day-h">${sdDate(d.date)} <span>${fmtMin(d.played)} · ${d.sessions.length}번</span></div>
+      ${d.sessions.map(x => `<div class="sd-row"><span class="t">${escHtml(parseTitle(x.title || '').main || x.title || '(강의)')}</span>
+        <span>🕒 ${escHtml(x.t1)}${x.t2 !== x.t1 ? '~' + escHtml(x.t2) : ''}</span>
+        <span>⏱ ${fmtMin(x.played)}${x.est ? ' (추정)' : ''}</span>
+        ${x.re ? '<span class="dl-tag re">🔁 재시청</span>' : x.done ? '<span class="dl-tag done">✅ 완료</span>' : `<span class="dl-tag ing">▶ ${Math.round(x.pos)}분 지점</span>`}</div>`).join('')}
+    </div>`).join('') || '<p class="empty" style="font-size:13px">기록이 없어요.</p>'}
+    ${daysList.length > showN ? `<div style="text-align:center;margin-top:8px"><button class="adm-btn" onclick="document.getElementById('stu-daily').dataset.all=_sdName;renderStudentDaily()">+ ${daysList.length - showN}일 더 보기</button></div>` : ''}
+  </div>`;
+  const hw = box.querySelector('.sd-heat-wrap'); if (hw) hw.scrollLeft = hw.scrollWidth;
+}
+
 function copyRgNone(){
   const t = (window._rgNone || []).join(', ');
   (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => showToast('📋 ' + (window._rgNone || []).length + '명 복사했습니다.')).catch(() => prompt('복사해서 사용하세요', t));
@@ -2769,6 +2885,7 @@ async function _confirmDeleteStudent(name){
 
 function renderStudentDetail(){
   const name=document.getElementById('stu-select').value,c=document.getElementById('stu-detail-content');
+  loadStudentDaily(name);
   if(!name||!vdData){c.innerHTML='';return;}
   const{rawProgress:rawP={}}=vdData;
   const s=vdData.studentStats?.[name]||{};
@@ -3088,7 +3205,7 @@ window.addEventListener('keydown',e=>{if(e.key==='Escape')closePopup();});
 })();
 
 /* ─ 새 버전 안내: 사이트를 새로 올리면 열려 있는 화면에 '새 버전' 띠를 띄움 ─ */
-const APP_VER='2026.10.26-3';
+const APP_VER='2026.10.30-1';
 (function(){
   const PAGE=()=>location.pathname;
   let newVer=null, shown=false;
