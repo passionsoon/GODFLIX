@@ -2977,7 +2977,7 @@ async function selectVideo(index){
 
   currentVideo=VIDEOS[index];currentIndex=index;
   startTime=new Date().toLocaleString('ko-KR');
-  replayCount=0;recordSent=false;_fbPromptVid=null;clearTimeout(window._iosResetT);_ended=false;window._seekOnPlay=0;window._seekPending=0;
+  replayCount=0;recordSent=false;_fbPromptVid=null;window._lastPlayAt=0;clearTimeout(window._iosResetT);_ended=false;window._seekOnPlay=0;window._seekPending=0;
   isPlaying=false;jumpBlock=false;videoDuration=0;
   lastPositionSec=0;watchedMinutesSinceLastRecord=0;
 
@@ -3220,6 +3220,14 @@ window.addEventListener('message',function(e){
     }
   }
   if(ev==='play'){
+    // 멈춰 둔 채 30분 넘게 지나 다시 재생하면(예: 어제 멈추고 오늘 아침 이어서) 새 시청으로 따로 기록 → 날짜별 기록이 하루에 섞이지 않게
+    if(currentVideo&&window._lastPlayAt&&Date.now()-window._lastPlayAt>30*60000&&sessionPlayedSec>=30){
+      // 앞 시청은 멈출 때 이미 저장됨 → 다시 저장하지 않음(저장하면 오늘 날짜로 섞임)
+      mwAddLocal(sessionPlayedSec);
+      startTime=new Date().toLocaleString('ko-KR'); recordSent=false; replayCount=0; watchedMinutesSinceLastRecord=0;
+      wasDone=wasDone||completed; sessionPlayedSec=0; _lastT=null;
+    }
+    window._lastPlayAt=Date.now();
     isPlaying=true; _ended=false; window._iosPlayedOnce=true; if(isFs)revealSkip(2000);
     // 아이폰: 재생이 시작된 뒤에야 위치 이동이 됨 → 보려던 위치(이어보기·끝난 뒤 10초 뒤로)로 이동
     if(window._seekOnPlay>0){ const sp=window._seekOnPlay; window._seekOnPlay=0; window._seekPending=sp;
@@ -3230,6 +3238,7 @@ window.addEventListener('message',function(e){
   if(ev==='pause'){
     isPlaying=false; if(isFs)revealSkip(0);   // 멈추면 10초 버튼 보여줌
     if('mediaSession' in navigator)navigator.mediaSession.playbackState='paused';
+    if(currentVideo&&sessionPlayedSec>=30&&!window._awaitReady){ saveProgress(); saveRecord(false); }   // 멈춘 시점까지 저장 (오래 멈췄다 이어 볼 때 날짜가 섞이지 않게)
   }
   if(ev==='playbackratechange'){   // 갓플릭스는 1배속으로만 (아이폰 기본 플레이어의 속도 메뉴 등으로 바꿔도 되돌림)
     const r=parseFloat(d.data&&d.data.playbackRate);
@@ -3249,7 +3258,7 @@ window.addEventListener('message',function(e){
       // 건너뛴 구간은 빼고, 배속으로 빨리 넘어간 만큼도 빼고 → '실제로 흐른 시간'만 시청 시간으로
       window._wallCredit=Math.min(5,(window._wallCredit||0)+Math.max(0,Math.min(wall,3)));
       if(dt>0&&dt<=3){const add=Math.min(dt,window._wallCredit);window._wallCredit-=add;sessionPlayedSec+=add;window._iosPlayedOnce=true;}}
-    _lastT=t; window._lastWall=_now;
+    _lastT=t; window._lastWall=_now; window._lastPlayAt=Date.now();
     lastPositionSec=t;
     if(t>maxReachedSec){
       maxReachedSec=t;
@@ -4042,7 +4051,7 @@ function showIosInstallGuide() {
 init();
 
 /* ─ 새 버전 안내: 사이트를 새로 올리면 열려 있는 화면에 '새 버전' 띠를 띄움 ─ */
-const APP_VER='2026.10.30-5';
+const APP_VER='2026.10.31-1';
 (function(){
   const PAGE=()=>{ const p=location.pathname; return p.endsWith('/')?p+'index.html':p; };
   let newVer=null, shown=false;
