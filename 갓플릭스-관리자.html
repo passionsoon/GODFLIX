@@ -1615,7 +1615,7 @@ function renderDaily(){
       ${all.length ? `<span>😴 안 본 수강생 <b>${none.length}</b>명 ${none.length ? '<button class="adm-btn" style="padding:4px 10px;font-size:12px" onclick="copyDlNone()">📋 이름 복사</button>' : ''}</span>` : '<span style="font-size:12px;color:var(--g3)">(출석 현황을 한 번 불러오면 안 본 수강생도 보여요)</span>'}</div>
     ${names.length ? names.map(n => `<div class="dl-stu"><div class="dl-stu-h" style="cursor:pointer" data-n="${escHtml(n)}" onclick="openStudentDetail(this.dataset.n)" title="일자별 기록 보기">${escHtml(n)} <span style="font-size:12px;color:var(--g3);font-weight:500">${by[n].length}개 강의</span></div>
       ${by[n].map(x => `<div class="dl-row"><span class="dl-t">${escHtml(lt(x))}</span>
-        <span>🕒 ${escHtml(x.first)}${x.last !== x.first ? '~' + escHtml(x.last) : ''}</span>
+        <span>🕒 ${x.fd && x.fd !== r.date ? escHtml(sdDate(x.fd)) + ' ' : ''}${escHtml(x.first)}${x.last !== x.first || (x.fd && x.fd !== r.date) ? ' ~ ' + (x.fd && x.fd !== r.date ? escHtml(sdDate(r.date)) + ' ' : '') + escHtml(x.last) : ''}</span>
         <span>${x.played == null ? '위치 ' + x.pos + '분' : '⏱ ' + x.played + '분 재생'}</span>
         ${x.re ? '<span class="dl-tag re">🔁 재시청</span>' : x.done ? '<span class="dl-tag done">✅ 완료</span>' : '<span class="dl-tag ing">▶ 시청 · ' + x.pos + '분 지점</span>'}
       </div>`).join('')}</div>`).join('') : '<p class="empty">이날은 시청 기록이 없어요.</p>'}`;
@@ -1954,7 +1954,7 @@ function renderStudentDaily(){
     ${daysList.slice(0, showN).map(d => `<div class="sd-day ${d.date === _sdSel ? 'sel' : ''}" id="sd-d-${d.date}">
       <div class="sd-day-h">${sdDate(d.date)} <span>${fmtMin(d.played)} · ${d.sessions.length}번</span></div>
       ${d.sessions.map(x => `<div class="sd-row"><span class="t">${escHtml(parseTitle(x.title || '').main || x.title || '(강의)')}</span>
-        <span>🕒 ${escHtml(x.t1)}${x.t2 !== x.t1 ? '~' + escHtml(x.t2) : ''}</span>
+        <span>🕒 ${x.d1 && x.d1 !== d.date ? escHtml(sdDate(x.d1)) + ' ' : ''}${escHtml(x.t1)}${x.t2 !== x.t1 || (x.d1 && x.d1 !== d.date) ? ' ~ ' + (x.d1 && x.d1 !== d.date ? escHtml(sdDate(d.date)) + ' ' : '') + escHtml(x.t2) : ''}</span>
         <span>⏱ ${fmtMin(x.played)}${x.est ? ' (추정)' : ''}</span>
         ${x.re ? '<span class="dl-tag re">🔁 재시청</span>' : x.done ? '<span class="dl-tag done">✅ 완료</span>' : `<span class="dl-tag ing">▶ ${Math.round(x.pos)}분 지점</span>`}</div>`).join('')}
     </div>`).join('') || '<p class="empty" style="font-size:13px">기록이 없어요.</p>'}
@@ -3205,7 +3205,7 @@ window.addEventListener('keydown',e=>{if(e.key==='Escape')closePopup();});
 })();
 
 /* ─ 새 버전 안내: 사이트를 새로 올리면 열려 있는 화면에 '새 버전' 띠를 띄움 ─ */
-const APP_VER='2026.10.30-1';
+const APP_VER='2026.10.30-2';
 (function(){
   const PAGE=()=>location.pathname;
   let newVer=null, shown=false;
