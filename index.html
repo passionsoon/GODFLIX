@@ -14,6 +14,32 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
 <title>갓플릭스 – GODFLIX</title>
+<link rel="preconnect" href="https://drive.google.com">
+<link rel="preconnect" href="https://lh3.googleusercontent.com">
+<script>
+/* 🧯 화면 오류 자동 보고 — 수강생 폰에서 난 오류를 관리자 '설정' 탭에서 볼 수 있게 (같은 오류는 한 번, 한 화면에서 5건까지) */
+(function(){
+  var q=[],seen={},sent=0;
+  function envStr(){ var u=navigator.userAgent;
+    var d=(/iPad/.test(u)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1))?'iPad':/iPhone|iPod/.test(u)?'iPhone':/Android/.test(u)?'Android':'PC';
+    var sa=false; try{ sa=(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true; }catch(e){}
+    var a=/KAKAOTALK/i.test(u)?'카톡':sa?'홈 화면 앱':/NAVER\(|Instagram|FBAN|FBAV|Line\//i.test(u)?'다른 앱 안':'브라우저';
+    return d+' · '+a; }
+  function flush(){ var url,ver='',tok='';
+    try{ url=SHEET_URL; }catch(e){ return; }
+    try{ ver=APP_VER; }catch(e){} try{ tok=authTok||''; }catch(e){}
+    while(q.length){ var x=q.shift();
+      try{ fetch(url,{method:'POST',mode:'no-cors',keepalive:true,headers:{'Content-Type':'text/plain'},body:JSON.stringify({type:'clienterr',tok:tok,msg:x.m,where:x.w,ver:ver,page:'student',env:envStr(),ua:navigator.userAgent.slice(0,250)})}).catch(function(){}); }catch(e){} } }
+  function report(m,w){ m=String(m||'').slice(0,300); w=String(w||'').slice(0,200); if(!m)return;
+    // 인터넷 끊김·다른 사이트(비메오) 오류처럼 고칠 수 없는 것은 빼고
+    if(/^Script error\.?$/i.test(m)||/ResizeObserver loop|서버 응답 시간 초과|load error|Failed to fetch|NetworkError|Load failed|network connection was lost|AbortError|NotAllowedError|play\(\) request was interrupted/i.test(m))return;
+    var k=m+'|'+w; if(seen[k]||sent>=5)return; seen[k]=1; sent++; q.push({m:m,w:w}); setTimeout(flush,0); }
+  window.addEventListener('error',function(e){ if(!(e instanceof ErrorEvent))return; var f=String(e.filename||'').split('?')[0].split('/').pop()||'index'; report(e.message,f+':'+(e.lineno||0)+':'+(e.colno||0)); });
+  window.addEventListener('unhandledrejection',function(e){ var r=e.reason; var st=r&&r.stack?String(r.stack).split('\n').slice(0,2).join(' ← '):''; report('(Promise) '+((r&&r.message)||String(r)),st); });
+  window.addEventListener('load',function(){ setTimeout(flush,1500); });
+  window.__gfReport=report;
+})();
+</script>
 <link rel="preconnect" href="https://cdn.jsdelivr.net">
 <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
@@ -803,7 +829,30 @@ input{outline:none;font-family:'Pretendard Variable','Pretendard',-apple-system,
 .card-hint{font-size:12px;color:var(--g3);text-align:center;}
 
 /* 10초 앞으로/뒤로 */
-.skip-row{display:flex;justify-content:center;gap:12px;margin:-4px 0 12px;}
+.skip-row{display:flex;justify-content:center;flex-wrap:wrap;gap:10px 12px;margin:-4px 0 12px;}
+/* 📌 책갈피 */
+#player-bm{margin:-2px 0 12px;display:none;}
+#player-bm.has{display:block;}
+.bm-list{display:flex;flex-direction:column;gap:6px;}
+.bm-item{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);border-radius:10px;padding:6px 8px;}
+.bm-item.new{border-color:rgba(245,197,24,.55);background:rgba(245,197,24,.08);}
+.bm-time{flex:none;background:rgba(229,9,20,.18);border:1px solid rgba(229,9,20,.45);color:#fff;border-radius:16px;padding:6px 11px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Pretendard Variable','Pretendard',-apple-system,sans-serif;font-variant-numeric:tabular-nums;min-height:34px;}
+.bm-time:hover{background:rgba(229,9,20,.32);}
+.bm-memo{flex:1;min-width:0;background:transparent;border:0;border-bottom:1px dashed rgba(255,255,255,.18);color:var(--g1);font-size:14px;padding:6px 2px;font-family:'Pretendard Variable','Pretendard',-apple-system,sans-serif;outline:none;}
+.bm-memo:focus{border-bottom-color:var(--gold);}
+.bm-memo::placeholder{color:var(--g3);}
+.bm-del{flex:none;background:none;border:0;color:var(--g3);font-size:15px;cursor:pointer;padding:6px 8px;border-radius:6px;min-height:34px;}
+.bm-del:hover{color:#ff8a80;background:rgba(255,255,255,.06);}
+.bm-head{font-size:12.5px;color:var(--g3);margin:0 2px 6px;display:flex;justify-content:space-between;align-items:center;}
+.bm-group{margin-bottom:16px;}
+.bm-group-title{font-size:14px;font-weight:700;color:var(--white);margin:0 2px 8px;}
+.bm-empty{text-align:center;color:var(--g3);font-size:14px;line-height:1.7;padding:28px 16px;}
+#bm-modal .my-stats-body{padding:14px 16px 24px;}
+#detail-bm{margin-top:14px;display:none;}
+#detail-bm.has{display:block;}
+#fs-bm-btn{background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.3);color:var(--white);border-radius:20px;padding:8px 12px;font-size:13px;font-weight:700;min-height:40px;pointer-events:all;font-family:'Pretendard Variable','Pretendard',-apple-system,sans-serif;margin-right:6px;}
+#fs-bm-btn.hit{background:rgba(245,197,24,.35);border-color:var(--gold);}
+#next-lec-btn.confirm{background:rgba(229,9,20,.25);border-color:rgba(229,9,20,.6);}
 .skip-btn{
   background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);color:var(--white);
   border-radius:22px;padding:9px 18px;font-size:14px;font-weight:700;cursor:pointer;
@@ -1245,14 +1294,14 @@ input{outline:none;font-family:'Pretendard Variable','Pretendard',-apple-system,
 /* ═══════════════════════════════════
    내 학습 분석 모달
 ═══════════════════════════════════ */
-#my-stats-modal{
+#my-stats-modal,#bm-modal{
   display:flex;position:fixed;inset:0;z-index:600;
   background:rgba(0,0,0,.8);backdrop-filter:blur(8px);
   align-items:flex-end;justify-content:center;padding:0;
   opacity:0;pointer-events:none;
   transition:opacity .25s cubic-bezier(.4,0,.2,1);
 }
-#my-stats-modal.show{opacity:1;pointer-events:auto;}
+#my-stats-modal.show,#bm-modal.show{opacity:1;pointer-events:auto;}
 .my-stats-box{
   width:100%;max-width:520px;max-height:88dvh;
   background:var(--surface);border-radius:20px 20px 0 0;
@@ -1260,7 +1309,7 @@ input{outline:none;font-family:'Pretendard Variable','Pretendard',-apple-system,
   transform:translateY(40px);
   transition:transform .3s cubic-bezier(.16,1,.3,1);
 }
-#my-stats-modal.show .my-stats-box{transform:translateY(0);}
+#my-stats-modal.show .my-stats-box,#bm-modal.show .my-stats-box{transform:translateY(0);}
 .my-stats-box::-webkit-scrollbar{display:none;}
 .my-stats-handle{
   width:36px;height:4px;border-radius:2px;
@@ -1454,6 +1503,7 @@ html{-webkit-overflow-scrolling:touch;}
     <button class="btn-logout hdr-fb" id="hdr-fb-btn" onclick="openFeedback()" title="강의를 보고 느낀 점·궁금한 점 보내기">✍️ 질문·소감</button>
     <div class="hdr-menu" id="hdr-menu" role="menu">
       <button role="menuitem" onclick="hdrMenuGo('stats')">📊 내 학습 현황</button>
+      <button role="menuitem" onclick="hdrMenuGo('bm')">📌 내 책갈피</button>
       <button role="menuitem" onclick="hdrMenuGo('mine')">📂 내가 쓴 글</button>
       <button role="menuitem" onclick="hdrMenuGo('pw')">🔑 비밀번호 변경</button>
       <button role="menuitem" class="danger" onclick="hdrMenuGo('out')">🚪 나가기</button>
@@ -1640,6 +1690,7 @@ html{-webkit-overflow-scrolling:touch;}
           <div class="detail-prog-fill" id="detail-prog-fill"></div>
         </div>
       </div>
+      <div id="detail-bm"></div>
       <div class="detail-btns">
         <button class="btn-play" id="detail-play-btn" onclick="playFromDetail()">
           <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M8 5v14l11-7z"/></svg>
@@ -1647,6 +1698,18 @@ html{-webkit-overflow-scrolling:touch;}
         </button>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- ══ 📌 내 책갈피 ══ -->
+<div id="bm-modal" class="bm-modal" onclick="if(this===event.target)closeBmModal()">
+  <div class="my-stats-box">
+    <div class="my-stats-handle"></div>
+    <div class="my-stats-header">
+      <div class="my-stats-title">📌 내 책갈피</div>
+      <button class="my-stats-close" onclick="closeBmModal()">✕</button>
+    </div>
+    <div class="my-stats-body" id="bm-modal-body"></div>
   </div>
 </div>
 
@@ -1682,8 +1745,11 @@ html{-webkit-overflow-scrolling:touch;}
       <button class="skip-btn" id="skip-back" onclick="skipBy(-10)" title="키보드 ←">⟲ 10초 뒤로</button>
       <button class="skip-btn" id="skip-fwd" onclick="skipBy(10)" title="키보드 →">10초 앞으로 ⟳</button>
       <button class="skip-btn" id="ds-btn" onclick="toggleDataSaver()" aria-pressed="false" title="저화질로 받아 데이터를 아껴요 (소리는 그대로)">📶 데이터 절약</button>
+      <button class="skip-btn" id="bm-add-btn" onclick="addBookmark(false)" title="지금 장면을 메모와 함께 저장해요">📌 책갈피</button>
       <button class="fb-open-btn" id="player-fb-btn" onclick="openFeedback()">✍️ 느낀점·질문</button>
+      <button class="skip-btn" id="next-lec-btn" onclick="goNextLecture()" style="display:none">다음 강의 ▶</button>
     </div>
+    <div id="player-bm"></div>
     <div class="prog-section">
       <div class="prog-label-row">
         <span id="watch-label">시청 시작 전</span>
@@ -1715,7 +1781,7 @@ html{-webkit-overflow-scrolling:touch;}
   <div class="fs-zone right" id="fs-zone-fwd" onclick="fsZoneTap(this,10)"><button class="fs-skip" id="fs-skip-fwd" tabindex="-1" aria-label="10초 앞으로">⟳<br>10초</button></div>
   <div id="fs-header">
     <div id="fs-title">강의 재생 중</div>
-    <div style="display:flex;align-items:center;pointer-events:none;"><button id="fs-ds-btn" onclick="toggleDataSaver()" aria-pressed="false" title="데이터 절약 (저화질, 소리는 그대로)">📶 절약</button><button id="fs-fb-btn" onclick="openFeedback()">✍️ 질문</button><button id="fs-close-btn" onclick="closeFullscreen()">✕ 닫기</button></div>
+    <div style="display:flex;align-items:center;pointer-events:none;"><button id="fs-ds-btn" onclick="toggleDataSaver()" aria-pressed="false" title="데이터 절약 (저화질, 소리는 그대로)">📶 절약</button><button id="fs-bm-btn" onclick="addBookmark(true)" aria-label="지금 장면 책갈피">📌</button><button id="fs-fb-btn" onclick="openFeedback()">✍️ 질문</button><button id="fs-close-btn" onclick="closeFullscreen()">✕ 닫기</button></div>
   </div>
   <div id="fs-bottom">
     <div id="fs-label">시청 시작 전</div>
@@ -2033,6 +2099,7 @@ async function loadProgress(){
       ahead.forEach(vid => { const p = merged[vid]; if ((p.duration||0) > 0 && (p.maxReached||0) > 0) fetch(SHEET_URL,{method:'POST',mode:'no-cors',keepalive:true,headers:{'Content-Type':'text/plain'},body:JSON.stringify({type:'progress',tok:authTok,videoId:vid,lastPosition:Math.floor(p.lastPosition||0),maxReached:Math.floor(p.maxReached),duration:Math.floor(p.duration)})}).catch(()=>{}); });
       progressMap = merged; saveProgLocal();
       renderCatalog(); updateStats(); renderRecentRow();
+      loadBookmarks();
       return true;
     }
   } catch(e) {}
@@ -2618,6 +2685,7 @@ function goToLogin(){
   document.getElementById('id-input').value='';
   document.getElementById('pw-input').value='';
   userName='';authTok='';progressMap={};currentVideo=null;userRole='수강생';_mw=null;_mwAt=0;renderMyWeek();syncMyLearn();
+  _bm=[];_bmDel=[];_rw=[];closeBmModal();
   const roleArea=document.getElementById('header-role-badge');
   if(roleArea){roleArea.style.display='none';roleArea.textContent='';}
 }
@@ -2969,9 +3037,10 @@ function _renderCatalogInner(){
 }
 
 /* ─ SELECT & PLAY ─ */
-async function selectVideo(index){
+async function selectVideo(index,startAt){
   if(!userName){showToast('먼저 로그인해 주세요');return;}
   clearTimeout(window._closeTimer);   // 방금 닫은 플레이어 정리 타이머가 새 영상을 지우지 않도록
+  rwFlush();
   if(currentVideo&&maxReachedSec>5){saveRecord(true);saveProgress();}
   clearInterval(progressSaveInterval);
 
@@ -2990,6 +3059,9 @@ async function selectVideo(index){
   // 다 본 강의를 끝부분에서 멈췄으면 다시 볼 때는 처음부터
   const pDur=prog?(parseFloat(prog.duration)||0):0;
   if(wasDone&&pDur>0&&resumeFrom>=pDur-90)resumeFrom=0;
+  // 📌 책갈피에서 열면 그 장면부터 (아직 안 본 곳으로는 못 감)
+  const fromBm=startAt!=null&&isFinite(startAt);
+  if(fromBm){ resumeFrom=Math.max(0,Math.floor(startAt)); if(!completed&&resumeFrom>maxReachedSec)resumeFrom=Math.floor(maxReachedSec); }
 
   document.querySelectorAll('.v-card').forEach((el,i)=>
     el.classList.toggle('active',parseInt(el.id.replace('vc-',''))===index));
@@ -3005,7 +3077,7 @@ async function selectVideo(index){
 
   const rn=document.getElementById('resume-notice');
   if(resumeFrom>10){
-    document.getElementById('resume-text').textContent='이전에 '+fmtSec(resumeFrom)+'까지 시청했습니다. 이어서 재생합니다.';
+    document.getElementById('resume-text').textContent=fromBm?'📌 책갈피 위치('+fmtSec(resumeFrom)+')부터 재생합니다.':'이전에 '+fmtSec(resumeFrom)+'까지 시청했습니다. 이어서 재생합니다.';
     rn.classList.add('show');
   }else{rn.classList.remove('show');}
 
@@ -3016,6 +3088,7 @@ async function selectVideo(index){
   document.getElementById('watch-label').textContent='로딩 중…';
 
   window._pendingResume=resumeFrom>10?resumeFrom:0;
+  _bmNew=null; renderPlayerBm(); renderNextLecBtn();
   window._pendingMaxReached=maxReachedSec;
   // 새 플레이어가 준비될 때까지 이전 영상 플레이어의 늦은 신호는 모두 무시
   window._awaitReady=true;
@@ -3054,6 +3127,7 @@ function closePlayer(){
     document.getElementById('vimeo-player').src='';
   }, 250);
   document.body.style.overflow='';
+  rwFlush();
   if(currentVideo&&maxReachedSec>5){saveRecord(true);saveProgress();}
   clearInterval(progressSaveInterval);
   releaseWakeLock();
@@ -3238,7 +3312,8 @@ window.addEventListener('message',function(e){
   if(ev==='pause'){
     isPlaying=false; if(isFs)revealSkip(0);   // 멈추면 10초 버튼 보여줌
     if('mediaSession' in navigator)navigator.mediaSession.playbackState='paused';
-    if(currentVideo&&sessionPlayedSec>=30&&!window._awaitReady){ saveProgress(); saveRecord(false); }   // 멈춘 시점까지 저장 (오래 멈췄다 이어 볼 때 날짜가 섞이지 않게)
+    if(currentVideo&&sessionPlayedSec>=30&&!window._awaitReady){ saveProgress(); saveRecord(false); }
+    rwFlush();   // 멈춘 시점까지 저장 (오래 멈췄다 이어 볼 때 날짜가 섞이지 않게)
   }
   if(ev==='playbackratechange'){   // 갓플릭스는 1배속으로만 (아이폰 기본 플레이어의 속도 메뉴 등으로 바꿔도 되돌림)
     const r=parseFloat(d.data&&d.data.playbackRate);
@@ -3289,7 +3364,7 @@ window.addEventListener('message',function(e){
     if(jumpBlock)return;
     const tg=parseFloat(d.data.seconds)||0,dur=parseFloat(d.data.duration)||videoDuration;
     if(!wasDone&&!completed&&tg>maxReachedSec+16)blockJump(isFs);
-    else{lastPositionSec=tg;_lastT=null;}   // 멈춘 상태에서 옮겨도 10초 버튼이 정확한 위치에서 동작
+    else{ if(tg<(lastPositionSec||0)-3)rwNote(tg,lastPositionSec); lastPositionSec=tg;_lastT=null;}   // 멈춘 상태에서 옮겨도 10초 버튼이 정확한 위치에서 동작 · 뒤로 옮기면 '다시 들은 구간'으로 기록
   }
   if(ev==='finish'){isPlaying=false; _ended=true;
     // 아이폰: 끝난 상태의 플레이어는 되감기·진행바·처음부터가 먹지 않음 → 잠시 뒤 처음 위치로 새로 불러 둠
@@ -3374,7 +3449,7 @@ function fsZoneTap(zone,sec){
 let _ended=false;
 // 아이폰: 새로 불러온 뒤 아직 한 번도 재생하지 않은 플레이어인지 (재생 전엔 위치 이동이 안 먹음)
 function _iosFresh(){ return !window._iosPlayedOnce; }
-function skipBy(sec){
+function skipBy(sec,noRw){
   if(!currentVideo||window._awaitReady)return;
   const isFs=document.getElementById('fs-overlay')?.classList.contains('open');
   const dur=videoDuration;
@@ -3392,6 +3467,7 @@ function skipBy(sec){
     }
   }
   if(Math.abs(to-cur)<0.5)return;
+  if(sec<0&&!noRw&&!_iosFresh())rwNote(to,cur);   // ⟲ 다시 들은 구간 (강의 분석용)
   if(isFs&&isIOS&&(_ended||_iosFresh())){   // 아이폰: 끝난 플레이어·아직 재생 전인 플레이어는 위치 이동이 안 먹음
     clearTimeout(window._iosResetT);
     if(_ended)reloadFsAt(to); else window._seekOnPlay=to;
@@ -3412,6 +3488,204 @@ function sendPlayer(method,value,isFs=false){
   const iframe=document.getElementById(id);
   if(!iframe?.contentWindow)return;
   iframe.contentWindow.postMessage(JSON.stringify(value!=null?{method,value}:{method}),'https://player.vimeo.com');
+}
+
+
+/* ═══════════════════════════
+   📌 책갈피 — 강의 속 장면을 메모와 함께 저장 (서버에도 저장돼서 다른 기기에서도 보임)
+═══════════════════════════ */
+let _bm=[],_bmDel=[],_bmNew=null;
+function bmKeyL(){ return 'gf_bm_'+userName; }
+function bmLoadLocal(){ try{ const o=JSON.parse(localStorage.getItem(bmKeyL())||'{}'); _bm=Array.isArray(o.items)?o.items:[]; _bmDel=Array.isArray(o.del)?o.del:[]; }catch(e){ _bm=[];_bmDel=[]; } }
+function bmSaveLocal(){ if(!userName)return; try{ localStorage.setItem(bmKeyL(),JSON.stringify({items:_bm,del:_bmDel})); }catch(e){} }
+function bmPush(it){
+  if(!authTok)return Promise.resolve(false);
+  const sent=it.m||'';
+  return gasApi({action:'bm_save',tok:authTok,bid:it.b,vid:it.v,sec:Math.floor(it.s),memo:sent}).then(r=>{
+    if(r&&r.success){ const x=_bm.find(y=>y.b===it.b); if(x&&(x.m||'')===sent)delete x.d; bmSaveLocal(); return true; }
+    if(r&&r.error&&!r.invalid)showToast('📌 '+r.error);
+    return false;
+  }).catch(()=>false);
+}
+function bmPushDel(bid){
+  if(!authTok)return Promise.resolve(false);
+  return gasApi({action:'bm_del',tok:authTok,bid}).then(r=>{ if(r&&r.success){ _bmDel=_bmDel.filter(x=>x!==bid); bmSaveLocal(); return true; } return false; }).catch(()=>false);
+}
+async function loadBookmarks(){
+  if(!userName)return;
+  const who=userName;
+  bmLoadLocal(); renderBmAll();
+  if(!authTok)return;
+  // 인터넷이 끊겨 못 보낸 것부터 보냄
+  for(const bid of _bmDel.slice())await bmPushDel(bid);
+  for(const it of _bm.filter(x=>x.d))await bmPush(it);
+  try{
+    const r=await gasApi({action:'bm_list',tok:authTok});
+    if(who!==userName||!r||!Array.isArray(r.items))return;
+    const srv=r.items.filter(x=>!_bmDel.includes(x.b)).map(x=>{ const loc=_bm.find(y=>y.b===x.b&&y.d); return loc||x; });
+    const onlyLocal=_bm.filter(x=>x.d&&!srv.some(y=>y.b===x.b));
+    _bm=srv.concat(onlyLocal); bmSaveLocal(); renderBmAll();
+  }catch(e){}
+}
+function clk(sec){ sec=Math.max(0,Math.floor(sec||0)); const h=Math.floor(sec/3600),m=Math.floor(sec%3600/60),ss=String(sec%60).padStart(2,'0'); return h?h+':'+String(m).padStart(2,'0')+':'+ss:m+':'+ss; }
+function bmSorted(vid){ return _bm.filter(x=>!vid||x.v===vid).slice().sort((a,b)=>a.s-b.s); }
+function addBookmark(fromFs){
+  if(!currentVideo||!userName)return;
+  if(window._awaitReady||!(videoDuration>0)){ showToast('영상이 준비된 뒤에 눌러 주세요'); return; }
+  const sec=Math.max(0,Math.floor((window._seekOnPlay>0?window._seekOnPlay:lastPositionSec)||0));
+  let it=_bm.find(x=>x.v===currentVideo.id&&Math.abs(x.s-sec)<5);
+  if(!it){
+    if(_bm.length>=300){ showToast('책갈피는 300개까지예요. 안 쓰는 것을 지워 주세요'); return; }
+    it={b:'b'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),v:currentVideo.id,s:sec,m:'',d:1};
+    _bm.push(it); bmSaveLocal(); bmPush(it);
+  }
+  if(fromFs){
+    const b=document.getElementById('fs-bm-btn'); if(b){ b.classList.add('hit'); setTimeout(()=>b.classList.remove('hit'),600); }
+    showToast('📌 '+clk(sec)+' 장면 저장 · 메모는 메뉴 ▸ 내 책갈피에서');
+    renderBmAll(); return;
+  }
+  _bmNew=it.b; renderPlayerBm();
+  const inp=[...document.querySelectorAll('#player-bm .bm-item')].find(e=>e.dataset.b===it.b); if(inp)inp.querySelector('.bm-memo').focus();
+}
+function bmEditMemo(bid,val){
+  const it=_bm.find(x=>x.b===bid); if(!it)return;
+  val=String(val||'').replace(/\r\n?/g,'\n').trim().slice(0,300);
+  if((it.m||'')===val)return;
+  it.m=val; it.d=1; bmSaveLocal(); bmPush(it);
+  renderBmAll(bid);
+}
+function bmDelete(bid){
+  const it=_bm.find(x=>x.b===bid); if(!it)return;
+  _bm=_bm.filter(x=>x.b!==bid);
+  if(!_bmDel.includes(bid))_bmDel.push(bid);
+  bmSaveLocal(); bmPushDel(bid); renderBmAll();
+  showToast('🗑️ 책갈피를 지웠어요');
+}
+// 지금 보고 있는 강의 안에서 책갈피 장면으로 이동
+function bmJump(sec){
+  if(!currentVideo)return;
+  const free=wasDone||completed;
+  let to=Math.max(0,sec); if(!free&&to>maxReachedSec)to=maxReachedSec;
+  const cur=(isIOS&&window._seekOnPlay>0)?window._seekOnPlay:(lastPositionSec||0);
+  skipBy(to-cur,true);
+}
+function bmPlay(vid,sec){
+  const idx=VIDEOS.findIndex(v=>v.id===vid); if(idx<0){ showToast('지금은 없는 강의예요'); return; }
+  closeBmModal(); if(document.getElementById('detail-modal').classList.contains('show'))closeDetail();
+  const playerOpen=document.getElementById('player-overlay').classList.contains('show');
+  if(playerOpen&&currentVideo&&currentVideo.id===vid){ bmJump(sec); return; }
+  setTimeout(()=>selectVideo(idx,sec),playerOpen?0:200);
+}
+function bmItemHtml(it,mode){
+  // 강의ID·책갈피ID는 data-속성에서 읽음 (따옴표 등이 섞여도 안전)
+  const act=mode==='player'?`bmJump(${Number(it.s)||0})`:`bmPlay(this.parentNode.dataset.v,${Number(it.s)||0})`;
+  return `<div class="bm-item${_bmNew===it.b?' new':''}" data-b="${escH(it.b)}" data-v="${escH(it.v)}">
+    <button class="bm-time" onclick="${act}" title="이 장면부터 보기">▶ ${clk(it.s)}</button>
+    <input class="bm-memo" maxlength="300" value="${escH(it.m||'')}" placeholder="메모 (예: 꼭 기억할 말씀)" onkeydown="if(event.key==='Enter'||event.key==='Escape'){event.preventDefault();event.stopPropagation();this.blur();}" onchange="bmEditMemo(this.parentNode.dataset.b,this.value)" aria-label="책갈피 메모">
+    <button class="bm-del" onclick="bmDelete(this.parentNode.dataset.b)" aria-label="책갈피 지우기" title="지우기">✕</button>
+  </div>`;
+}
+function renderPlayerBm(){
+  const el=document.getElementById('player-bm'); if(!el)return;
+  const list=currentVideo?bmSorted(currentVideo.id):[];
+  el.classList.toggle('has',list.length>0);
+  el.innerHTML=list.length?`<div class="bm-head"><span>📌 이 강의 책갈피 ${list.length}개 · 시간을 누르면 그 장면으로</span></div><div class="bm-list">${list.map(it=>bmItemHtml(it,'player')).join('')}</div>`:'';
+}
+function renderDetailBm(){
+  const el=document.getElementById('detail-bm'); if(!el)return;
+  const v=VIDEOS[detailIndex]; const list=v?bmSorted(v.id):[];
+  el.classList.toggle('has',list.length>0);
+  el.innerHTML=list.length?`<div class="bm-head"><span>📌 내 책갈피 ${list.length}개</span></div><div class="bm-list">${list.map(it=>bmItemHtml(it,'detail')).join('')}</div>`:'';
+}
+function renderBmModal(){
+  const el=document.getElementById('bm-modal-body'); if(!el)return;
+  if(!_bm.length){ el.innerHTML='<div class="bm-empty">아직 책갈피가 없어요.<br>강의를 보다가 <b>📌</b> 버튼을 누르면<br>그 장면이 저장되고, 여기서 메모를 적거나 바로 다시 볼 수 있어요.</div>'; return; }
+  const order=VIDEOS.map(v=>v.id), groups={};
+  _bm.forEach(it=>{ (groups[it.v]=groups[it.v]||[]).push(it); });
+  const vids=Object.keys(groups).sort((a,b)=>{ const ia=order.indexOf(a),ib=order.indexOf(b); return (ia<0?1e9:ia)-(ib<0?1e9:ib); });
+  el.innerHTML=`<div class="bm-head" style="margin-bottom:12px"><span>모두 ${_bm.length}개 · ▶ 시간을 누르면 그 장면부터 재생</span></div>`+vids.map(vid=>{
+    const v=VIDEOS.find(x=>x.id===vid);
+    return `<div class="bm-group"><div class="bm-group-title">${escH(v?v.title:'(지금은 없는 강의)')}</div><div class="bm-list">${groups[vid].sort((a,b)=>a.s-b.s).map(it=>bmItemHtml(it,'modal')).join('')}</div></div>`;
+  }).join('');
+}
+// 메모 입력 중인 칸은 다시 그리지 않음 (글자가 사라지지 않게)
+function renderBmAll(){
+  const ae=document.activeElement, typing=ae&&ae.classList&&ae.classList.contains('bm-memo');
+  const keep=(id,fn)=>{ const el=document.getElementById(id); if(!(typing&&el&&el.contains(ae)))fn(); };
+  keep('player-bm',renderPlayerBm);
+  if(document.getElementById('detail-modal').classList.contains('show'))keep('detail-bm',renderDetailBm);
+  if(document.getElementById('bm-modal').classList.contains('show'))keep('bm-modal-body',renderBmModal);
+}
+function openBmModal(){
+  if(!userName){ showToast('먼저 로그인해 주세요'); return; }
+  renderBmModal();
+  document.getElementById('bm-modal').classList.add('show');
+  document.body.style.overflow='hidden';
+  loadBookmarks();
+}
+function closeBmModal(){
+  const m=document.getElementById('bm-modal'); if(!m||!m.classList.contains('show'))return;
+  const ae=document.activeElement; if(ae&&ae.classList&&ae.classList.contains('bm-memo'))ae.blur();
+  m.classList.remove('show');
+  if(!document.getElementById('player-overlay').classList.contains('show'))document.body.style.overflow='';
+}
+
+/* ═══════════════════════════
+   ⟲ 다시 들은 구간 기록 — 뒤로 돌려 다시 들은 곳을 모아 강사님께 보여줌 (관리자 '강의 분석')
+═══════════════════════════ */
+let _rw=[],_rwVid=null,_rwLast=0;
+function rwNote(to,from){
+  if(!currentVideo||!(from-to>=3))return;
+  if(_rwVid!==currentVideo.id){ rwFlush(); _rwVid=currentVideo.id; }
+  const now=Date.now(), last=_rw[_rw.length-1];
+  // 10초 버튼을 연달아 누른 것은 한 번으로
+  if(last&&now-_rwLast<5000&&Math.abs(last[0]-from)<=3)last[0]=Math.max(0,Math.floor(to));
+  else _rw.push([Math.max(0,Math.floor(to)),Math.ceil(from)]);
+  _rwLast=now;
+  if(_rw.length>=30)rwFlush();
+}
+function rwFlush(){
+  const list=_rw.filter(x=>x[1]-x[0]>=3&&x[1]-x[0]<=600); _rw=[];
+  if(!list.length||!_rwVid||!authTok)return;
+  try{ fetch(SHEET_URL,{method:'POST',mode:'no-cors',keepalive:true,headers:{'Content-Type':'text/plain'},
+    body:JSON.stringify({type:'rewind',tok:authTok,videoId:_rwVid,dur:Math.floor(videoDuration||0),list})}).catch(()=>{}); }catch(e){}
+}
+
+/* ═══════════════════════════
+   ▶ 컴퓨터 화면: 다음 강의 버튼
+═══════════════════════════ */
+function nextLectureOf(v){
+  if(!v)return null;
+  const g=detectGrade(v);
+  const list=VIDEOS.map((x,i)=>({v:x,i})).filter(o=>detectGrade(o.v)===g).sort((a,b)=>lectureNo(a.v,a.i)-lectureNo(b.v,b.i));
+  const pos=list.findIndex(o=>o.v.id===v.id);
+  return pos>=0&&pos<list.length-1?list[pos+1]:null;
+}
+function renderNextLecBtn(){
+  const b=document.getElementById('next-lec-btn'); if(!b)return;
+  b.classList.remove('confirm'); clearTimeout(b._t);
+  const n=isMobile?null:nextLectureOf(currentVideo);
+  b.style.display=n?'':'none';
+  b._next=n?n.i:-1;
+  b.textContent='다음 강의 ▶';
+  if(n){ const p=parseTitle(n.v.title); b.title='다음: '+(p.sub?p.sub+' ':'')+(p.main||n.v.title); }
+}
+function goNextLecture(){
+  const b=document.getElementById('next-lec-btn'); if(!b||!(b._next>=0))return;
+  // 아직 다 안 본 강의면 한 번 더 확인 (실수로 눌러도 넘어가지 않게)
+  if(!completed&&!b.classList.contains('confirm')){
+    b.classList.add('confirm'); b.textContent='아직 다 안 봤어요 · 한 번 더 누르면 넘어가요';
+    clearTimeout(b._t); b._t=setTimeout(()=>{ b.classList.remove('confirm'); b.textContent='다음 강의 ▶'; },3500);
+    return;
+  }
+  const idx=b._next; closePlayer(); setTimeout(()=>selectVideo(idx),300);
+}
+
+/* ═══════════════════════════
+   🖼️ 썸네일을 기기에 저장해 두고 다음부터 바로 보여줌 (sw.js — 썸네일 외 다른 것은 건드리지 않음)
+═══════════════════════════ */
+if('serviceWorker' in navigator&&window.isSecureContext){
+  window.addEventListener('load',()=>{ setTimeout(()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); },2500); });
 }
 
 /* ─ SAVE ─ */
@@ -3451,7 +3725,7 @@ function saveProgress(force=false){
       duration:Math.floor(videoDuration||0)})}).catch(()=>{});
 }
 window.addEventListener('beforeunload',()=>{if(userName&&currentVideo&&maxReachedSec>5){saveRecord(true);saveProgress();}});
-window.addEventListener('pagehide',()=>{if(userName&&currentVideo&&maxReachedSec>5){saveRecord(true);saveProgress();}});
+window.addEventListener('pagehide',()=>{rwFlush();if(userName&&currentVideo&&maxReachedSec>5){saveRecord(true);saveProgress();}});
 window.addEventListener('scroll',()=>{
   document.getElementById('gf-header').classList.toggle('solid',window.scrollY>60);
 },{passive:true});
@@ -3464,6 +3738,7 @@ window.addEventListener('keydown',e=>{
     if(document.getElementById('card-modal').classList.contains('show'))closeCard();
     else if(document.getElementById('fb-modal').classList.contains('show'))closeFeedback();
     else if(document.getElementById('my-stats-modal').classList.contains('show'))closeMyStats();
+    else if(document.getElementById('bm-modal').classList.contains('show'))closeBmModal();
     else if(document.getElementById('detail-modal').classList.contains('show'))closeDetail();
     else closePlayer();
   }
@@ -3553,6 +3828,7 @@ function openDetail(index) {
   playBtn.childNodes[playBtn.childNodes.length-1].textContent =
     maxR > 10 ? ' 이어보기' : ' 재생';
 
+  renderDetailBm();
   document.getElementById('detail-modal').classList.add('show');
   document.body.style.overflow = 'hidden';
 }
@@ -3614,7 +3890,7 @@ document.addEventListener('click',e=>{ if(!e.target.closest('#hdr-menu'))closeHd
 document.addEventListener('keydown',e=>{ if(e.key==='Escape')closeHdrMenu(); });
 function hdrMenuGo(k){
   closeHdrMenu();
-  if(k==='stats')openMyStats(); else if(k==='mine')showMyFeedback(); else if(k==='pw')openPwModal(); else if(k==='out')goToLogin();
+  if(k==='stats')openMyStats(); else if(k==='bm')openBmModal(); else if(k==='mine')showMyFeedback(); else if(k==='pw')openPwModal(); else if(k==='out')goToLogin();
 }
 
 /* ══════════════════════════════════
@@ -4051,7 +4327,7 @@ function showIosInstallGuide() {
 init();
 
 /* ─ 새 버전 안내: 사이트를 새로 올리면 열려 있는 화면에 '새 버전' 띠를 띄움 ─ */
-const APP_VER='2026.10.31-1';
+const APP_VER='2026.11.01-1';
 (function(){
   const PAGE=()=>{ const p=location.pathname; return p.endsWith('/')?p+'index.html':p; };
   let newVer=null, shown=false;
