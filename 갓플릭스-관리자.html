@@ -175,6 +175,12 @@ table.rg-t tr.zero td{color:var(--g3);}
 .fb-tag{border-radius:4px;padding:1px 7px;font-weight:700;font-size:11px;}
 .fb-tag.q{background:rgba(74,158,255,.15);color:#4a9eff;border:1px solid rgba(74,158,255,.3);}
 .fb-tag.f{background:rgba(245,197,24,.12);color:#f5c518;border:1px solid rgba(245,197,24,.3);}
+.fb-tag.p{background:rgba(229,9,20,.15);color:#ff8a80;border:1px solid rgba(229,9,20,.35);}
+/* 빠진 정보 알림 (영상 관리) */
+.vid-missing{border:1px solid rgba(245,197,24,.3);background:rgba(245,197,24,.07);border-radius:8px;padding:12px 14px;margin-bottom:14px;font-size:13px;line-height:1.7;color:var(--g1);}
+.vid-missing b{color:var(--gold);}
+.vid-missing button{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:var(--g1);border-radius:14px;padding:3px 10px;font-size:12px;font-weight:700;margin:2px 4px 2px 0;cursor:pointer;font-family:var(--font);}
+.vid-miss-chip{display:inline-block;font-size:11px;font-weight:700;color:var(--gold);background:rgba(245,197,24,.1);border:1px solid rgba(245,197,24,.3);border-radius:10px;padding:1px 8px;margin-right:4px;}
 .fb-tag.n{background:rgba(229,9,20,.15);color:#ff8a80;border:1px solid rgba(229,9,20,.3);}
 .fb-body{white-space:pre-wrap;word-break:break-word;font-size:14px;line-height:1.7;color:var(--g1);}
 .fb-acts{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;}
@@ -765,6 +771,7 @@ table.matrix tbody tr:hover td.cell-ing{background:rgba(74,158,255,.14);}
         </select>
       </div>
     </div>
+    <div id="vid-missing"></div>
     <div class="vid-list" id="vid-list-admin"><div class="spinner"></div></div>
   </div>
 
@@ -929,6 +936,7 @@ table.matrix tbody tr:hover td.cell-ing{background:rgba(74,158,255,.14);}
       <button data-f="new" onclick="setFbFilter('new')">새 글</button>
       <button data-f="질문" onclick="setFbFilter('질문')">❓ 질문</button>
       <button data-f="느낀점" onclick="setFbFilter('느낀점')">💛 느낀 점</button>
+      <button data-f="비번문의" onclick="setFbFilter('비번문의')">🔑 비번 문의</button>
       <input id="fb-search" placeholder="이름·강의·내용 검색" oninput="renderFeedback()">
       <button onclick="loadFeedback(true)">🔄 새로고침</button>
     </div>
@@ -2106,20 +2114,23 @@ async function loadFeedback(show){
     if (show || document.getElementById('ts-feedback').classList.contains('active')) renderFeedback();
   } catch(e) { if (show) document.getElementById('fb-list').innerHTML = '<p class="empty">⚠️ 서버 연결 실패 — 새로고침을 눌러 주세요.</p>'; }
 }
+function fbKnownName(n){ const st = (vdData && vdData.students) || []; return st.includes(n); }
 function renderFeedback(){
   const q = (document.getElementById('fb-search').value || '').trim().toLowerCase();
   const list = _fbItems.filter(x => (_fbFilter === 'all' || (_fbFilter === 'new' ? x.status === '새글' : x.kind === _fbFilter))
     && (!q || (x.name + ' ' + x.title + ' ' + x.text).toLowerCase().includes(q)));
+  if (!list.length && _fbFilter === '비번문의') { document.getElementById('fb-list').innerHTML = '<p class="empty">비밀번호 문의가 없어요. (수강생이 로그인 화면의 "비밀번호를 잊었어요"로 보내면 여기에 와요)</p>'; return; }
   const el = document.getElementById('fb-list');
   if (!list.length) { el.innerHTML = '<p class="empty">' + (_fbItems.length ? '조건에 맞는 글이 없습니다.' : '아직 받은 글이 없습니다.') + '</p>'; return; }
   el.innerHTML = list.map(x => {
     const isNew = x.status === '새글';
     return `<div class="fb-card ${isNew ? 'new' : ''}">
-      <div class="fb-meta">${isNew ? '<span class="fb-tag n">NEW</span>' : ''}<span class="fb-tag ${x.kind === '질문' ? 'q' : 'f'}">${x.kind === '질문' ? '❓ 질문' : '💛 느낀 점'}</span>
+      <div class="fb-meta">${isNew ? '<span class="fb-tag n">NEW</span>' : ''}<span class="fb-tag ${x.kind === '질문' ? 'q' : x.kind === '비번문의' ? 'p' : 'f'}">${x.kind === '질문' ? '❓ 질문' : x.kind === '비번문의' ? '🔑 비밀번호 문의' : '💛 느낀 점'}</span>
         <b>${escHtml(x.name)}</b>${x.grade ? '<span>' + escHtml(x.grade) + '</span>' : ''}<span>${escHtml(x.title || '(강의 선택 안 함)')}</span><span style="margin-left:auto">${escHtml(x.at)}</span></div>
       <div class="fb-body">${escHtml(x.text)}</div>
       <div class="fb-acts">
         <button data-fid="${escHtml(x.fid)}" data-st="${isNew ? '읽음' : '새글'}" onclick="markFb(this.dataset.fid,this.dataset.st)">${isNew ? '✅ 읽음 처리' : '↩️ 새 글로 표시'}</button>
+        ${x.kind === '비번문의' ? (fbKnownName(x.name) ? `<button data-n="${escHtml(x.name)}" onclick="resetPassword(this.dataset.n)" style="color:#ff8a80">🔑 ${escHtml(x.name)} 님 비밀번호 바꿔 주기</button>` : `<span style="font-size:12px;color:var(--gold);align-self:center">⚠️ 수강생 명단에 이 이름이 없어요 — 수강생별 ▸ 관리에서 찾아 주세요</span>`) : ''}
         <button data-fid="${escHtml(x.fid)}" onclick="copyFb(this.dataset.fid)">📋 복사</button>
         <button data-fid="${escHtml(x.fid)}" onclick="delFb(this.dataset.fid)" style="color:#ff8a80">🗑 삭제</button>
       </div></div>`;
@@ -2286,6 +2297,7 @@ function renderVideoList() {
   const vids = gf ? allVideos.filter(v => detectGrade(v)===gf) : allVideos;
   document.getElementById('vid-count-label').textContent = allVideos.length;
   const c = document.getElementById('vid-list-admin');
+  renderVidMissing();
   if (!vids.length) { c.innerHTML = '<p class="empty">등록된 영상이 없습니다.</p>'; return; }
 
   c.innerHTML = vids.map((v, i) => {
@@ -2336,6 +2348,7 @@ function renderVideoList() {
         <div class="vid-body">
           ${parsed.sub?`<div class="vid-body-title-sub">${parsed.sub}</div>`:''}
           <div class="vid-body-title">${parsed.main||v.title}</div>
+          ${vidMissing(v).length ? `<div style="margin:3px 0 2px">${vidMissing(v).map(m => `<span class="vid-miss-chip">${m} 없음</span>`).join('')}</div>` : ''}
           <div class="vid-body-meta">
             ${v.date?`<span>📅 ${v.date}</span>`:''}
             ${v.lecturer?`<span>👤 ${v.lecturer}</span>`:''}
@@ -2574,6 +2587,26 @@ async function fetchVimeoThumbForEdit(videoId, editId, force = false) {
   }
 }
 
+/* ── 빠진 정보 알림: 썸네일·강사·설명이 비어 있는 강의 (학생 화면에 그대로 보이므로) ── */
+function vidMissing(v){ const m = []; if (!v.thumbnail) m.push('썸네일'); if (!String(v.lecturer || '').trim()) m.push('강사'); if (!String(v.description || '').trim()) m.push('설명'); return m; }
+function renderVidMissing(){
+  const el = document.getElementById('vid-missing'); if (!el) return;
+  const noThumb = allVideos.filter(v => !v.thumbnail), noLec = allVideos.filter(v => !String(v.lecturer || '').trim()), noDesc = allVideos.filter(v => !String(v.description || '').trim());
+  if (!noThumb.length && !noLec.length && !noDesc.length) { el.innerHTML = ''; return; }
+  const btns = list => list.slice(0, 12).map(v => `<button data-id="${escHtml(v.id)}" onclick="openVidEdit(this.dataset.id)">${escHtml((String(v.title).match(/^\s*\d+\s*강/) || [v.title])[0])} 고치기</button>`).join('') + (list.length > 12 ? ` 외 ${list.length - 12}개` : '');
+  el.innerHTML = `<div class="vid-missing">✍️ <b>학생 화면에 비어 보이는 정보가 있어요</b>
+    ${noThumb.length ? `<div>🖼️ 썸네일 없음 ${noThumb.length}개 — 첫 화면 큰 배너에 안 나와요 ${btns(noThumb)}</div>` : ''}
+    ${noLec.length ? `<div>👤 강사 없음 ${noLec.length}개 ${btns(noLec)}</div>` : ''}
+    ${noDesc.length ? `<div>📝 설명 없음 ${noDesc.length}개 — 배너에 "강의를 시청하세요"만 보여요${noDesc.length === allVideos.length ? ' (모든 강의)' : ''} ${noDesc.length <= 12 ? btns(noDesc) : ''}</div>` : ''}
+    <div style="font-size:12px;color:var(--g3);margin-top:4px">※ 갓플릭스 영상은 비메오 공개 설정 때문에 썸네일을 비메오에서 자동으로 가져올 수 없어요. 편집에서 구글 드라이브 그림 링크나 사진 파일로 넣어 주세요.</div></div>`;
+}
+function openVidEdit(id){
+  const gf = document.getElementById('vid-filter-grade'); if (gf && gf.value) { gf.value = ''; renderVideoList(); }
+  const f = document.getElementById('edit-' + id); if (!f) return;
+  if (!f.classList.contains('open')) toggleEditForm(id);
+  setTimeout(() => { const card = document.getElementById('vidc-' + id); if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 60);
+}
+
 /* ── 썸네일 일괄 추출 (썸네일 없는 영상) ── */
 async function batchFillThumbs() {
   const missing = allVideos.filter(v => !v.thumbnail && v.url);
@@ -2600,7 +2633,7 @@ async function batchFillThumbs() {
     await new Promise(r => setTimeout(r, 200)); // 0.2초 간격 (API 과부하 방지)
   }
   renderVideoList();
-  showToast(`✅ 완료: ${ok}개 추출 성공${fail ? `, ${fail}개 실패` : ''}`);
+  showToast(fail && !ok ? `⚠️ ${fail}개 모두 못 가져왔어요 — 비메오 공개 설정 때문에 자동으로는 안 돼요. 편집에서 그림 링크·파일로 넣어 주세요.` : `✅ 완료: ${ok}개 추출 성공${fail ? `, ${fail}개 실패(비메오 공개 설정)` : ''}`);
 }
 
 function onVimeoUrlInput(raw) {
@@ -3303,7 +3336,7 @@ window.addEventListener('keydown',e=>{if(e.key==='Escape')closePopup();});
 })();
 
 /* ─ 새 버전 안내: 사이트를 새로 올리면 열려 있는 화면에 '새 버전' 띠를 띄움 ─ */
-const APP_VER='2026.11.01-1';
+const APP_VER='2026.11.01-2';
 (function(){
   const PAGE=()=>location.pathname;
   let newVer=null, shown=false;
