@@ -190,6 +190,16 @@ input{outline:none;font-family:'Pretendard Variable','Pretendard',-apple-system,
   display:none;color:#ff6b6b;font-size:13px;
   margin-top:12px;line-height:1.5;
 }
+/* 🔑 비밀번호를 잊었어요 */
+.login-forgot{display:block;margin:16px auto 0;background:none;border:0;color:var(--g2);font-size:13.5px;text-decoration:underline;text-underline-offset:3px;cursor:pointer;padding:8px 10px;font-family:'Pretendard Variable','Pretendard',-apple-system,sans-serif;}
+.login-forgot:hover{color:#fff;}
+.pwh-box{display:none;margin-top:10px;padding:16px;border:1px solid rgba(255,255,255,.12);border-radius:10px;background:rgba(255,255,255,.04);text-align:left;}
+.pwh-box.show{display:block;animation:fadeUp .2s ease;}
+.pwh-title{font-size:15px;font-weight:700;color:#fff;margin-bottom:4px;}
+.pwh-sub{font-size:12.5px;color:var(--g3);margin-bottom:12px;line-height:1.5;}
+.pwh-box textarea.nf-input{resize:vertical;min-height:60px;font-family:inherit;}
+.pwh-msg{font-size:13px;margin-top:10px;line-height:1.5;min-height:1em;}
+.pwh-msg.ok{color:var(--green);} .pwh-msg.err{color:#ff6b6b;}
 
 /* ═══════════════════════════
    MAIN APP
@@ -852,6 +862,13 @@ input{outline:none;font-family:'Pretendard Variable','Pretendard',-apple-system,
 #detail-bm.has{display:block;}
 #fs-bm-btn{background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.3);color:var(--white);border-radius:20px;padding:8px 12px;font-size:13px;font-weight:700;min-height:40px;pointer-events:all;font-family:'Pretendard Variable','Pretendard',-apple-system,sans-serif;margin-right:6px;}
 #fs-bm-btn.hit{background:rgba(245,197,24,.35);border-color:var(--gold);}
+/* 좁은 세로 화면(작은 폰): 위쪽 버튼은 아이콘만 → 강의 제목이 보이게 */
+@media (max-width:430px) and (orientation:portrait){
+  #fs-header{gap:8px;padding-right:8px;}
+  #fs-header .fs-lbl{display:none;}
+  #fs-ds-btn,#fs-bm-btn,#fs-fb-btn{padding:8px 10px;margin-right:4px;min-width:40px;}
+  #fs-close-btn{padding:8px 12px;min-width:40px;}
+}
 #next-lec-btn.confirm{background:rgba(229,9,20,.25);border-color:rgba(229,9,20,.6);}
 .skip-btn{
   background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);color:var(--white);
@@ -1545,6 +1562,16 @@ html{-webkit-overflow-scrolling:touch;}
       </div>
       <button class="btn-enter" id="confirm-btn" onclick="confirmLogin()">입장하기</button>
       <div class="login-err" id="error-msg"></div>
+      <button type="button" class="login-forgot" id="pwh-toggle" onclick="togglePwHelp()" aria-expanded="false">비밀번호를 잊었어요</button>
+      <div class="pwh-box" id="pwh-box">
+        <div class="pwh-title">🔑 담당 선생님께 비밀번호 문의</div>
+        <div class="pwh-sub">보내 주시면 선생님이 확인하고 새 비밀번호를 알려 드려요.</div>
+        <input type="text" class="nf-input" id="pwh-name" placeholder="이름 (필수)" maxlength="20" autocomplete="name">
+        <input type="text" class="nf-input" id="pwh-contact" placeholder="연락처 또는 아이디 (선택)" maxlength="40" autocomplete="off">
+        <textarea class="nf-input" id="pwh-memo" rows="2" placeholder="하고 싶은 말 (선택)" maxlength="300"></textarea>
+        <button class="btn-enter" id="pwh-send" onclick="sendPwHelp()">문의 보내기</button>
+        <div class="pwh-msg" id="pwh-msg" role="status"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -1781,7 +1808,7 @@ html{-webkit-overflow-scrolling:touch;}
   <div class="fs-zone right" id="fs-zone-fwd" onclick="fsZoneTap(this,10)"><button class="fs-skip" id="fs-skip-fwd" tabindex="-1" aria-label="10초 앞으로">⟳<br>10초</button></div>
   <div id="fs-header">
     <div id="fs-title">강의 재생 중</div>
-    <div style="display:flex;align-items:center;pointer-events:none;"><button id="fs-ds-btn" onclick="toggleDataSaver()" aria-pressed="false" title="데이터 절약 (저화질, 소리는 그대로)">📶 절약</button><button id="fs-bm-btn" onclick="addBookmark(true)" aria-label="지금 장면 책갈피">📌</button><button id="fs-fb-btn" onclick="openFeedback()">✍️ 질문</button><button id="fs-close-btn" onclick="closeFullscreen()">✕ 닫기</button></div>
+    <div style="display:flex;align-items:center;pointer-events:none;"><button id="fs-ds-btn" onclick="toggleDataSaver()" aria-pressed="false" aria-label="데이터 절약" title="데이터 절약 (저화질, 소리는 그대로)">📶<span class="fs-lbl"> 절약</span></button><button id="fs-bm-btn" onclick="addBookmark(true)" aria-label="지금 장면 책갈피">📌</button><button id="fs-fb-btn" onclick="openFeedback()" aria-label="질문·느낀 점 쓰기">✍️<span class="fs-lbl"> 질문</span></button><button id="fs-close-btn" onclick="closeFullscreen()" aria-label="닫기">✕<span class="fs-lbl"> 닫기</span></button></div>
   </div>
   <div id="fs-bottom">
     <div id="fs-label">시청 시작 전</div>
@@ -1972,7 +1999,7 @@ async function initAutoLogin() {
           authTok = r.token;
           storage.setItem(key, JSON.stringify({ id: saved.id, user: r.user, tok: r.token }));
           if (r.user) applyRole(r.user.grade);
-          if (r.user && r.user.name !== userName) { userName = r.user.name; document.getElementById('header-name').textContent = userName + ' 님'; loadProgress(); }
+          if (r.user && r.user.name !== userName) { bmMigrate(userName, r.user.name); userName = r.user.name; document.getElementById('header-name').textContent = userName + ' 님'; loadProgress(); }
         }
       }).catch(() => {});
       return true;
@@ -2823,7 +2850,7 @@ function updateFeatured(index){
   // 배경 이미지
   const bg=document.getElementById('hero-bg');
   if(v.thumbnail){
-    bg.style.backgroundImage=`url('${v.thumbnail}')`;
+    bg.style.backgroundImage=`url('${fitThumb(v.thumbnail)}')`;
     bg.style.backgroundPosition='center 20%';
   }else{
     const colors={기초:'#051525',응용:'#051a0f',심화:'#1a0505',전체:'#0a0505',기타:'#0a0505'};
@@ -2842,6 +2869,14 @@ function playFeatured(){if(!userName){showToast('먼저 로그인해 주세요')
 function scrollToCatalog(){document.getElementById('catalog').scrollIntoView({behavior:'smooth'});}
 
 /* ─ CATALOG — 넷플릭스 가로 행 ─ */
+// 큰 그림은 화면 크기에 맞게 (휴대폰은 작은 그림 → 처음 열 때도 빨리) · 크기를 몇 단계로만 나눠야 기기에 저장한 그림을 다시 씀
+function fitThumb(u){
+  u=String(u||'');
+  if(!/drive\.google\.com\/thumbnail/.test(u))return u;
+  const need=(window.innerWidth||1280)*Math.min(window.devicePixelRatio||1,2);
+  const w=need<=480?480:need<=800?800:1280;
+  return /[?&]sz=/.test(u)?u.replace(/sz=w\d+/,'sz=w'+w):u+'&sz=w'+w;
+}
 function smallThumb(u){
   u=String(u||'');
   if(/drive\.google\.com\/thumbnail/.test(u)) return /[?&]sz=/.test(u)?u.replace(/sz=w\d+/,'sz=w480'):u+'&sz=w480';
@@ -2855,6 +2890,8 @@ function lazyThumbs(root){
   if(!_thumbObs)_thumbObs=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){apply(e.target);_thumbObs.unobserve(e.target);}}),{rootMargin:'300px'});
   els.forEach(el=>_thumbObs.observe(el));
 }
+// 남은 시간: 끝까지 보려면 몇 분 남았는지 (길이를 아직 모르면 빈칸)
+function remainLabel(maxR,dur){ if(!(dur>0))return ''; const m=Math.ceil(Math.max(0,dur-maxR)/60); return m<=1?'곧 끝나요':m+'분 남음'; }
 function makeCard(v, vi, i){
   const prog=progressMap[v.id];
   const maxR=prog?(parseFloat(prog.maxReached)||0):0;
@@ -2878,7 +2915,7 @@ function makeCard(v, vi, i){
     <div class="v-overlay"></div>
     <div class="v-badge-grade ${gc}">${grade}</div>
     ${isDone?'<div class="v-badge-done">✓</div>':''}
-    ${isWatched&&!isDone?'<div class="v-badge-watching">시청중</div>':''}
+    ${isWatched&&!isDone?`<div class="v-badge-watching">${remainLabel(maxR,dur)||'시청중'}</div>`:''}
     <div class="v-play-icon">
       <svg viewBox="0 0 24 24" fill="white">
         <circle cx="12" cy="12" r="12" fill="rgba(0,0,0,.5)"/>
@@ -2985,7 +3022,7 @@ function renderNextLecture(){
   const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   box.style.cssText='margin:0 4% 18px;padding:14px 16px;border-radius:8px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:14px;flex-wrap:wrap;';
   box.innerHTML = next
-    ? `<div style="flex:1;min-width:200px"><div style="font-size:12px;color:var(--g3)">▶ 이어서 볼 강의 · ${gl} <b style="color:var(--white)">${done}/${list.length} 완료</b></div>
+    ? `<div style="flex:1;min-width:200px"><div style="font-size:12px;color:var(--g3)">▶ 이어서 볼 강의 · ${gl} <b style="color:var(--white)">${done}/${list.length} 완료</b>${(()=>{ const p=progressMap[next.v.id]; const mx=p?parseFloat(p.maxReached)||0:0, d=p?parseFloat(p.duration)||0:0; const r=mx>30?remainLabel(mx,d):''; return r?` · <b style="color:var(--green)">${r}</b>`:''; })()}</div>
         <div style="font-size:16px;font-weight:700;margin-top:4px">${esc(next.v.title)}</div>
         <div style="height:4px;background:rgba(255,255,255,.08);border-radius:2px;margin-top:8px;overflow:hidden"><div style="width:${pct}%;height:100%;background:var(--red)"></div></div></div>
        <button data-play="${next.i}" onclick="selectVideo(${next.i})" style="background:var(--white);color:#000;border:none;border-radius:4px;padding:9px 18px;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit">▶ 재생</button>`
@@ -3203,7 +3240,9 @@ let dataSaver=(()=>{ try{ const v=localStorage.getItem('gf_datasaver'); if(v!==n
 function dsQuality(){ return dataSaver?'240p':'auto'; }
 function renderDsBtns(){
   [['ds-btn','📶 데이터 절약'],['fs-ds-btn','📶 절약']].forEach(([id,label])=>{ const b=document.getElementById(id); if(!b)return;
-    b.classList.toggle('on',dataSaver); b.setAttribute('aria-pressed',String(dataSaver)); b.textContent=label+(dataSaver?' ON':''); });
+    b.classList.toggle('on',dataSaver); b.setAttribute('aria-pressed',String(dataSaver));
+    if(id==='fs-ds-btn') b.innerHTML='📶<span class="fs-lbl"> 절약'+(dataSaver?' ON':'')+'</span>';   // 좁은 폰에선 글자 숨기고 아이콘만 (켜지면 초록색)
+    else b.textContent=label+(dataSaver?' ON':''); });
 }
 function toggleDataSaver(){
   dataSaver=!dataSaver;
@@ -3496,6 +3535,8 @@ function sendPlayer(method,value,isFs=false){
 ═══════════════════════════ */
 let _bm=[],_bmDel=[],_bmNew=null;
 function bmKeyL(){ return 'gf_bm_'+userName; }
+// 관리자가 이름을 고치면: 이 기기에 남은(아직 못 보낸) 책갈피도 새 이름으로
+function bmMigrate(oldN,newN){ try{ if(!oldN||!newN||oldN===newN)return; const o=localStorage.getItem('gf_bm_'+oldN); if(o&&!localStorage.getItem('gf_bm_'+newN))localStorage.setItem('gf_bm_'+newN,o); localStorage.removeItem('gf_bm_'+oldN); }catch(e){} }
 function bmLoadLocal(){ try{ const o=JSON.parse(localStorage.getItem(bmKeyL())||'{}'); _bm=Array.isArray(o.items)?o.items:[]; _bmDel=Array.isArray(o.del)?o.del:[]; }catch(e){ _bm=[];_bmDel=[]; } }
 function bmSaveLocal(){ if(!userName)return; try{ localStorage.setItem(bmKeyL(),JSON.stringify({items:_bm,del:_bmDel})); }catch(e){} }
 function bmPush(it){
@@ -3688,6 +3729,29 @@ if('serviceWorker' in navigator&&window.isSecureContext){
   window.addEventListener('load',()=>{ setTimeout(()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); },2500); });
 }
 
+
+/* ═══ 🔑 비밀번호를 잊었어요 — 관리자 '소감·질문'에 '비번 문의'로 전달 ═══ */
+function togglePwHelp(){
+  const b=document.getElementById('pwh-box'), t=document.getElementById('pwh-toggle');
+  const on=!b.classList.contains('show'); b.classList.toggle('show',on); t.setAttribute('aria-expanded',String(on));
+  if(on){ const c=document.getElementById('pwh-contact'), id=document.getElementById('id-input').value.trim(); if(id&&!c.value)c.value=id; setTimeout(()=>document.getElementById('pwh-name').focus(),50); }
+}
+async function sendPwHelp(){
+  const msg=document.getElementById('pwh-msg'), btn=document.getElementById('pwh-send');
+  const say=(t,ok)=>{ msg.textContent=t; msg.className='pwh-msg '+(ok?'ok':'err'); };
+  const name=document.getElementById('pwh-name').value.trim();
+  if(!name){ say('이름을 적어 주세요.',false); document.getElementById('pwh-name').focus(); return; }
+  let last=0; try{ last=Number(localStorage.getItem('gf_pwh_at')||0); }catch(e){}
+  if(Date.now()-last<10*60000){ say('✅ 방금 보내셨어요. 선생님이 확인할 때까지 조금만 기다려 주세요.',true); return; }
+  btn.disabled=true; say('보내는 중…',true);
+  try{
+    const r=await gasApi({action:'pw_help',name,contact:document.getElementById('pwh-contact').value.trim(),memo:document.getElementById('pwh-memo').value.trim(),fid:'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,8)});
+    if(r&&r.success){ try{ localStorage.setItem('gf_pwh_at',String(Date.now())); }catch(e){} say('✅ 담당 선생님께 전해 드렸어요. 확인 후 새 비밀번호를 알려 드릴 거예요.',true); document.getElementById('pwh-memo').value=''; }
+    else say('⚠️ '+((r&&r.error)||'보내지 못했어요. 잠시 후 다시 해 주세요.'),false);
+  }catch(e){ say('⚠️ 인터넷 연결을 확인하고 다시 해 주세요.',false); }
+  finally{ btn.disabled=false; }
+}
+
 /* ─ SAVE ─ */
 function saveRecord(isFinal=true){
   if(!userName||!currentVideo)return;
@@ -3786,7 +3850,7 @@ function openDetail(index) {
   // 썸네일
   const thumb = document.getElementById('detail-thumb');
   if (v.thumbnail) {
-    thumb.style.backgroundImage = `url('${v.thumbnail}')`;
+    thumb.style.backgroundImage = `url('${fitThumb(v.thumbnail)}')`;
     thumb.style.backgroundSize = 'cover';
     thumb.style.backgroundPosition = 'center';
   } else {
@@ -4327,7 +4391,7 @@ function showIosInstallGuide() {
 init();
 
 /* ─ 새 버전 안내: 사이트를 새로 올리면 열려 있는 화면에 '새 버전' 띠를 띄움 ─ */
-const APP_VER='2026.11.01-1';
+const APP_VER='2026.11.01-2';
 (function(){
   const PAGE=()=>{ const p=location.pathname; return p.endsWith('/')?p+'index.html':p; };
   let newVer=null, shown=false;
