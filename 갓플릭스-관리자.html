@@ -4,6 +4,19 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>갓플릭스 관리자</title>
+<script>
+/* 🧯 관리자 화면 오류도 같은 곳(설정 ▸ 화면 오류)에 남김 */
+(function(){
+  var seen={},sent=0;
+  function report(m,w){ m=String(m||'').slice(0,300); w=String(w||'').slice(0,200); if(!m)return;
+    if(/^Script error\.?$/i.test(m)||/ResizeObserver loop|서버 응답 시간 초과|load error|Failed to fetch|NetworkError|Load failed|network connection was lost|AbortError|NotAllowedError/i.test(m))return;
+    var k=m+'|'+w; if(seen[k]||sent>=5)return; seen[k]=1; sent++;
+    setTimeout(function(){ var url,ver=''; try{ url=SHEET_URL; }catch(e){ return; } try{ ver=APP_VER; }catch(e){}
+      try{ fetch(url,{method:'POST',mode:'no-cors',keepalive:true,headers:{'Content-Type':'text/plain'},body:JSON.stringify({type:'clienterr',msg:m,where:w,ver:ver,page:'admin',env:/Android|iPhone|iPad/.test(navigator.userAgent)?'관리자 · 휴대폰':'관리자 · PC',ua:navigator.userAgent.slice(0,250)})}).catch(function(){}); }catch(e){} },1500); }
+  window.addEventListener('error',function(e){ if(!(e instanceof ErrorEvent))return; var f=String(e.filename||'').split('?')[0].split('/').pop()||'admin'; report(e.message,f+':'+(e.lineno||0)+':'+(e.colno||0)); });
+  window.addEventListener('unhandledrejection',function(e){ var r=e.reason; report('(Promise) '+((r&&r.message)||String(r)),r&&r.stack?String(r.stack).split('\n').slice(0,2).join(' ← '):''); });
+})();
+</script>
 <link rel="preconnect" href="https://cdn.jsdelivr.net">
 <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
@@ -176,14 +189,31 @@ table.rg-t tr.zero td{color:var(--g3);}
 .adm-tab.active{color:var(--white);border-bottom-color:var(--red);}
 .adm-tab .tab-icon{font-size:15px;}
 .adm-tab .tab-text{font-size:13px;}
-/* 모바일: 아이콘만 표시 */
+/* 분석 안의 작은 탭 (출석·일자별·기간·강의) */
+.adm-subtabs{display:none;gap:8px;padding:12px 4% 0;overflow-x:auto;scrollbar-width:none;}
+.adm-subtabs::-webkit-scrollbar{display:none;}
+.adm-subtabs.show{display:flex;}
+.adm-subtab{flex:0 0 auto;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:var(--g2);border-radius:20px;padding:8px 14px;font-size:13px;font-weight:700;font-family:var(--font);cursor:pointer;white-space:nowrap;}
+.adm-subtab:hover{color:#fff;background:rgba(255,255,255,.1);}
+.adm-subtab.active{background:rgba(229,9,20,.18);border-color:rgba(229,9,20,.55);color:#fff;}
+/* 모바일: 아이콘 아래 작은 글씨로 이름 표시 (아이콘만 있으면 헷갈림) */
 @media(max-width:640px){
-  .adm-tabs{padding:0 2%;}
-  .adm-tab{padding:12px 10px;}
-  .adm-tab .tab-text{display:none;}
-  .adm-tab .tab-icon{font-size:18px;}
+  .adm-tabs{padding:0 1%;}
+  .adm-tab{flex:1 1 0;min-width:48px;flex-direction:column;gap:2px;padding:8px 2px 7px;position:relative;}
+  .adm-tab .tab-text{display:block;font-size:10.5px;letter-spacing:-.3px;}
+  .adm-tab .tab-icon{font-size:17px;line-height:1.1;}
   .adm-tab.active .tab-icon{filter:drop-shadow(0 0 4px rgba(229,9,20,.6));}
+  .adm-tab .fb-dot{position:absolute;top:3px;right:50%;margin-right:-22px;font-size:9.5px;padding:0 5px;}
+  .adm-subtabs{padding:10px 3% 0;gap:6px;}
+  .adm-subtab{padding:7px 11px;font-size:12.5px;}
 }
+/* 🧯 화면 오류 */
+.ce-item{border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03);border-radius:8px;padding:10px 12px;margin-bottom:8px;}
+.ce-top{display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:12px;color:var(--g3);margin-bottom:5px;}
+.ce-msg{font-size:13.5px;color:#ffb4ab;word-break:break-word;font-family:ui-monospace,Menlo,Consolas,monospace;}
+.ce-where{font-size:11.5px;color:var(--g3);margin-top:4px;word-break:break-all;}
+/* ⟲ 다시 들은 구간 */
+.rw-strip{width:100%;height:auto;display:block;margin-top:2px;}
 
 /* ── TAB SECTIONS ── */
 .tab-section{display:none;padding:28px 4% 60px;min-height:calc(100vh - 120px);}
@@ -466,8 +496,7 @@ table.matrix tbody tr:hover td.cell-ing{background:rgba(74,158,255,.14);}
   .adm-actions{gap:6px;}
 
   /* 탭 */
-  .adm-tabs{padding:0 3%;}
-  .adm-tab{padding:12px 12px;font-size:12px;}
+  .adm-tabs{padding:0 1%;}
 
   /* 탭 섹션 */
   .tab-section{padding:20px 3% 50px;}
@@ -558,14 +587,17 @@ table.matrix tbody tr:hover td.cell-ing{background:rgba(74,158,255,.14);}
     <button class="adm-tab active" id="mt-dashboard" onclick="switchTab('dashboard')"><span class="tab-icon">📊</span><span class="tab-text">대시보드</span></button>
     <button class="adm-tab" id="mt-videos"    onclick="switchTab('videos')"><span class="tab-icon">🎬</span><span class="tab-text">영상 관리</span></button>
     <button class="adm-tab" id="mt-students"  onclick="switchTab('students')"><span class="tab-icon">👥</span><span class="tab-text">수강생별</span></button>
-    <button class="adm-tab" id="mt-matrix"    onclick="switchTab('matrix')"><span class="tab-icon">📋</span><span class="tab-text">출석 현황</span></button>
-    <button class="adm-tab" id="mt-daily"     onclick="switchTab('daily')"><span class="tab-icon">📅</span><span class="tab-text">일자별</span></button>
-    <button class="adm-tab" id="mt-range"     onclick="switchTab('range')"><span class="tab-icon">📈</span><span class="tab-text">기간 분석</span></button>
-    <button class="adm-tab" id="mt-dropoff"   onclick="switchTab('dropoff')"><span class="tab-icon">🎯</span><span class="tab-text">강의 분석</span></button>
+    <button class="adm-tab" id="mt-analysis"  onclick="switchTab('analysis')"><span class="tab-icon">📈</span><span class="tab-text">분석</span></button>
     <button class="adm-tab" id="mt-feedback"  onclick="switchTab('feedback')"><span class="tab-icon">✍️</span><span class="tab-text">소감·질문</span><span class="fb-dot" id="fb-unread" style="display:none"></span></button>
-    <button class="adm-tab" id="mt-notice"    onclick="switchTab('notice')"><span class="tab-icon">📢</span><span class="tab-text">공지사항</span></button>
-    <button class="adm-tab" id="mt-settings"  onclick="switchTab('settings')"><span class="tab-icon">⚙️</span><span class="tab-text">설정</span></button>
+    <button class="adm-tab" id="mt-notice"    onclick="switchTab('notice')"><span class="tab-icon">📢</span><span class="tab-text">공지</span></button>
+    <button class="adm-tab" id="mt-settings"  onclick="switchTab('settings')"><span class="tab-icon">⚙️</span><span class="tab-text">설정</span><span class="fb-dot" id="ce-dot" style="display:none" title="최근 24시간 화면 오류"></span></button>
   </nav>
+  <div class="adm-subtabs" id="adm-subtabs" role="tablist" aria-label="분석 종류">
+    <button class="adm-subtab" id="mt-matrix"  onclick="switchTab('matrix')">📋 출석 현황</button>
+    <button class="adm-subtab" id="mt-daily"   onclick="switchTab('daily')">📅 일자별</button>
+    <button class="adm-subtab" id="mt-range"   onclick="switchTab('range')">📈 기간 분석</button>
+    <button class="adm-subtab" id="mt-dropoff" onclick="switchTab('dropoff')">🎯 강의 분석</button>
+  </div>
 
   <!-- ═══ 대시보드 ═══ -->
   <div class="tab-section active" id="ts-dashboard">
@@ -878,7 +910,7 @@ table.matrix tbody tr:hover td.cell-ing{background:rgba(74,158,255,.14);}
   <!-- ═══ 강의 분석: 어디서 멈추나 ═══ -->
   <div class="tab-section" id="ts-dropoff">
     <div class="sec-title">🎯 <em>강의 분석</em> · 어디서 멈추나</div>
-    <div style="font-size:13px;color:var(--g3);margin:-10px 0 10px;line-height:1.6">강의마다 수강생이 <b style="color:var(--g1)">어느 지점까지 봤는지</b> 보여줘요. 빨간 선 = 그 지점까지 본 사람 비율, 아래 막대 = 그 구간에서 멈추고 3일 넘게 안 돌아온 사람 수. (관리자·인섬교 제외, 최근 3일 안에 본 사람은 '보는 중')</div>
+    <div style="font-size:13px;color:var(--g3);margin:-10px 0 10px;line-height:1.6">강의마다 수강생이 <b style="color:var(--g1)">어느 지점까지 봤는지</b> 보여줘요. 빨간 선 = 그 지점까지 본 사람 비율, 아래 막대 = 그 구간에서 멈추고 3일 넘게 안 돌아온 사람 수, <b style="color:#7fb6ff">파란 띠 ⟲</b> = 뒤로 돌려 <b style="color:var(--g1)">다시 들은</b> 사람이 많은 구간(진할수록 많음 · 11월 1일부터 기록). (관리자·인섬교 제외, 최근 3일 안에 본 사람은 '보는 중')</div>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px;">
       <select id="do-sort" onchange="renderDropoff()" style="font-family:var(--font);background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:6px;color:var(--white);padding:7px 10px;font-size:12.5px;">
         <option value="order">강의 순서대로</option><option value="worst">완주율 낮은 순</option><option value="stopped">멈춘 사람 많은 순</option>
@@ -976,6 +1008,16 @@ table.matrix tbody tr:hover td.cell-ing{background:rgba(74,158,255,.14);}
           </div>
         </div>
       </div>
+    </div>
+
+    <!-- 🧯 수강생 화면 오류 -->
+    <div class="panel" style="margin-bottom:12px;">
+      <div class="panel-title" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span>🧯 수강생 화면 오류 <span id="ce-count" style="font-size:12px;color:var(--g3);font-weight:600"></span></span>
+        <span style="display:flex;gap:6px;"><button class="adm-btn" onclick="loadClientErr(true)">🔄 새로고침</button><button class="adm-btn" id="ce-clear-btn" onclick="clearClientErr()">🗑 고친 뒤 비우기</button></span>
+      </div>
+      <div style="font-size:12.5px;color:var(--g3);margin:-4px 0 10px;line-height:1.6">수강생 폰·컴퓨터에서 오류가 나면 자동으로 여기에 남아요. 같은 오류는 6시간에 한 번만 남고, 인터넷 끊김처럼 고칠 수 없는 것은 빠져요. 계속 쌓이는 오류가 있으면 알려 주세요.</div>
+      <div id="ce-list"><p class="empty">불러오는 중…</p></div>
     </div>
 
     <!-- 빠른 작업 -->
@@ -1131,10 +1173,15 @@ function handleExpired() {
 function isFullA(p){ const d=Number(p&&p.duration)||0, m=Number(p&&p.maxReached)||0; return d>0&&m>=d-2; }
 
 /* ── TABS ── */
+const ANA_TABS = ['matrix', 'daily', 'range', 'dropoff'];
 function switchTab(t) {
-  document.querySelectorAll('.adm-tab').forEach(b => b.classList.remove('active'));
+  if (t === 'analysis') { let last = ''; try { last = localStorage.getItem('gf_adm_ana') || ''; } catch(e){} t = ANA_TABS.includes(last) ? last : 'range'; }
+  const ana = ANA_TABS.includes(t);
+  document.querySelectorAll('.adm-tab,.adm-subtab').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('.tab-section').forEach(s => s.classList.remove('active'));
   document.getElementById('mt-'+t).classList.add('active');
+  if (ana) { document.getElementById('mt-analysis').classList.add('active'); try { localStorage.setItem('gf_adm_ana', t); } catch(e){} }
+  document.getElementById('adm-subtabs').classList.toggle('show', ana);
   document.getElementById('ts-'+t).classList.add('active');
   if (t==='students') renderStudentCards();
   if (t==='matrix')   loadVideoData();
@@ -1144,7 +1191,7 @@ function switchTab(t) {
   if (t==='range')    { if (_rg) renderRange(); else rgQuick(_rgQ || '4w'); }
   if (t==='dropoff')  loadDropoff(false);
   if (t==='dashboard') renderCare();
-  if (t==='settings') initSettings();
+  if (t==='settings') { initSettings(); loadClientErr(true); }
 }
 
 /* ════════════════════
@@ -1828,6 +1875,13 @@ function loadDropoff(fresh){
   }).catch(() => { if (!_do) document.getElementById('do-body').innerHTML = '<p class="empty">⚠️ 서버 연결 실패</p>'; }).finally(() => { _doP = null; });
 }
 function mmss(sec){ sec = Math.round(sec); const m = Math.floor(sec / 60); return m + '분'; }
+// ⟲ 다시 들은 구간: 그래프와 같은 칸으로, 다시 들은 사람이 많을수록 진한 파랑
+function rwStrip(v, W, L, R, iw, B){
+  if (!v.rw || !v.rw.bins || !v.rw.students) return '';
+  const mx = Math.max(1, ...v.rw.bins), H = 22;
+  const cells = v.rw.bins.map((c, i) => `<rect x="${(L + iw * i / B + 0.5).toFixed(1)}" y="3" width="${(iw / B - 1).toFixed(1)}" height="${H - 6}" rx="2" fill="${c ? `rgba(74,158,255,${(0.15 + 0.85 * c / mx).toFixed(2)})` : 'rgba(255,255,255,.04)'}"><title>${mmss(v.dur * i / B)}~${mmss(v.dur * (i + 1) / B)}: ${c}명 다시 들음</title></rect>`).join('');
+  return `<svg class="rw-strip" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="다시 들은 구간"><text x="${L - 6}" y="15" fill="#7fb6ff" font-size="11" text-anchor="end">⟲</text>${cells}</svg>`;
+}
 function renderDropoff(){
   const r = _do, el = document.getElementById('do-body'); if (!r || !el) return;
   const B = r.bins;
@@ -1862,12 +1916,55 @@ function renderDropoff(){
         <polyline points="${pts}" fill="none" stroke="#E50914" stroke-width="2.5" vector-effect="non-scaling-stroke"/>
         ${ticks}
       </svg>
+      ${rwStrip(v, W, L, R, iw, B)}
       <div class="do-hint">
         ${dd >= 5 ? `📉 가장 많이 빠지는 구간: <b>${mmss(v.dur * di / B)}~${mmss(v.dur * (di + 1) / B)}</b> (여기서 ${Math.round(dd)}%p 줄어듦)<br>` : ''}
         ${half > 0 ? `🔻 절반 넘는 분이 <b>${mmss(v.dur * half / B)}</b> 전에 그만두셨어요<br>` : v.reach[B] >= 50 ? '👍 절반 넘는 분이 끝까지 봤어요<br>' : ''}
-        ${bi >= 0 ? `⏸ 가장 많이 멈춘 곳: <b>${mmss(v.dur * bi / B)}~${mmss(v.dur * (bi + 1) / B)}</b> ${v.stops[bi]}명 <button class="adm-btn" style="padding:3px 9px;font-size:11.5px" data-v="${escHtml(v.id)}" onclick="showDoNames(this.dataset.v)">누구?</button>` : ''}
+        ${bi >= 0 ? `⏸ 가장 많이 멈춘 곳: <b>${mmss(v.dur * bi / B)}~${mmss(v.dur * (bi + 1) / B)}</b> ${v.stops[bi]}명 <button class="adm-btn" style="padding:3px 9px;font-size:11.5px" data-v="${escHtml(v.id)}" onclick="showDoNames(this.dataset.v)">누구?</button><br>` : ''}
+        ${v.rw && v.rw.spots.length ? `⟲ 가장 많이 다시 들은 곳: ${v.rw.spots.map((sp, k) => `<b>${clk(sp.s)}</b> 부근 ${sp.n}명 <button class="adm-btn" style="padding:3px 9px;font-size:11.5px" data-v="${escHtml(v.id)}" data-k="${k}" onclick="showRwNames(this.dataset.v,+this.dataset.k)">누구?</button>`).join(' · ')}` : v.rw ? `⟲ 다시 들은 분 ${v.rw.students}명 (아직 몰린 곳은 없어요)` : ''}
       </div></div>`;
   }).join('') + (empty.length ? `<p style="font-size:12.5px;color:var(--g3);margin-top:6px">아직 시청 기록이 없는 강의: ${escHtml(empty.map(v => v.title).join(', '))}</p>` : '');
+}
+
+/* ── 🧯 수강생 화면 오류 ── */
+let _ce = null, _ceP = null;
+function loadClientErr(show){
+  if (show && _ce) renderClientErr();
+  if (_ceP) return _ceP;
+  _ceP = api({ action: 'clienterr_list', pw: ADMIN_PW }).then(r => {
+    if (!r || r.error) { if (show && !_ce) document.getElementById('ce-list').innerHTML = '<p class="empty">불러오지 못했습니다.</p>'; return; }
+    _ce = r; renderClientErr();
+  }).catch(() => { if (show && !_ce) document.getElementById('ce-list').innerHTML = '<p class="empty">⚠️ 서버 연결 실패</p>'; }).finally(() => { _ceP = null; });
+  return _ceP;
+}
+function renderClientErr(){
+  const r = _ce; if (!r) return;
+  const dot = document.getElementById('ce-dot');
+  if (dot) { dot.textContent = r.n24; dot.style.display = r.n24 > 0 ? '' : 'none'; }
+  const cnt = document.getElementById('ce-count'); if (cnt) cnt.textContent = r.items.length ? `· 최근 24시간 ${r.n24}건 / 보관 ${r.total || r.items.length}건` : '';
+  const el = document.getElementById('ce-list'); if (!el) return;
+  if (!r.items.length) { el.innerHTML = '<p class="empty" style="padding:18px 0">👍 기록된 오류가 없어요.</p>'; return; }
+  // 같은 오류끼리 묶어서 (많이 난 것 먼저)
+  const g = {};
+  r.items.forEach(x => { const k = x.msg + '|' + x.where; (g[k] = g[k] || { x: x, n: 0, who: {}, env: {}, last: x.at }).n++; g[k].who[x.who] = 1; if (x.env) g[k].env[x.env] = 1; });
+  el.innerHTML = Object.values(g).sort((a, b) => b.n - a.n || String(b.last).localeCompare(String(a.last))).slice(0, 50).map(o => {
+    const who = Object.keys(o.who), env = Object.keys(o.env);
+    return `<div class="ce-item"><div class="ce-top"><span class="care-chip ${o.n >= 3 ? 'r' : 'y'}">${o.n}번</span><span>🕒 ${escHtml(o.last)}</span><span>👤 ${escHtml(who.slice(0, 4).join(', '))}${who.length > 4 ? ' 외 ' + (who.length - 4) + '명' : ''}</span>${env.length ? `<span>📱 ${escHtml(env.slice(0, 3).join(' / '))}</span>` : ''}<span>${o.x.page === 'admin' ? '관리자 화면' : '수강생 화면'} · v${escHtml(o.x.ver || '?')}</span></div>
+      <div class="ce-msg">${escHtml(o.x.msg)}</div>${o.x.where ? `<div class="ce-where">${escHtml(o.x.where)}</div>` : ''}</div>`;
+  }).join('');
+}
+let _ceClearArm = 0;
+async function clearClientErr(){
+  const b = document.getElementById('ce-clear-btn');
+  if (Date.now() - _ceClearArm > 4000) { _ceClearArm = Date.now(); b.textContent = '정말 비울까요? 한 번 더'; setTimeout(() => { if (Date.now() - _ceClearArm >= 4000) b.textContent = '🗑 고친 뒤 비우기'; }, 4100); return; }
+  _ceClearArm = 0; b.textContent = '🗑 고친 뒤 비우기';
+  try { const r = await api({ action: 'clienterr_clear', pw: ADMIN_PW }); if (r && r.success) { _ce = { items: [], n24: 0, total: 0 }; renderClientErr(); showToast('🗑 비웠어요'); } else showToast('⚠️ 실패'); }
+  catch(e) { showToast('⚠️ 서버 연결 실패'); }
+}
+function clk(sec){ sec = Math.max(0, Math.floor(sec || 0)); const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), ss = String(sec % 60).padStart(2, '0'); return h ? h + ':' + String(m).padStart(2, '0') + ':' + ss : m + ':' + ss; }
+function showRwNames(id, k){
+  const v = (_do && _do.videos || []).find(x => x.id === id); const sp = v && v.rw && v.rw.spots[k];
+  showToast(sp ? '⟲ ' + clk(sp.s) + ' 부근: ' + sp.names.join(', ') : '없음');
 }
 function showDoNames(id){
   const n = (window._doNames || {})[id] || [];
@@ -2096,6 +2193,7 @@ async function loadAll(retry = 0) {
     // 필요한 데이터를 한꺼번에(동시에) 요청 → 탭을 눌렀을 때 바로 보임
     fetchStats(false).catch(() => {});
     loadFeedback(false);
+    setTimeout(() => loadClientErr(false), 4000);
     loadTodayCount(true);
     loadCare(false);
     // 일자별(오늘)도 미리 받아 두기 → 탭을 열면 바로 보임
@@ -3205,7 +3303,7 @@ window.addEventListener('keydown',e=>{if(e.key==='Escape')closePopup();});
 })();
 
 /* ─ 새 버전 안내: 사이트를 새로 올리면 열려 있는 화면에 '새 버전' 띠를 띄움 ─ */
-const APP_VER='2026.10.30-2';
+const APP_VER='2026.11.01-1';
 (function(){
   const PAGE=()=>location.pathname;
   let newVer=null, shown=false;
