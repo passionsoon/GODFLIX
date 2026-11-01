@@ -25,15 +25,13 @@ async function trim(c, s) {
 }
 
 async function refresh(req, key, c, s) {
-  try {
-    const res = await fetch(req);
-    if (res && (res.ok || res.type === 'opaque')) {
-      await c.put(key, res.clone());
-      await s.put(key, new Response(String(Date.now())));
-      trim(c, s).catch(() => {});
-    }
-    return res;
-  } catch (e) { return null; }
+  let res;
+  try { res = await fetch(req); } catch (e) { return null; }   // 인터넷 끊김
+  if (res && (res.ok || res.type === 'opaque')) {
+    // 저장 공간이 꽉 차 저장에 실패해도, 이미 받은 그림은 그대로 보여줌 (다시 받지 않음)
+    try { await c.put(key, res.clone()); await s.put(key, new Response(String(Date.now()))); trim(c, s).catch(() => {}); } catch (e) {}
+  }
+  return res;
 }
 
 self.addEventListener('fetch', e => {
