@@ -175,6 +175,38 @@ table.rg-t tr.zero td{color:var(--g3);}
 .fb-tag{border-radius:4px;padding:1px 7px;font-weight:700;font-size:11px;}
 .fb-tag.q{background:rgba(74,158,255,.15);color:#4a9eff;border:1px solid rgba(74,158,255,.3);}
 .fb-tag.f{background:rgba(245,197,24,.12);color:#f5c518;border:1px solid rgba(245,197,24,.3);}
+.fb-tag.l{background:rgba(255,105,180,.13);color:#ff9ccf;border:1px solid rgba(255,105,180,.35);}
+/* 💌 편지 */
+.lt-switch{display:flex;gap:8px;margin:-6px 0 16px;flex-wrap:wrap;}
+.lt-switch button{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:var(--g2);border-radius:20px;padding:9px 16px;font-size:13.5px;font-weight:700;font-family:var(--font);cursor:pointer;display:flex;align-items:center;gap:6px;}
+.lt-switch button.on{background:rgba(229,9,20,.18);border-color:rgba(229,9,20,.55);color:#fff;}
+.lt-compose .lt-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;}
+.lt-lbl{font-size:12.5px;color:var(--g3);font-weight:700;min-width:72px;}
+.lt-in{flex:1;min-width:200px;background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.1);border-radius:6px;padding:10px 12px;color:var(--white);font-family:var(--font);font-size:14px;}
+textarea.lt-in{width:100%;resize:vertical;min-height:140px;line-height:1.7;display:block;}
+.lt-scope{display:flex;gap:6px;flex-wrap:wrap;}
+.lt-scope button{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:var(--g2);border-radius:16px;padding:6px 12px;font-size:12.5px;font-weight:700;font-family:var(--font);cursor:pointer;}
+.lt-scope button.on{background:rgba(74,158,255,.18);border-color:rgba(74,158,255,.55);color:#fff;}
+.lt-pick{max-height:240px;overflow:auto;border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:6px;margin-bottom:10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:2px;}
+.lt-pick label{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--g1);padding:6px 8px;border-radius:6px;cursor:pointer;}
+.lt-pick label:hover{background:rgba(255,255,255,.05);}
+.lt-pick label small{color:var(--g3);font-size:11px;}
+.lt-tools{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:8px;}
+.lt-tools input{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:6px;padding:6px 10px;color:var(--white);font-family:var(--font);font-size:12.5px;}
+.lt-to-sum{font-size:13px;color:var(--g1);margin:0 0 12px;padding:8px 12px;border-radius:8px;background:rgba(74,158,255,.08);border:1px solid rgba(74,158,255,.2);}
+.lt-foot{display:flex;align-items:center;gap:12px;margin-top:10px;flex-wrap:wrap;}
+.lt-foot .btn-primary{margin-left:auto;}
+.lt-hint{font-size:12px;color:var(--g3);}
+.lt-card{border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03);border-radius:10px;padding:14px 16px;margin-bottom:10px;}
+.lt-card-top{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12.5px;color:var(--g3);margin-bottom:6px;}
+.lt-card-title{font-size:15px;font-weight:700;color:#fff;margin-bottom:6px;}
+.lt-card-body{font-size:13.5px;color:var(--g2);white-space:pre-wrap;word-break:break-word;line-height:1.7;max-height:5.1em;overflow:hidden;}
+.lt-card.open .lt-card-body{max-height:none;}
+.lt-bar{height:6px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden;margin:10px 0 6px;}
+.lt-bar i{display:block;height:100%;background:var(--green);}
+.lt-who{font-size:12.5px;color:var(--g2);line-height:1.8;margin-top:6px;display:none;}
+.lt-card.open .lt-who{display:block;}
+.lt-acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
 .fb-tag.p{background:rgba(229,9,20,.15);color:#ff8a80;border:1px solid rgba(229,9,20,.35);}
 /* 빠진 정보 알림 (영상 관리) */
 .vid-missing{border:1px solid rgba(245,197,24,.3);background:rgba(245,197,24,.07);border-radius:8px;padding:12px 14px;margin-bottom:14px;font-size:13px;line-height:1.7;color:var(--g1);}
@@ -594,7 +626,7 @@ table.matrix tbody tr:hover td.cell-ing{background:rgba(74,158,255,.14);}
     <button class="adm-tab" id="mt-videos"    onclick="switchTab('videos')"><span class="tab-icon">🎬</span><span class="tab-text">영상 관리</span></button>
     <button class="adm-tab" id="mt-students"  onclick="switchTab('students')"><span class="tab-icon">👥</span><span class="tab-text">수강생별</span></button>
     <button class="adm-tab" id="mt-analysis"  onclick="switchTab('analysis')"><span class="tab-icon">📈</span><span class="tab-text">분석</span></button>
-    <button class="adm-tab" id="mt-feedback"  onclick="switchTab('feedback')"><span class="tab-icon">✍️</span><span class="tab-text">소감·질문</span><span class="fb-dot" id="fb-unread" style="display:none"></span></button>
+    <button class="adm-tab" id="mt-feedback"  onclick="switchTab('feedback')"><span class="tab-icon">✍️</span><span class="tab-text">소통</span><span class="fb-dot" id="fb-unread" style="display:none"></span></button>
     <button class="adm-tab" id="mt-notice"    onclick="switchTab('notice')"><span class="tab-icon">📢</span><span class="tab-text">공지</span></button>
     <button class="adm-tab" id="mt-settings"  onclick="switchTab('settings')"><span class="tab-icon">⚙️</span><span class="tab-text">설정</span><span class="fb-dot" id="ce-dot" style="display:none" title="최근 24시간 화면 오류"></span></button>
   </nav>
@@ -929,18 +961,47 @@ table.matrix tbody tr:hover td.cell-ing{background:rgba(74,158,255,.14);}
 
   <!-- ═══ 소감·질문 (수강생 → 관리자) ═══ -->
   <div class="tab-section" id="ts-feedback">
-    <div class="sec-title">✍️ <em>소감·질문</em></div>
-    <div style="font-size:13px;color:var(--g3);margin:-10px 0 14px;">수강생이 강의를 보고 보낸 느낀 점·궁금한 점이에요. 관리자만 볼 수 있어요.</div>
+    <div class="sec-title">✍️ <em>소통</em></div>
+    <div class="lt-switch" role="tablist">
+      <button id="cm-in" class="on" onclick="commView('in')">📥 받은 글 <span class="fb-dot" id="fb-unread2" style="display:none"></span></button>
+      <button id="cm-out" onclick="commView('out')">💌 편지 보내기</button>
+    </div>
+    <div id="cm-view-out" style="display:none">
+      <div class="panel lt-compose">
+        <div class="panel-title">💌 새 편지</div>
+        <div class="lt-row"><span class="lt-lbl">받는 사람</span>
+          <div class="lt-scope">
+            <button data-s="all" class="on" onclick="ltScope('all')">👥 전체</button>
+            <button data-s="mgr" onclick="ltScope('mgr')">🧑‍🏫 담당자별</button>
+            <button data-s="pick" onclick="ltScope('pick')">✅ 골라서</button>
+          </div>
+        </div>
+        <div id="lt-scope-body"></div>
+        <div class="lt-to-sum" id="lt-to-sum"></div>
+        <div class="lt-row"><span class="lt-lbl">보내는 사람</span><input id="lt-from" class="lt-in" maxlength="30" placeholder="예: 최태순 강사"></div>
+        <div class="lt-row"><span class="lt-lbl">제목</span><input id="lt-title" class="lt-in" maxlength="80" placeholder="예: {이름} 님, 이번 주도 힘내세요 (비우면 '선생님의 편지')"></div>
+        <textarea id="lt-body" class="lt-in" rows="7" maxlength="3000" placeholder="편지 내용을 적어 주세요.&#10;{이름} 이라고 쓰면 받는 사람 이름으로 바뀌어요. 예: {이름} 님, 오늘도 말씀 들으시느라 수고 많으셨어요." oninput="ltCount()"></textarea>
+        <div class="lt-foot"><span id="lt-count" class="lt-hint">0 / 3000</span><span class="lt-hint">학생이 앱을 열면 편지 창이 떠요 · 답장은 '받은 글'로 와요</span>
+          <button class="btn-primary" id="lt-send" onclick="ltSend()">💌 보내기</button></div>
+        <div class="msg" id="lt-msg"></div>
+      </div>
+      <div class="sec-title" style="font-size:17px;margin-top:22px">보낸 편지 <button class="adm-btn" style="margin-left:8px" onclick="loadLetters(true)">🔄 새로고침</button></div>
+      <div id="lt-list"><p class="empty">불러오는 중…</p></div>
+    </div>
+    <div id="cm-view-in">
+    <div style="font-size:13px;color:var(--g3);margin:0 0 14px;">수강생이 보낸 느낀 점·궁금한 점·편지 답장이에요. 관리자만 볼 수 있어요.</div>
     <div class="fb-filter">
       <button data-f="all" class="on" onclick="setFbFilter('all')">전체</button>
       <button data-f="new" onclick="setFbFilter('new')">새 글</button>
       <button data-f="질문" onclick="setFbFilter('질문')">❓ 질문</button>
       <button data-f="느낀점" onclick="setFbFilter('느낀점')">💛 느낀 점</button>
+      <button data-f="편지답장" onclick="setFbFilter('편지답장')">💌 편지 답장</button>
       <button data-f="비번문의" onclick="setFbFilter('비번문의')">🔑 비번 문의</button>
       <input id="fb-search" placeholder="이름·강의·내용 검색" oninput="renderFeedback()">
       <button onclick="loadFeedback(true)">🔄 새로고침</button>
     </div>
     <div id="fb-list"><p class="empty">불러오는 중…</p></div>
+    </div>
   </div>
 
   <!-- ═══ 공지사항 ═══ -->
@@ -1194,7 +1255,7 @@ function switchTab(t) {
   if (t==='students') renderStudentCards();
   if (t==='matrix')   loadVideoData();
   if (t==='notice')   loadCurrentNotice();
-  if (t==='feedback') loadFeedback(true);
+  if (t==='feedback') { loadFeedback(true); let v = 'in'; try { v = localStorage.getItem('gf_adm_comm') || 'in'; } catch(e){} if (v === 'out') commView('out'); }
   if (t==='daily')    loadDaily(_dlDate || '');
   if (t==='range')    { if (_rg) renderRange(); else rgQuick(_rgQ || '4w'); }
   if (t==='dropoff')  loadDropoff(false);
@@ -1820,7 +1881,7 @@ function loadCare(fresh){
   if (_aggP) return _aggP;
   if (!fresh && !_agg) { const c = acGet('agg'); if (c && c.v) { _agg = c.v; renderCare(); } }
   _aggP = api({ action: 'stuagg', pw: ADMIN_PW, ...(fresh ? { fresh: 1 } : {}) }).then(r => {
-    if (r && !r.error && r.students) { _agg = r; acSet('agg', r); renderCare(); }
+    if (r && !r.error && r.students) { _agg = r; acSet('agg', r); renderCare(); const ov = document.getElementById('cm-view-out'); if (ov && ov.style.display !== 'none') ltRenderScope(); }
     else if (!_agg) document.getElementById('care-list').innerHTML = '<p class="empty" style="font-size:13px">불러오지 못했습니다.</p>';
   }).catch(() => { if (!_agg) document.getElementById('care-list').innerHTML = '<p class="empty" style="font-size:13px">⚠️ 서버 연결 실패</p>'; })
     .finally(() => { _aggP = null; });
@@ -2103,8 +2164,156 @@ function copyDlNone(){
    ✍️ 소감·질문
 ════════════════════ */
 let _fbItems = [], _fbFilter = 'all';
+
+/* ════════════════════
+   💌 편지 — 전체·담당자별·골라서·한 명
+════════════════════ */
+let _lt = null, _ltP = null, _ltScope = 'all', _ltPick = new Set(), _ltMgr = '', _ltStaff = false, _ltQ = '';
+function commView(v){
+  document.getElementById('cm-in').classList.toggle('on', v === 'in');
+  document.getElementById('cm-out').classList.toggle('on', v === 'out');
+  document.getElementById('cm-view-in').style.display = v === 'in' ? '' : 'none';
+  document.getElementById('cm-view-out').style.display = v === 'out' ? '' : 'none';
+  try { localStorage.setItem('gf_adm_comm', v); } catch(e){}
+  if (v === 'out') { ltInit(); loadLetters(false); if (!_agg) loadCare(false); }
+}
+// 수강생 명단: 챙겨야 할 분(담당·구분 포함) → 없으면 출석 데이터
+function ltRoster(){
+  if (_agg && _agg.students) return Object.keys(_agg.students).map(n => ({ name: n, g: _agg.students[n].g || '수강생', mgr: _agg.students[n].mgr || '' })).sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+  return ((vdData && vdData.students) || []).map(n => ({ name: n, g: '수강생', mgr: '' })).sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+}
+function ltInit(){
+  const f = document.getElementById('lt-from');
+  if (f && !f.value) { try { f.value = localStorage.getItem('gf_adm_ltfrom') || ''; } catch(e){} }
+  ltRenderScope();
+}
+function ltScope(s){ _ltScope = s; document.querySelectorAll('.lt-scope [data-s]').forEach(b => b.classList.toggle('on', b.dataset.s === s)); ltRenderScope(); }
+function ltTargets(){
+  const R = ltRoster();
+  if (_ltScope === 'pick') return R.filter(x => _ltPick.has(x.name)).map(x => x.name);
+  let L = R.filter(x => _ltStaff || x.g === '수강생');
+  if (_ltScope === 'mgr') L = L.filter(x => _ltMgr === '(미지정)' ? !x.mgr : x.mgr === _ltMgr);
+  return L.map(x => x.name);
+}
+function ltRenderScope(){
+  const el = document.getElementById('lt-scope-body'); if (!el) return;
+  const R = ltRoster();
+  if (!R.length) { el.innerHTML = '<p class="empty" style="padding:8px 0">수강생 명단을 불러오는 중이에요…</p>'; ltSum(); return; }
+  const staffBox = `<label style="font-size:12.5px;color:var(--g2);display:flex;align-items:center;gap:5px"><input type="checkbox" ${_ltStaff ? 'checked' : ''} onchange="_ltStaff=this.checked;ltRenderScope()"> 관리자·인섬교도 받기</label>`;
+  if (_ltScope === 'all') el.innerHTML = `<div class="lt-tools">${staffBox}</div>`;
+  else if (_ltScope === 'mgr') {
+    const ms = [...new Set(R.map(x => x.mgr).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'ko'));
+    if (!_ltMgr || (_ltMgr !== '(미지정)' && !ms.includes(_ltMgr))) _ltMgr = ms[0] || '(미지정)';
+    el.innerHTML = `<div class="lt-tools"><select onchange="_ltMgr=this.value;ltRenderScope()" style="font-family:var(--font);background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:6px;color:var(--white);padding:7px 10px;font-size:13px">${ms.map(m => `<option ${m === _ltMgr ? 'selected' : ''} value="${escHtml(m)}">${escHtml(m)} 담당</option>`).join('')}<option ${_ltMgr === '(미지정)' ? 'selected' : ''} value="(미지정)">담당 미지정</option></select>${staffBox}${ms.length ? '' : '<span class="lt-hint">아직 담당자를 지정한 수강생이 없어요 (분석 ▸ 기간 분석에서 지정)</span>'}</div>`;
+  } else {
+    el.innerHTML = `<div class="lt-tools"><input placeholder="이름·담당자 찾기" value="${escHtml(_ltQ)}" oninput="_ltQ=this.value;ltRenderPickList()" style="min-width:140px"><button class="adm-btn" onclick="ltPickAll(true)">보이는 사람 모두 선택</button><button class="adm-btn" onclick="ltPickAll(false)">선택 비우기</button></div><div class="lt-pick" id="lt-pick"></div>`;
+    ltRenderPickList();
+    return;
+  }
+  ltSum();
+}
+function ltRenderPickList(){
+  const box = document.getElementById('lt-pick'); if (!box) return;
+  const q = _ltQ.trim();
+  const vis = ltRoster().filter(x => !q || x.name.includes(q) || (x.mgr || '').includes(q));
+  box.innerHTML = vis.length ? vis.map(x => `<label><input type="checkbox" data-n="${escHtml(x.name)}" ${_ltPick.has(x.name) ? 'checked' : ''} onchange="this.checked?_ltPick.add(this.dataset.n):_ltPick.delete(this.dataset.n);ltSum()"> ${escHtml(x.name)}${x.g !== '수강생' ? ` <small>${escHtml(x.g)}</small>` : x.mgr ? ` <small>${escHtml(x.mgr)}</small>` : ''}</label>`).join('') : '<p class="empty" style="grid-column:1/-1;padding:10px">찾는 사람이 없어요.</p>';
+  ltSum();
+}
+function ltPickAll(on){
+  const q = _ltQ.trim();
+  ltRoster().filter(x => !q || x.name.includes(q) || (x.mgr || '').includes(q)).forEach(x => on ? _ltPick.add(x.name) : _ltPick.delete(x.name));
+  if (!on && !q) _ltPick.clear();
+  ltRenderPickList();
+}
+function ltSum(){
+  const el = document.getElementById('lt-to-sum'); if (!el) return;
+  const t = ltTargets();
+  el.innerHTML = t.length ? `📮 <b>${t.length}명</b>에게 보내요 · ${escHtml(t.slice(0, 8).join(', '))}${t.length > 8 ? ' 외 ' + (t.length - 8) + '명' : ''}` : '<span style="color:var(--gold)">받는 사람을 골라 주세요.</span>';
+}
+function ltCount(){ const b = document.getElementById('lt-body'); document.getElementById('lt-count').textContent = b.value.length + ' / 3000'; }
+// 다른 화면에서 '이 사람에게 편지' → 골라서 + 그 사람 선택
+function ltWriteTo(name){
+  switchTab('feedback'); commView('out');
+  _ltPick = new Set([name]); _ltQ = ''; ltScope('pick');
+  setTimeout(() => { const b = document.getElementById('lt-body'); if (b) { b.scrollIntoView({ behavior: 'smooth', block: 'center' }); b.focus(); } }, 80);
+}
+let _ltArm = 0;
+async function ltSend(){
+  const msg = document.getElementById('lt-msg'), btn = document.getElementById('lt-send');
+  const body = document.getElementById('lt-body').value.trim();
+  const title = document.getElementById('lt-title').value.trim();
+  const from = document.getElementById('lt-from').value.trim();
+  const to = ltTargets();
+  if (!body) { showMsg(msg, '편지 내용을 적어 주세요.', 'err'); return; }
+  if (!to.length) { showMsg(msg, '받는 사람을 골라 주세요.', 'err'); return; }
+  // 한 번 더 눌러야 보냄 (실수 방지)
+  if (Date.now() - _ltArm > 5000) { _ltArm = Date.now(); btn.textContent = `${to.length}명에게 보낼까요? 한 번 더 누르면 보내요`; setTimeout(() => { if (Date.now() - _ltArm >= 5000) btn.textContent = '💌 보내기'; }, 5100); return; }
+  _ltArm = 0; btn.disabled = true; btn.textContent = '⏳ 보내는 중…';
+  try { localStorage.setItem('gf_adm_ltfrom', from); } catch(e){}
+  const lid = 'L' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  const scope = _ltScope === 'all' ? '전체' : _ltScope === 'mgr' ? (_ltMgr === '(미지정)' ? '담당 미지정' : _ltMgr + ' 담당') : (to.length === 1 ? '한 명' : '골라서');
+  try {
+    await postApi({ type: 'letter_send', pw: ADMIN_PW, lid, title, from, body, to, scope });
+    // POST는 응답을 못 읽어서 → 목록에 들어갔는지 확인
+    let okSent = false;
+    for (let i = 0; i < 6 && !okSent; i++) {
+      await new Promise(r => setTimeout(r, i ? 1500 : 800));
+      const r = await api({ action: 'letter_list', pw: ADMIN_PW });
+      if (r && r.items) { _lt = r; okSent = r.items.some(x => x.lid === lid); }
+    }
+    if (okSent) {
+      showMsg(msg, `✅ ${to.length}명에게 보냈어요. 학생이 앱을 열면 편지 창이 떠요.`, 'ok'); showToast('💌 편지를 보냈어요');
+      document.getElementById('lt-body').value = ''; document.getElementById('lt-title').value = ''; ltCount();
+      renderLetters();
+    } else showMsg(msg, '⚠️ 보냈는지 확인이 안 돼요. 잠시 뒤 아래 "보낸 편지"를 새로고침해서 확인해 주세요. (내용은 그대로 남겨 뒀어요)', 'err');
+  } catch(e) { showMsg(msg, '⚠️ 서버 연결 실패 — 다시 눌러 주세요. (같은 편지가 두 번 가지는 않아요)', 'err'); }
+  finally { btn.disabled = false; btn.textContent = '💌 보내기'; }
+}
+function loadLetters(show){
+  if (_lt) renderLetters();
+  if (_ltP) return _ltP;
+  _ltP = api({ action: 'letter_list', pw: ADMIN_PW }).then(r => {
+    if (r && r.items) { _lt = r; renderLetters(); }
+    else if (!_lt) document.getElementById('lt-list').innerHTML = '<p class="empty">불러오지 못했습니다.</p>';
+  }).catch(() => { if (!_lt) document.getElementById('lt-list').innerHTML = '<p class="empty">⚠️ 서버 연결 실패</p>'; }).finally(() => { _ltP = null; });
+  return _ltP;
+}
+function renderLetters(){
+  const el = document.getElementById('lt-list'); if (!el || !_lt) return;
+  if (!_lt.items.length) { el.innerHTML = '<p class="empty">아직 보낸 편지가 없어요.</p>'; return; }
+  el.innerHTML = _lt.items.map(x => {
+    const readN = x.to.filter(n => x.read[n]).length, pct = x.to.length ? Math.round(readN / x.to.length * 100) : 0;
+    const unread = x.to.filter(n => !x.read[n]);
+    return `<div class="lt-card" id="ltc-${escHtml(x.lid)}">
+      <div class="lt-card-top"><span>🕒 ${escHtml(x.at)}</span><span>✍️ ${escHtml(x.from)}</span><span class="care-chip">${escHtml(x.scope || '')} ${x.to.length}명</span>${x.replies.length ? `<span class="care-chip m">💬 답장 ${x.replies.length}</span>` : ''}</div>
+      <div class="lt-card-title">${escHtml(x.title)}</div>
+      <div class="lt-card-body">${escHtml(x.body)}</div>
+      <div class="lt-bar"><i style="width:${pct}%"></i></div>
+      <div style="font-size:12.5px;color:var(--g2)">👀 <b style="color:#fff">${readN}/${x.to.length}명</b> 읽음 (${pct}%)</div>
+      <div class="lt-who">✅ 읽음: ${escHtml(x.to.filter(n => x.read[n]).join(', ') || '없음')}<br>⏳ 아직: ${escHtml(unread.join(', ') || '없음')}${x.replies.length ? `<br>💬 답장: ${escHtml(x.replies.join(', '))}` : ''}</div>
+      <div class="lt-acts">
+        <button class="adm-btn" onclick="this.closest('.lt-card').classList.toggle('open')">누가 읽었나 · 전체 내용</button>
+        ${unread.length ? `<button class="adm-btn" data-l="${escHtml(x.lid)}" onclick="ltResendUnread(this.dataset.l)">⏳ 안 읽은 ${unread.length}명 고르기</button>` : ''}
+        ${x.replies.length ? `<button class="adm-btn" onclick="commView('in');setFbFilter('편지답장')">💬 답장 보기</button>` : ''}
+        <button class="adm-btn danger" data-l="${escHtml(x.lid)}" onclick="ltDelete(this)">🗑 지우기</button>
+      </div></div>`;
+  }).join('');
+}
+// 안 읽은 사람만 골라 새 편지 쓰기 (예: 다시 한 번 안내)
+function ltResendUnread(lid){
+  const x = _lt && _lt.items.find(y => y.lid === lid); if (!x) return;
+  _ltPick = new Set(x.to.filter(n => !x.read[n])); _ltQ = ''; ltScope('pick');
+  document.getElementById('lt-body').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  showToast('⏳ 안 읽은 ' + _ltPick.size + '명을 골랐어요. 내용을 적어 보내 주세요.');
+}
+async function ltDelete(btn){
+  const lid = btn.dataset.l;
+  if (btn.dataset.arm !== '1') { btn.dataset.arm = '1'; btn.textContent = '정말 지울까요? 학생 편지함에서도 사라져요'; setTimeout(() => { btn.dataset.arm = ''; btn.textContent = '🗑 지우기'; }, 4000); return; }
+  try { const r = await api({ action: 'letter_delete', pw: ADMIN_PW, lid }); if (r && r.success) { _lt.items = _lt.items.filter(x => x.lid !== lid); renderLetters(); showToast('🗑 지웠어요'); } else showToast('⚠️ ' + ((r && r.error) || '실패')); }
+  catch(e) { showToast('⚠️ 서버 연결 실패'); }
+}
 function setFbFilter(f){ _fbFilter = f; document.querySelectorAll('.fb-filter [data-f]').forEach(b => b.classList.toggle('on', b.dataset.f === f)); renderFeedback(); }
-function setFbBadge(n){ const el = document.getElementById('fb-unread'); if (!el) return; el.textContent = n; el.style.display = n > 0 ? '' : 'none'; }
+function setFbBadge(n){ ['fb-unread', 'fb-unread2'].forEach(id => { const el = document.getElementById(id); if (!el) return; el.textContent = n; el.style.display = n > 0 ? '' : 'none'; }); }
 async function loadFeedback(show){
   if (show && _fbItems.length) renderFeedback();   // 저장된 목록 먼저
   try {
@@ -2125,12 +2334,13 @@ function renderFeedback(){
   el.innerHTML = list.map(x => {
     const isNew = x.status === '새글';
     return `<div class="fb-card ${isNew ? 'new' : ''}">
-      <div class="fb-meta">${isNew ? '<span class="fb-tag n">NEW</span>' : ''}<span class="fb-tag ${x.kind === '질문' ? 'q' : x.kind === '비번문의' ? 'p' : 'f'}">${x.kind === '질문' ? '❓ 질문' : x.kind === '비번문의' ? '🔑 비밀번호 문의' : '💛 느낀 점'}</span>
+      <div class="fb-meta">${isNew ? '<span class="fb-tag n">NEW</span>' : ''}<span class="fb-tag ${x.kind === '질문' ? 'q' : x.kind === '비번문의' ? 'p' : x.kind === '편지답장' ? 'l' : 'f'}">${x.kind === '질문' ? '❓ 질문' : x.kind === '비번문의' ? '🔑 비밀번호 문의' : x.kind === '편지답장' ? '💌 편지 답장' : '💛 느낀 점'}</span>
         <b>${escHtml(x.name)}</b>${x.grade ? '<span>' + escHtml(x.grade) + '</span>' : ''}<span>${escHtml(x.title || '(강의 선택 안 함)')}</span><span style="margin-left:auto">${escHtml(x.at)}</span></div>
       <div class="fb-body">${escHtml(x.text)}</div>
       <div class="fb-acts">
         <button data-fid="${escHtml(x.fid)}" data-st="${isNew ? '읽음' : '새글'}" onclick="markFb(this.dataset.fid,this.dataset.st)">${isNew ? '✅ 읽음 처리' : '↩️ 새 글로 표시'}</button>
         ${x.kind === '비번문의' ? (fbKnownName(x.name) ? `<button data-n="${escHtml(x.name)}" onclick="resetPassword(this.dataset.n)" style="color:#ff8a80">🔑 ${escHtml(x.name)} 님 비밀번호 바꿔 주기</button>` : `<span style="font-size:12px;color:var(--gold);align-self:center">⚠️ 수강생 명단에 이 이름이 없어요 — 수강생별 ▸ 관리에서 찾아 주세요</span>`) : ''}
+        ${fbKnownName(x.name) && x.kind !== '비번문의' ? `<button data-n="${escHtml(x.name)}" onclick="ltWriteTo(this.dataset.n)">💌 ${escHtml(x.name)} 님께 편지</button>` : ''}
         <button data-fid="${escHtml(x.fid)}" onclick="copyFb(this.dataset.fid)">📋 복사</button>
         <button data-fid="${escHtml(x.fid)}" onclick="delFb(this.dataset.fid)" style="color:#ff8a80">🗑 삭제</button>
       </div></div>`;
@@ -3025,7 +3235,7 @@ function renderStudentDetail(){
   c.innerHTML=`<div class="panel">
     <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px">
       <div style="width:52px;height:52px;border-radius:10px;background:var(--red);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;">${name.slice(0,1)}</div>
-      <div><div style="font-size:20px;font-weight:700">${name}</div><div style="font-size:13px;color:var(--g3)">총 ${allVideos.length}개 강의 · 완료율 ${pct}%</div></div>
+      <div><div style="font-size:20px;font-weight:700">${name}</div><div style="font-size:13px;color:var(--g3)">총 ${allVideos.length}개 강의 · 완료율 ${pct}%</div><button class="adm-btn" style="margin-top:6px" data-n="${escHtml(name)}" onclick="ltWriteTo(this.dataset.n)">💌 편지 쓰기</button></div>
       <div style="margin-left:auto;font-size:36px;font-weight:700;color:${col}">${pct}%</div>
     </div>
     <div style="height:7px;background:rgba(255,255,255,.08);border-radius:4px;overflow:hidden;margin-bottom:22px">
@@ -3336,7 +3546,7 @@ window.addEventListener('keydown',e=>{if(e.key==='Escape')closePopup();});
 })();
 
 /* ─ 새 버전 안내: 사이트를 새로 올리면 열려 있는 화면에 '새 버전' 띠를 띄움 ─ */
-const APP_VER='2026.11.01-2';
+const APP_VER='2026.11.02-1';
 (function(){
   const PAGE=()=>location.pathname;
   let newVer=null, shown=false;
