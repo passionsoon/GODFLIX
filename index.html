@@ -869,6 +869,34 @@ input{outline:none;font-family:'Pretendard Variable','Pretendard',-apple-system,
   #fs-ds-btn,#fs-bm-btn,#fs-fb-btn{padding:8px 10px;margin-right:4px;min-width:40px;}
   #fs-close-btn{padding:8px 12px;min-width:40px;}
 }
+/* 💌 편지 */
+#lt-pop{position:fixed;inset:0;z-index:700;background:rgba(0,0,0,.78);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:calc(var(--safe-top) + 16px) 16px calc(var(--safe-bottom) + 16px);opacity:0;pointer-events:none;transition:opacity .25s;}
+#lt-pop.show{opacity:1;pointer-events:auto;}
+.lt-paper{position:relative;width:100%;max-width:460px;max-height:100%;overflow-y:auto;background:linear-gradient(180deg,#fffaf0 0%,#fbf1dc 100%);color:#3b2f22;border-radius:14px;padding:30px 24px 20px;box-shadow:0 24px 60px rgba(0,0,0,.6);transform:translateY(16px) scale(.98);transition:transform .3s cubic-bezier(.16,1,.3,1);font-family:'Pretendard Variable','Pretendard',-apple-system,sans-serif;}
+#lt-pop.show .lt-paper{transform:none;}
+.lt-env{position:absolute;top:-22px;left:50%;transform:translateX(-50%);width:48px;height:48px;border-radius:50%;background:#E50914;display:flex;align-items:center;justify-content:center;font-size:24px;box-shadow:0 6px 18px rgba(229,9,20,.45);}
+.lt-from{font-size:12.5px;color:#9a7b55;font-weight:700;text-align:center;margin-top:6px;}
+.lt-title{font-size:19px;font-weight:800;text-align:center;margin:6px 0 2px;line-height:1.4;word-break:keep-all;}
+.lt-date{font-size:12px;color:#a8916f;text-align:center;margin-bottom:16px;}
+.lt-body{font-size:15.5px;line-height:1.9;white-space:pre-wrap;word-break:break-word;border-top:1px dashed rgba(59,47,34,.25);padding-top:16px;}
+.lt-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:20px;flex-wrap:wrap;}
+.lt-btn{background:#E50914;color:#fff;border:0;border-radius:22px;padding:10px 18px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;min-height:42px;}
+.lt-btn.ghost{background:transparent;color:#6b5437;border:1.5px solid rgba(107,84,55,.4);}
+.lt-btn:disabled{opacity:.6;}
+.lt-reply{display:none;margin-top:16px;}
+.lt-reply.show{display:block;}
+.lt-reply textarea{width:100%;border:1.5px solid rgba(107,84,55,.35);background:#fff;border-radius:10px;padding:10px 12px;font-size:15px;line-height:1.6;color:#3b2f22;font-family:inherit;resize:vertical;min-height:84px;}
+.lt-reply-row{display:flex;gap:8px;justify-content:flex-end;margin-top:8px;}
+.lt-done{display:none;margin-top:14px;font-size:13px;color:#2e7d32;font-weight:700;text-align:right;}
+.lt-done.show{display:block;}
+.lt-dot{position:absolute;top:-2px;left:22px;width:10px;height:10px;border-radius:50%;background:#E50914;border:2px solid #141414;}
+#hdr-menu-btn{position:relative;}
+.lt-badge{background:#E50914;color:#fff;border-radius:10px;font-size:11px;font-weight:800;padding:1px 7px;margin-left:4px;}
+.lt-item{display:block;width:100%;text-align:left;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:12px 14px;margin-bottom:8px;cursor:pointer;font-family:inherit;color:var(--g1);}
+.lt-item.new{border-color:rgba(229,9,20,.55);background:rgba(229,9,20,.08);}
+.lt-item b{display:block;font-size:15px;color:#fff;margin-bottom:3px;}
+.lt-item span{font-size:12px;color:var(--g3);}
+.lt-item p{font-size:13px;color:var(--g2);margin-top:5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 #next-lec-btn.confirm{background:rgba(229,9,20,.25);border-color:rgba(229,9,20,.6);}
 .skip-btn{
   background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);color:var(--white);
@@ -1311,14 +1339,14 @@ input{outline:none;font-family:'Pretendard Variable','Pretendard',-apple-system,
 /* ═══════════════════════════════════
    내 학습 분석 모달
 ═══════════════════════════════════ */
-#my-stats-modal,#bm-modal{
+#my-stats-modal,#bm-modal,#lt-box{
   display:flex;position:fixed;inset:0;z-index:600;
   background:rgba(0,0,0,.8);backdrop-filter:blur(8px);
   align-items:flex-end;justify-content:center;padding:0;
   opacity:0;pointer-events:none;
   transition:opacity .25s cubic-bezier(.4,0,.2,1);
 }
-#my-stats-modal.show,#bm-modal.show{opacity:1;pointer-events:auto;}
+#my-stats-modal.show,#bm-modal.show,#lt-box.show{opacity:1;pointer-events:auto;}
 .my-stats-box{
   width:100%;max-width:520px;max-height:88dvh;
   background:var(--surface);border-radius:20px 20px 0 0;
@@ -1326,7 +1354,7 @@ input{outline:none;font-family:'Pretendard Variable','Pretendard',-apple-system,
   transform:translateY(40px);
   transition:transform .3s cubic-bezier(.16,1,.3,1);
 }
-#my-stats-modal.show .my-stats-box,#bm-modal.show .my-stats-box{transform:translateY(0);}
+#my-stats-modal.show .my-stats-box,#bm-modal.show .my-stats-box,#lt-box.show .my-stats-box{transform:translateY(0);}
 .my-stats-box::-webkit-scrollbar{display:none;}
 .my-stats-handle{
   width:36px;height:4px;border-radius:2px;
@@ -1515,11 +1543,13 @@ html{-webkit-overflow-scrolling:touch;}
       </div>
       <span class="user-name" id="header-name"></span>
       <span class="hdr-caret" aria-hidden="true">▾</span>
+      <span class="lt-dot" id="lt-dot" style="display:none" aria-label="새 편지"></span>
       <span id="header-role-badge" style="display:none;"></span>
     </div>
     <button class="btn-logout hdr-fb" id="hdr-fb-btn" onclick="openFeedback()" title="강의를 보고 느낀 점·궁금한 점 보내기">✍️ 질문·소감</button>
     <div class="hdr-menu" id="hdr-menu" role="menu">
       <button role="menuitem" onclick="hdrMenuGo('stats')">📊 내 학습 현황</button>
+      <button role="menuitem" onclick="hdrMenuGo('lt')">💌 받은 편지 <span class="lt-badge" id="lt-menu-badge" style="display:none"></span></button>
       <button role="menuitem" onclick="hdrMenuGo('bm')">📌 내 책갈피</button>
       <button role="menuitem" onclick="hdrMenuGo('mine')">📂 내가 쓴 글</button>
       <button role="menuitem" onclick="hdrMenuGo('pw')">🔑 비밀번호 변경</button>
@@ -1725,6 +1755,37 @@ html{-webkit-overflow-scrolling:touch;}
         </button>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- ══ 💌 편지 보기 (새 편지는 앱을 열면 자동으로 뜸) ══ -->
+<div id="lt-pop" onclick="if(this===event.target)closeLtPop()" role="dialog" aria-modal="true" aria-labelledby="lt-pop-title">
+  <div class="lt-paper">
+    <div class="lt-env">💌</div>
+    <div class="lt-from" id="lt-pop-from"></div>
+    <div class="lt-title" id="lt-pop-title"></div>
+    <div class="lt-date" id="lt-pop-date"></div>
+    <div class="lt-body" id="lt-pop-body"></div>
+    <div class="lt-reply" id="lt-reply">
+      <textarea id="lt-reply-text" rows="3" maxlength="2000" placeholder="선생님께 답장을 적어 주세요. (선생님만 봐요)"></textarea>
+      <div class="lt-reply-row"><button class="lt-btn ghost" onclick="toggleLtReply(false)">취소</button><button class="lt-btn" id="lt-reply-send" onclick="sendLtReply()">답장 보내기</button></div>
+    </div>
+    <div class="lt-done" id="lt-replied"></div>
+    <div class="lt-actions">
+      <button class="lt-btn ghost" id="lt-reply-open" onclick="toggleLtReply(true)">✍️ 답장 쓰기</button>
+      <button class="lt-btn" id="lt-pop-next" onclick="ltPopNext()">닫기</button>
+    </div>
+  </div>
+</div>
+<!-- ══ 💌 받은 편지함 ══ -->
+<div id="lt-box" onclick="if(this===event.target)closeLtBox()">
+  <div class="my-stats-box">
+    <div class="my-stats-handle"></div>
+    <div class="my-stats-header">
+      <div class="my-stats-title">💌 받은 편지</div>
+      <button class="my-stats-close" onclick="closeLtBox()">✕</button>
+    </div>
+    <div class="my-stats-body" id="lt-box-body"></div>
   </div>
 </div>
 
@@ -2126,7 +2187,7 @@ async function loadProgress(){
       ahead.forEach(vid => { const p = merged[vid]; if ((p.duration||0) > 0 && (p.maxReached||0) > 0) fetch(SHEET_URL,{method:'POST',mode:'no-cors',keepalive:true,headers:{'Content-Type':'text/plain'},body:JSON.stringify({type:'progress',tok:authTok,videoId:vid,lastPosition:Math.floor(p.lastPosition||0),maxReached:Math.floor(p.maxReached),duration:Math.floor(p.duration)})}).catch(()=>{}); });
       progressMap = merged; saveProgLocal();
       renderCatalog(); updateStats(); renderRecentRow();
-      loadBookmarks();
+      loadBookmarks(); loadLetters();
       return true;
     }
   } catch(e) {}
@@ -2521,7 +2582,7 @@ async function showMyFeedback(){
     const items=(r&&r.items)||[];
     box.innerHTML=items.length?items.map(x=>{
       const v=VIDEOS.find(y=>y.id===x.videoId), t=v?(parseTitle(v.title).main||v.title):(x.title||'강의 선택 안 함');
-      return `<div class="my-fb"><div class="my-fb-meta"><span class="my-fb-tag ${x.kind==='질문'?'q':'f'}">${x.kind==='질문'?'❓ 궁금한 점':'💛 느낀 점'}</span><span>${escH(t)}</span><span>${escH(String(x.at||'').slice(0,16))}</span>
+      return `<div class="my-fb"><div class="my-fb-meta"><span class="my-fb-tag ${x.kind==='질문'?'q':'f'}">${x.kind==='질문'?'❓ 궁금한 점':x.kind==='편지답장'?'💌 편지 답장':'💛 느낀 점'}</span><span>${escH(t)}</span><span>${escH(String(x.at||'').slice(0,16))}</span>
         <span class="my-fb-read" style="color:${x.read?'var(--green)':'var(--g3)'}">${x.read?'✓ 선생님이 읽었어요':'전달됨'}</span></div>
         <div class="my-fb-text">${escH(String(x.text||'').replace(/^'/,''))}</div></div>`;
     }).join(''):'<div style="text-align:center;padding:2rem;color:var(--g3);line-height:1.7">아직 쓴 글이 없어요.<br>강의를 보고 느낀 점이나 궁금한 점을 남겨 보세요.</div>';
@@ -2713,6 +2774,7 @@ function goToLogin(){
   document.getElementById('pw-input').value='';
   userName='';authTok='';progressMap={};currentVideo=null;userRole='수강생';_mw=null;_mwAt=0;renderMyWeek();syncMyLearn();
   _bm=[];_bmDel=[];_rw=[];closeBmModal();
+  _lts=null;_ltShown={};_ltQueue=[];document.getElementById('lt-pop').classList.remove('show');closeLtBox();renderLtBadge();
   const roleArea=document.getElementById('header-role-badge');
   if(roleArea){roleArea.style.display='none';roleArea.textContent='';}
 }
@@ -3170,6 +3232,7 @@ function closePlayer(){
   releaseWakeLock();
   clearMediaSession();
   try { renderNextLecture(); } catch(e){}
+  setTimeout(()=>{ try{ maybeLtPopup(); }catch(e){} },1200);   // 강의 보는 중에 온 편지는 강의를 닫은 뒤에
 }
 
 /* ─ MOBILE FS ─ */
@@ -3730,6 +3793,112 @@ if('serviceWorker' in navigator&&window.isSecureContext){
 }
 
 
+
+/* ═══════════════════════════
+   💌 받은 편지 — 새 편지는 앱을 열면 편지 창으로, 메뉴 ▸ 받은 편지에 모두 남음, 답장은 선생님만 봄
+═══════════════════════════ */
+let _lts=null,_ltShown={},_ltQueue=[],_ltCur=null,_ltReplyFid=null,_ltSending=false;
+async function loadLetters(){
+  if(!userName||!authTok)return;
+  const who=userName;
+  try{
+    const r=await gasApi({action:'letter_mine',tok:authTok});
+    if(who!==userName||!r||!Array.isArray(r.items))return;
+    _lts=r; renderLtBadge();
+    if(document.getElementById('lt-box').classList.contains('show'))renderLtBox();
+    maybeLtPopup();
+  }catch(e){}
+}
+function renderLtBadge(){
+  const n=_lts?_lts.items.filter(x=>!x.read).length:0;
+  const b=document.getElementById('lt-menu-badge'), d=document.getElementById('lt-dot');
+  if(b){ b.textContent=n; b.style.display=n?'':'none'; }
+  if(d) d.style.display=n?'':'none';
+}
+// 강의를 보는 중이거나 다른 창이 떠 있으면 띄우지 않음 (다음에 앱을 열 때)
+function ltBusy(){
+  if(!document.getElementById('app').classList.contains('show'))return true;
+  return ['player-overlay','fb-modal','my-stats-modal','bm-modal','detail-modal','card-modal','lt-box','lt-pop'].some(id=>{ const e=document.getElementById(id); return e&&e.classList.contains('show'); })
+    ||document.getElementById('fs-overlay')?.classList.contains('open');
+}
+function maybeLtPopup(){
+  if(!_lts||ltBusy())return;
+  const q=_lts.items.filter(x=>!x.read&&!_ltShown[x.lid]).slice().reverse();   // 오래된 편지부터
+  if(!q.length)return;
+  _ltQueue=q; showLtLetter(_ltQueue.shift());
+}
+function showLtLetter(x){
+  if(!x)return;
+  _ltCur=x; _ltShown[x.lid]=1; _ltReplyFid=null;
+  document.getElementById('lt-pop-from').textContent=(x.from||'선생님')+'님이 보낸 편지';
+  document.getElementById('lt-pop-title').textContent=x.title||'선생님의 편지';
+  document.getElementById('lt-pop-date').textContent=String(x.at||'').slice(0,16).replace(/^(\d{4})-(\d{2})-(\d{2})/,'$1. $2. $3.');
+  document.getElementById('lt-pop-body').textContent=x.body||'';
+  toggleLtReply(false); document.getElementById('lt-replied').classList.remove('show');
+  document.getElementById('lt-reply-text').value='';
+  const nb=document.getElementById('lt-pop-next');
+  nb.textContent=_ltQueue.length?`다음 편지 ▶ (${_ltQueue.length}통 더)`:'닫기';
+  const p=document.getElementById('lt-pop'); p.classList.add('show'); p.querySelector('.lt-paper').scrollTop=0;
+  document.body.style.overflow='hidden';
+  if(!x.read){ x.read=true; renderLtBadge(); if(document.getElementById('lt-box').classList.contains('show'))renderLtBox();
+    gasApi({action:'letter_read',tok:authTok,lid:x.lid}).catch(()=>{}); }
+}
+function ltPopNext(){
+  if(_ltQueue.length){ showLtLetter(_ltQueue.shift()); return; }
+  closeLtPop();
+}
+function closeLtPop(){
+  const p=document.getElementById('lt-pop'); if(!p.classList.contains('show'))return;
+  const t=document.getElementById('lt-reply-text').value.trim();
+  if(t&&!confirmLeaveReply())return;
+  p.classList.remove('show'); _ltQueue=[];
+  if(!document.getElementById('lt-box').classList.contains('show')&&!document.getElementById('player-overlay').classList.contains('show'))document.body.style.overflow='';
+}
+let _ltLeaveArm=0;
+function confirmLeaveReply(){ if(Date.now()-_ltLeaveArm<4000)return true; _ltLeaveArm=Date.now(); showToast('적던 답장이 있어요. 한 번 더 누르면 닫혀요'); return false; }
+function toggleLtReply(on){
+  document.getElementById('lt-reply').classList.toggle('show',on);
+  document.getElementById('lt-reply-open').style.display=on?'none':'';
+  if(on)setTimeout(()=>document.getElementById('lt-reply-text').focus(),50);
+}
+async function sendLtReply(){
+  if(_ltSending||!_ltCur)return;
+  const text=document.getElementById('lt-reply-text').value.trim();
+  if(!text){ showToast('답장 내용을 적어 주세요'); return; }
+  if(!authTok){ showToast('로그인 후 이용해 주세요'); return; }
+  if(!_ltReplyFid)_ltReplyFid='r'+Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+  const fid=_ltReplyFid, btn=document.getElementById('lt-reply-send'), x=_ltCur;
+  _ltSending=true; btn.disabled=true; btn.textContent='보내는 중…';
+  try{ await fetch(SHEET_URL,{method:'POST',mode:'no-cors',keepalive:true,headers:{'Content-Type':'text/plain'},
+    body:JSON.stringify({type:'feedback',tok:authTok,fid,kind:'편지답장',text,videoId:'L:'+x.lid,videoTitle:'💌 '+(x.title||'선생님의 편지')})}); }catch(e){}
+  let ok=false;
+  for(let i=0;i<5&&!ok;i++){
+    await new Promise(r=>setTimeout(r,i?1500:700));
+    try{ const r=await gasApi({action:'feedback_ok',tok:authTok,fid}); if(r&&r.invalid){ forceRelogin(); break; } ok=!!(r&&r.ok); }catch(e){}
+  }
+  _ltSending=false; btn.disabled=false; btn.textContent='답장 보내기';
+  if(ok){ _ltReplyFid=null; document.getElementById('lt-reply-text').value=''; toggleLtReply(false);
+    const d=document.getElementById('lt-replied'); d.textContent='✅ 답장을 보냈어요 (메뉴 ▸ 내가 쓴 글에서 볼 수 있어요)'; d.classList.add('show'); }
+  else showToast('⚠️ 보냈는지 확인하지 못했어요. 인터넷을 확인하고 다시 눌러 주세요. (적은 글은 그대로 있어요)');
+}
+function renderLtBox(){
+  const el=document.getElementById('lt-box-body'); if(!el)return;
+  if(!_lts){ el.innerHTML='<div class="bm-empty">불러오는 중…</div>'; return; }
+  if(!_lts.items.length){ el.innerHTML='<div class="bm-empty">아직 받은 편지가 없어요.<br>선생님이 편지를 보내면 앱을 열 때 편지 창이 떠요.</div>'; return; }
+  el.innerHTML=_lts.items.map((x,i)=>`<button class="lt-item${x.read?'':' new'}" onclick="openLtAt(${i})"><b>${x.read?'':'🔴 '}${escH(x.title||'선생님의 편지')}</b><span>${escH(x.from||'선생님')} · ${escH(String(x.at||'').slice(0,10))}</span><p>${escH(String(x.body||'').replace(/\s+/g,' '))}</p></button>`).join('');
+}
+function openLtAt(i){ const x=_lts&&_lts.items[i]; if(!x)return; _ltQueue=[]; showLtLetter(x); }
+function openLtBox(){
+  if(!userName){ showToast('먼저 로그인해 주세요'); return; }
+  renderLtBox(); document.getElementById('lt-box').classList.add('show'); document.body.style.overflow='hidden';
+  loadLetters();
+}
+function closeLtBox(){
+  const m=document.getElementById('lt-box'); if(!m.classList.contains('show'))return;
+  m.classList.remove('show');
+  if(!document.getElementById('player-overlay').classList.contains('show'))document.body.style.overflow='';
+}
+
 /* ═══ 🔑 비밀번호를 잊었어요 — 관리자 '소감·질문'에 '비번 문의'로 전달 ═══ */
 function togglePwHelp(){
   const b=document.getElementById('pwh-box'), t=document.getElementById('pwh-toggle');
@@ -3803,6 +3972,8 @@ window.addEventListener('keydown',e=>{
     else if(document.getElementById('fb-modal').classList.contains('show'))closeFeedback();
     else if(document.getElementById('my-stats-modal').classList.contains('show'))closeMyStats();
     else if(document.getElementById('bm-modal').classList.contains('show'))closeBmModal();
+    else if(document.getElementById('lt-pop').classList.contains('show'))closeLtPop();
+    else if(document.getElementById('lt-box').classList.contains('show'))closeLtBox();
     else if(document.getElementById('detail-modal').classList.contains('show'))closeDetail();
     else closePlayer();
   }
@@ -3954,7 +4125,7 @@ document.addEventListener('click',e=>{ if(!e.target.closest('#hdr-menu'))closeHd
 document.addEventListener('keydown',e=>{ if(e.key==='Escape')closeHdrMenu(); });
 function hdrMenuGo(k){
   closeHdrMenu();
-  if(k==='stats')openMyStats(); else if(k==='bm')openBmModal(); else if(k==='mine')showMyFeedback(); else if(k==='pw')openPwModal(); else if(k==='out')goToLogin();
+  if(k==='stats')openMyStats(); else if(k==='bm')openBmModal(); else if(k==='lt')openLtBox(); else if(k==='mine')showMyFeedback(); else if(k==='pw')openPwModal(); else if(k==='out')goToLogin();
 }
 
 /* ══════════════════════════════════
@@ -4391,7 +4562,7 @@ function showIosInstallGuide() {
 init();
 
 /* ─ 새 버전 안내: 사이트를 새로 올리면 열려 있는 화면에 '새 버전' 띠를 띄움 ─ */
-const APP_VER='2026.11.01-2';
+const APP_VER='2026.11.02-1';
 (function(){
   const PAGE=()=>{ const p=location.pathname; return p.endsWith('/')?p+'index.html':p; };
   let newVer=null, shown=false;
