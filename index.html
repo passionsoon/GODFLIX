@@ -3227,7 +3227,8 @@ function closePlayer(){
   }, 250);
   document.body.style.overflow='';
   rwFlush();
-  if(currentVideo&&maxReachedSec>5){saveRecord(true);saveProgress();}
+  const _wasPlaying=isPlaying; isPlaying=false;
+  if(currentVideo&&maxReachedSec>5){saveRecord(true);saveProgress(_wasPlaying);}   // 닫을 때 '멈춤'으로 한 번 알림 → 관리자 '지금 보는 중'에서 바로 빠짐
   clearInterval(progressSaveInterval);
   releaseWakeLock();
   clearMediaSession();
@@ -3953,7 +3954,7 @@ function saveProgress(force=false){
   if(!force&&sig===_lastSaved)return;
   _lastSaved=sig;
   fetch(SHEET_URL,{method:'POST',mode:'no-cors',keepalive:true,headers:{'Content-Type':'text/plain'},
-    body:JSON.stringify({type:'progress',tok:authTok,videoId:currentVideo.id,
+    body:JSON.stringify({type:'progress',tok:authTok,videoId:currentVideo.id,live:1,playing:!!isPlaying,dev:isIOS?'iPhone':/Android/i.test(navigator.userAgent)?'Android':'PC',   // 🟢 관리자 '지금 보는 중'
       lastPosition:Math.floor(_pos),maxReached:Math.floor(videoDuration>0?Math.min(maxReachedSec,videoDuration):maxReachedSec),
       duration:Math.floor(videoDuration||0)})}).catch(()=>{});
 }
@@ -4562,7 +4563,7 @@ function showIosInstallGuide() {
 init();
 
 /* ─ 새 버전 안내: 사이트를 새로 올리면 열려 있는 화면에 '새 버전' 띠를 띄움 ─ */
-const APP_VER='2026.11.02-1';
+const APP_VER='2026.11.03-1';
 (function(){
   const PAGE=()=>{ const p=location.pathname; return p.endsWith('/')?p+'index.html':p; };
   let newVer=null, shown=false;
