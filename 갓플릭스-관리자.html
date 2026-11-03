@@ -200,6 +200,25 @@ textarea.lt-in{width:100%;resize:vertical;min-height:140px;line-height:1.7;displ
 .lt-card{border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03);border-radius:10px;padding:14px 16px;margin-bottom:10px;}
 .lt-card-top{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12.5px;color:var(--g3);margin-bottom:6px;}
 .lt-card-title{font-size:15px;font-weight:700;color:#fff;margin-bottom:6px;}
+.lt-to{font-size:13px;color:var(--g2);margin:-2px 0 8px;line-height:1.6;word-break:keep-all;}
+.lt-to b{color:#9fc8ff;font-weight:700;}
+/* 🟢 지금 보는 중 */
+.live-panel{border-color:rgba(70,211,105,.3)!important;}
+.live-dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--green);box-shadow:0 0 0 0 rgba(70,211,105,.6);animation:livePulse 1.6s infinite;margin-right:2px;vertical-align:1px;}
+@keyframes livePulse{0%{box-shadow:0 0 0 0 rgba(70,211,105,.55)}70%{box-shadow:0 0 0 8px rgba(70,211,105,0)}100%{box-shadow:0 0 0 0 rgba(70,211,105,0)}}
+.live-row{display:grid;grid-template-columns:minmax(90px,140px) 1fr auto;gap:12px;align-items:center;padding:9px 4px;border-bottom:1px solid rgba(255,255,255,.06);}
+.live-row:last-child{border-bottom:0;}
+.live-nm{font-weight:700;color:#fff;cursor:pointer;font-size:14px;}
+.live-nm small{display:block;font-weight:500;color:var(--g3);font-size:11.5px;}
+.live-ti{font-size:13px;color:var(--g1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.live-bar{height:5px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:5px;}
+.live-bar i{display:block;height:100%;background:var(--green);}
+.live-row.paused .live-bar i{background:var(--gold);}
+.live-row.gone{opacity:.55;}
+.live-row.gone .live-bar i{background:var(--g3);}
+.live-st{font-size:12px;color:var(--g2);text-align:right;white-space:nowrap;}
+.live-st b{display:block;font-size:12.5px;}
+@media(max-width:640px){ .live-row{grid-template-columns:1fr auto;} .live-row .live-mid{grid-column:1/-1;order:3;} }
 .lt-card-body{font-size:13.5px;color:var(--g2);white-space:pre-wrap;word-break:break-word;line-height:1.7;max-height:5.1em;overflow:hidden;}
 .lt-card.open .lt-card-body{max-height:none;}
 .lt-bar{height:6px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden;margin:10px 0 6px;}
@@ -645,6 +664,16 @@ table.matrix tbody tr:hover td.cell-ing{background:rgba(74,158,255,.14);}
         <button class="adm-btn" id="auto-refresh-btn" onclick="toggleAutoRefresh()">⏱ 자동갱신 OFF</button>
         <button class="adm-btn" onclick="forceRefreshData()">↻ 강제 갱신</button>
       </div>
+    </div>
+    <div class="panel live-panel" id="live-panel" style="margin-bottom:12px">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px;">
+        <div class="panel-title" style="margin:0"><span class="live-dot" id="live-dot"></span> 지금 보는 중 <span id="live-count" style="font-size:13px;color:var(--g3);font-weight:600"></span></div>
+        <span style="flex:1"></span>
+        <span id="live-at" style="font-size:12px;color:var(--g3)"></span>
+        <button class="adm-btn" onclick="loadLive(true)">🔄</button>
+      </div>
+      <div style="font-size:12px;color:var(--g3);margin-bottom:4px;">강의를 틀어 둔 사람이 20초마다 신호를 보내요. 이 화면을 켜 두면 30초마다 저절로 새로 고쳐져요. (최근 30분)</div>
+      <div id="live-list"><p class="empty" style="font-size:13px">불러오는 중…</p></div>
     </div>
     <div class="panel care" id="care-panel">
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px;">
@@ -1259,7 +1288,7 @@ function switchTab(t) {
   if (t==='daily')    loadDaily(_dlDate || '');
   if (t==='range')    { if (_rg) renderRange(); else rgQuick(_rgQ || '4w'); }
   if (t==='dropoff')  loadDropoff(false);
-  if (t==='dashboard') renderCare();
+  if (t==='dashboard') { renderCare(); loadLive(false); }
   if (t==='settings') { initSettings(); loadClientErr(true); }
 }
 
@@ -1995,6 +2024,50 @@ function renderDropoff(){
   }).join('') + (empty.length ? `<p style="font-size:12.5px;color:var(--g3);margin-top:6px">아직 시청 기록이 없는 강의: ${escHtml(empty.map(v => v.title).join(', '))}</p>` : '');
 }
 
+
+/* ── 🟢 지금 보는 중 ── */
+let _live = null, _liveP = null, _liveT = null;
+function loadLive(show){
+  if (_liveP) return _liveP;
+  _liveP = api({ action: 'live', pw: ADMIN_PW }).then(r => {
+    if (r && Array.isArray(r.items)) { _live = r; _live.got = Date.now(); renderLive(); }
+    else if (show && !_live) document.getElementById('live-list').innerHTML = '<p class="empty" style="font-size:13px">불러오지 못했어요.</p>';
+  }).catch(() => { if (show && !_live) document.getElementById('live-list').innerHTML = '<p class="empty" style="font-size:13px">⚠️ 서버 연결 실패</p>'; }).finally(() => { _liveP = null; });
+  return _liveP;
+}
+function agoTxt(sec){ sec = Math.max(0, Math.round(sec)); return sec < 60 ? '방금' : sec < 3600 ? Math.floor(sec / 60) + '분 전' : Math.floor(sec / 3600) + '시간 전'; }
+function renderLive(){
+  const el = document.getElementById('live-list'); if (!el || !_live) return;
+  const skew = _live.now - _live.got;   // 서버 시계 기준
+  const now = Date.now() + skew;
+  const rows = _live.items.map(x => {
+    const age = (now - x.at) / 1000;
+    const st = x.playing && age < 75 ? 'on' : age < 300 ? 'paused' : 'gone';
+    return Object.assign({ age, st }, x);
+  });
+  const on = rows.filter(x => x.st === 'on'), pa = rows.filter(x => x.st === 'paused'), gone = rows.filter(x => x.st === 'gone');
+  document.getElementById('live-count').textContent = on.length ? `· ${on.length}명 재생 중` + (pa.length ? ` · ${pa.length}명 잠깐 멈춤` : '') : pa.length ? `· ${pa.length}명 잠깐 멈춤` : '· 지금은 없어요';
+  document.getElementById('live-dot').style.animationPlayState = on.length ? 'running' : 'paused';
+  document.getElementById('live-dot').style.background = on.length ? 'var(--green)' : 'var(--g4)';
+  document.getElementById('live-at').textContent = new Date(_live.got).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' 기준';
+  if (!rows.length) { el.innerHTML = '<p class="empty" style="font-size:13px;padding:10px 0">최근 30분 안에 강의를 본 사람이 없어요.</p>'; return; }
+  const dev = d => d === 'iPhone' ? '📱 아이폰' : d === 'Android' ? '📱 안드로이드' : d === 'PC' ? '💻 컴퓨터' : '';
+  const line = x => {
+    const pct = x.dur > 0 ? Math.min(100, Math.round(x.pos / x.dur * 100)) : 0;
+    const stTxt = x.st === 'on' ? '<b style="color:var(--green)">▶ 재생 중</b>' : x.st === 'paused' ? `<b style="color:var(--gold)">⏸ 멈춤</b>${agoTxt(x.age)}` : `<b style="color:var(--g3)">나감</b>${agoTxt(x.age)}`;
+    return `<div class="live-row ${x.st}"><div class="live-nm" data-n="${escHtml(x.name)}" onclick="openStudentDetail(this.dataset.n)" title="${escHtml(x.name)} 님 기록 보기">${escHtml(x.name)}<small>${x.mgr ? escHtml(x.mgr) + ' 담당 · ' : ''}${dev(x.dev)}</small></div>
+      <div class="live-mid"><div class="live-ti">${escHtml(x.title || '(지운 강의)')}</div><div class="live-bar"><i style="width:${pct}%"></i></div><div style="font-size:11.5px;color:var(--g3);margin-top:3px">${clk(x.pos)}${x.dur ? ' / ' + clk(x.dur) + ` (${pct}%)` : ''}</div></div>
+      <div class="live-st">${stTxt}</div></div>`;
+  };
+  el.innerHTML = on.concat(pa).map(line).join('') + (gone.length ? `<details style="margin-top:6px"><summary style="cursor:pointer;font-size:12.5px;color:var(--g3);padding:6px 4px">최근 30분 안에 보다가 나간 사람 ${gone.length}명</summary>${gone.map(line).join('')}</details>` : '');
+}
+// 대시보드를 보고 있을 때만 30초마다 새로 고침
+function liveTick(){
+  clearTimeout(_liveT);
+  _liveT = setTimeout(() => { if (!document.hidden && ADMIN_PW && document.getElementById('ts-dashboard').classList.contains('active')) loadLive(false); else if (_live) renderLive(); liveTick(); }, 30000);
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden && ADMIN_PW && document.getElementById('ts-dashboard')?.classList.contains('active')) loadLive(false); });
+
 /* ── 🧯 수강생 화면 오류 ── */
 let _ce = null, _ceP = null;
 function loadClientErr(show){
@@ -2287,6 +2360,7 @@ function renderLetters(){
     return `<div class="lt-card" id="ltc-${escHtml(x.lid)}">
       <div class="lt-card-top"><span>🕒 ${escHtml(x.at)}</span><span>✍️ ${escHtml(x.from)}</span><span class="care-chip">${escHtml(x.scope || '')} ${x.to.length}명</span>${x.replies.length ? `<span class="care-chip m">💬 답장 ${x.replies.length}</span>` : ''}</div>
       <div class="lt-card-title">${escHtml(x.title)}</div>
+      <div class="lt-to">📮 받는 사람: <b>${escHtml(x.to.slice(0, 12).join(', '))}</b>${x.to.length > 12 ? ` 외 ${x.to.length - 12}명` : ''}</div>
       <div class="lt-card-body">${escHtml(x.body)}</div>
       <div class="lt-bar"><i style="width:${pct}%"></i></div>
       <div style="font-size:12.5px;color:var(--g2)">👀 <b style="color:#fff">${readN}/${x.to.length}명</b> 읽음 (${pct}%)</div>
@@ -2415,6 +2489,7 @@ async function loadAll(retry = 0) {
     fetchStats(false).catch(() => {});
     loadFeedback(false);
     setTimeout(() => loadClientErr(false), 4000);
+    loadLive(true); liveTick();
     loadTodayCount(true);
     loadCare(false);
     // 일자별(오늘)도 미리 받아 두기 → 탭을 열면 바로 보임
@@ -3546,7 +3621,7 @@ window.addEventListener('keydown',e=>{if(e.key==='Escape')closePopup();});
 })();
 
 /* ─ 새 버전 안내: 사이트를 새로 올리면 열려 있는 화면에 '새 버전' 띠를 띄움 ─ */
-const APP_VER='2026.11.02-1';
+const APP_VER='2026.11.03-1';
 (function(){
   const PAGE=()=>location.pathname;
   let newVer=null, shown=false;
