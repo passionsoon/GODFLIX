@@ -173,6 +173,16 @@ table.rg-t tr.zero td{color:var(--g3);}
 .rg-bar{display:inline-block;height:6px;border-radius:3px;background:var(--red);vertical-align:middle;margin-left:6px;}
 .rg-spark{display:inline-flex;gap:2px;align-items:flex-end;height:18px;}
 .rg-spark i{width:6px;background:rgba(229,9,20,.85);border-radius:1px;min-height:1px;}
+.mx-grp td{background:#232323 !important;cursor:pointer;user-select:none;font-size:14px;font-weight:800;color:#fff;padding:10px 12px !important;text-align:left !important;border-top:2px solid rgba(255,255,255,.12);}
+.mx-grp.staff td{color:var(--g2);font-size:13px;}
+.mx-grp td small{font-weight:600;color:var(--g3);font-size:12px;margin-left:6px;}
+.mx-grp td .arw{display:inline-block;margin-left:8px;font-size:11px;color:var(--g3);transition:transform .15s;}
+.mx-grp.open td .arw{transform:rotate(180deg);}
+tbody.mx-hide{display:none;}
+.mx-sub td{background:rgba(255,255,255,.04) !important;}
+.sum-note{font-size:12px;color:var(--g3);width:100%;margin-top:2px;}
+.grp-h{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:800;color:#fff;margin:16px 2px 8px;}
+.grp-h .cnt{font-size:12.5px;font-weight:700;color:var(--g3);}
 .dl-sum{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;font-size:14px;color:var(--g2);margin-bottom:12px;}
 .dl-sum b{color:#fff;font-size:16px;}
 .dl-stu{background:var(--surface);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:12px 14px;margin-bottom:8px;}
@@ -939,7 +949,7 @@ table.matrix tbody tr:hover td.cell-ing{background:rgba(74,158,255,.14);}
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
         <select id="matrix-student-filter" onchange="applyMatrixFilter()"
           style="background:var(--surface2);border:1px solid rgba(255,255,255,.1);color:var(--white);border-radius:6px;padding:7px 12px;font-size:13px;font-family:var(--font);">
-          <option value="">전체 수강생</option>
+          <option value="">전체 (구분별로 묶어 보기)</option>
         </select>
         <select id="matrix-grade-filter" onchange="applyMatrixFilter()"
           style="background:var(--surface2);border:1px solid rgba(255,255,255,.1);color:var(--white);border-radius:6px;padding:7px 12px;font-size:13px;font-family:var(--font);">
@@ -1462,8 +1472,10 @@ function populateStudentFilter() {
   const sel = document.getElementById('matrix-student-filter');
   if (!sel || !vdData) return;
   const students = vdData.students || [];
-  sel.innerHTML = '<option value="">전체 수강생</option>' +
-    students.map(n => `<option value="${n}">${n}</option>`).join('');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">전체 (구분별로 묶어 보기)</option>' +
+    stuGroups(students).map(([label, icon, list]) => list.length ? `<optgroup label="${icon} ${label} (${list.length}명)">${list.map(n => `<option value="${escHtml(n)}">${escHtml(n)}</option>`).join('')}</optgroup>` : '').join('');
+  if (cur && [...sel.options].some(o => o.value === cur)) sel.value = cur;
 }
 
 function applyMatrixFilter() {
@@ -1491,7 +1503,7 @@ function renderMatrixCards(r) {
   if (!students.length || !allVideos.length) {
     area.innerHTML = '<p class="empty">데이터가 없습니다.</p>'; return;
   }
-  area.innerHTML = students.map(n => {
+  const card = n => {
     const done = allVideos.filter(v => getStatus(rawP[n]?.[v.id])==='done').length;
     const ing  = allVideos.filter(v => getStatus(rawP[n]?.[v.id])==='ing').length;
     const pct  = allVideos.length>0 ? Math.round(done/allVideos.length*100) : 0;
@@ -1522,7 +1534,10 @@ function renderMatrixCards(r) {
       </div>
       ${rows}
     </div>`;
-  }).join('');
+  };
+  mxSummary(r, students);
+  area.innerHTML = stuGroups(students).map(([label, icon, list, staff], gi) => !list.length ? '' :
+    `<details class="stu-group${staff ? ' staff' : ''}" ${(_mxOpen[gi] ?? !staff) ? 'open' : ''} ontoggle="_mxOpen[${gi}]=this.open"><summary>${icon} ${label} <span class="cnt">${list.length}명 · 평균 완료율 ${mxRate(list, rawP)}%</span><span class="arw">▼</span></summary>${list.map(card).join('')}</details>`).join('');
 }
 
 /* ════════════════════
@@ -1769,6 +1784,7 @@ function renderDaily(){
   // 사람별로 묶기
   const by = {}; r.rows.forEach(x => (by[x.name] = by[x.name] || []).push(x));
   const names = Object.keys(by);
+  const DG = stuGroups(names);
   const played = r.rows.reduce((a, x) => a + (x.played || 0), 0);
   const doneN = r.rows.filter(x => x.done).length;
   // 이날 안 본 수강생 (관리자·인섬교 제외)
@@ -1779,14 +1795,14 @@ function renderDaily(){
   const lt = v => (parseTitle(v.title || '').main || v.title || '(강의)');
   const tl = d => { const t = new Date(d + 'T00:00:00+09:00'); return (t.getMonth()+1) + '월 ' + t.getDate() + '일(' + DOW[t.getDay()] + ')'; };
   document.getElementById('dl-body').innerHTML = `
-    <div class="dl-sum"><span><b>${tl(r.date)}</b></span><span>👥 <b>${names.length}</b>명 시청</span><span>⏱ 실제 재생 <b>${Math.round(played)}</b>분</span><span>✅ 완료 <b>${doneN}</b>건</span>
+    <div class="dl-sum"><span><b>${tl(r.date)}</b></span><span>👥 수강생 <b>${DG[0][2].length}</b>명 시청${DG[1][2].length || DG[2][2].length ? ` <small style="color:var(--g3)">(${[DG[1], DG[2]].filter(g => g[2].length).map(g => g[1] + ' ' + g[0] + ' ' + g[2].length + '명').join(' · ')})</small>` : ''}</span><span>⏱ 실제 재생 <b>${Math.round(played)}</b>분</span><span>✅ 완료 <b>${doneN}</b>건</span>
       ${all.length ? `<span>😴 안 본 수강생 <b>${none.length}</b>명 ${none.length ? '<button class="adm-btn" style="padding:4px 10px;font-size:12px" onclick="copyDlNone()">📋 이름 복사</button>' : ''}</span>` : '<span style="font-size:12px;color:var(--g3)">(출석 현황을 한 번 불러오면 안 본 수강생도 보여요)</span>'}</div>
-    ${names.length ? names.map(n => `<div class="dl-stu"><div class="dl-stu-h" style="cursor:pointer" data-n="${escHtml(n)}" onclick="openStudentDetail(this.dataset.n)" title="일자별 기록 보기">${escHtml(n)} <span style="font-size:12px;color:var(--g3);font-weight:500">${by[n].length}개 강의</span></div>
+    ${names.length ? DG.map(([label, icon, list, staff]) => !list.length ? '' : `<details class="stu-group${staff ? ' staff' : ''}" open><summary>${icon} ${label} <span class="cnt">${list.length}명 시청</span><span class="arw">▼</span></summary>${list.map(n => `<div class="dl-stu"><div class="dl-stu-h" style="cursor:pointer" data-n="${escHtml(n)}" onclick="openStudentDetail(this.dataset.n)" title="일자별 기록 보기">${escHtml(n)} <span style="font-size:12px;color:var(--g3);font-weight:500">${by[n].length}개 강의</span></div>
       ${by[n].map(x => `<div class="dl-row"><span class="dl-t">${escHtml(lt(x))}</span>
         <span>🕒 ${x.fd && x.fd !== r.date ? escHtml(sdDate(x.fd)) + ' ' : ''}${escHtml(x.first)}${x.last !== x.first || (x.fd && x.fd !== r.date) ? ' ~ ' + (x.fd && x.fd !== r.date ? escHtml(sdDate(r.date)) + ' ' : '') + escHtml(x.last) : ''}</span>
         <span>${x.played == null ? '위치 ' + x.pos + '분' : '⏱ ' + x.played + '분 재생'}</span>
         ${x.re ? '<span class="dl-tag re">🔁 재시청</span>' : x.done ? '<span class="dl-tag done">✅ 완료</span>' : '<span class="dl-tag ing">▶ 시청 · ' + x.pos + '분 지점</span>'}
-      </div>`).join('')}</div>`).join('') : '<p class="empty">이날은 시청 기록이 없어요.</p>'}`;
+      </div>`).join('')}</div>`).join('')}</details>`).join('') : '<p class="empty">이날은 시청 기록이 없어요.</p>'}`;
 }
 /* ════════════════════
    📈 기간 분석
@@ -3199,22 +3215,37 @@ async function loadVideoData() {
 }
 
 /* ── MATRIX ── */
-function renderMatrix(r) {
-  const{students=[],videoStats:vids=[],rawProgress:rawP={}}=r;
-  if(!students.length||!allVideos.length){document.getElementById('matrix-area').innerHTML='<p class="empty">데이터가 없습니다.</p>';return;}
+// 펼침 상태 기억 (0 수강생, 1 인섬교, 2 관리자) — 기본: 수강생만 펼침
+const _mxOpen = {};
+function mxRate(list, rawP){ const t = list.length * allVideos.length; if (!t) return 0; let d = 0; list.forEach(n => allVideos.forEach(v => { if (getStatus(rawP[n]?.[v.id]) === 'done') d++; })); return Math.round(d / t * 100); }
+// 위쪽 요약: 수강생만 센 숫자 + 인섬교·관리자는 따로 한 줄
+function mxSummary(r, students){
+  const rawP = r.rawProgress || {};
+  const G = stuGroups(students), stu = G[0][2];
   let dc=0,ic=0,nc=0;
-  students.forEach(n=>allVideos.forEach(v=>{const st=getStatus(rawP[n]?.[v.id]);if(st==='done')dc++;else if(st==='ing')ic++;else nc++;}));
-  const tot=students.length*allVideos.length||1,dr=Math.round(dc/tot*100),rc=dr>=70?'var(--green)':dr>=40?'var(--gold)':'var(--red)';
+  stu.forEach(n=>allVideos.forEach(v=>{const st=getStatus(rawP[n]?.[v.id]);if(st==='done')dc++;else if(st==='ing')ic++;else nc++;}));
+  const dr=mxRate(stu,rawP),rc=dr>=70?'var(--green)':dr>=40?'var(--gold)':'var(--red)';
+  const staffTxt = G.slice(1).filter(g => g[2].length).map(([label, icon, list]) => `${icon} ${label} ${list.length}명 · 완료율 ${mxRate(list, rawP)}%`).join(' &nbsp;|&nbsp; ');
   document.getElementById('matrix-summary').innerHTML=`
     <div class="sum-card green"><div><div class="sc-val" style="color:var(--green)">${dc}</div><div class="sc-label">✅ 완료</div></div></div>
     <div class="sum-card blue"><div><div class="sc-val" style="color:var(--blue)">${ic}</div><div class="sc-label">▶ 시청중</div></div></div>
     <div class="sum-card gray"><div><div class="sc-val">${nc}</div><div class="sc-label">○ 미시청</div></div></div>
-    <div class="total-rate-card" style="margin-left:auto"><div class="tr-val" style="color:${rc}">${dr}%</div><div class="tr-label">전체 완료율</div></div>`;
+    <div class="total-rate-card" style="margin-left:auto"><div class="tr-val" style="color:${rc}">${dr}%</div><div class="tr-label">👥 수강생 ${stu.length}명 완료율</div></div>
+    <div class="sum-note">위 숫자는 수강생만 센 거예요${staffTxt ? ' · ' + staffTxt : ''}</div>`;
+}
+function renderMatrix(r) {
+  const{students=[],videoStats:vids=[],rawProgress:rawP={}}=r;
+  if(!students.length||!allVideos.length){document.getElementById('matrix-area').innerHTML='<p class="empty">데이터가 없습니다.</p>';return;}
+  mxSummary(r, students);
   let tbl=`<table class="matrix"><thead><tr><th class="sticky-col" style="position:sticky;left:0;z-index:11;background:var(--surface2);">수강생</th>`;
   allVideos.forEach(v=>{const p=parseTitle(v.title);tbl+=`<th>${p.sub?`<div style="font-size:9px;color:var(--g3);font-weight:400">${p.sub}</div>`:''}<div>${p.main||v.title}</div></th>`;});
-  tbl+=`<th>완료율</th></tr></thead><tbody>`;
-  students.forEach(n=>{
-    let done=0;tbl+=`<tr><td class="sticky-col">${n}</td>`;
+  tbl+=`<th>완료율</th></tr></thead>`;
+  const ncol=allVideos.length+2;
+  stuGroups(students).forEach(([label,icon,list,staff],gi)=>{ if(!list.length) return;
+  const open=_mxOpen[gi] ?? !staff;
+  tbl+=`<tbody><tr class="mx-grp${staff?' staff':''}${open?' open':''}" onclick="_mxOpen[${gi}]=!this.classList.contains('open');this.classList.toggle('open');this.closest('tbody').nextElementSibling.classList.toggle('mx-hide')"><td colspan="${ncol}"><span style="position:sticky;left:12px">${icon} ${label}<small>${list.length}명 · 평균 완료율 ${mxRate(list,rawP)}%</small><span class="arw">▼</span></span></td></tr></tbody><tbody class="${open?'':'mx-hide'}">`;
+  list.forEach(n=>{
+    let done=0;tbl+=`<tr><td class="sticky-col">${escHtml(n)}</td>`;
     allVideos.forEach(v=>{
       const p=rawP[n]?.[v.id],st=getStatus(p),pct=getPct(p);
       const cls=st==='done'?'cell-done':st==='ing'?'cell-ing':'cell-none';
@@ -3227,15 +3258,17 @@ function renderMatrix(r) {
     const sc=sp>=80?'var(--green)':sp>=40?'var(--gold)':'var(--red)';
     tbl+=`<td style="text-align:center;font-weight:700;color:${sc}">${sp}%</td></tr>`;
   });
-  // 합계
-  tbl+=`<tr style="background:rgba(255,255,255,.04)"><td class="sticky-col" style="background:rgba(255,255,255,.04);">합계</td>`;
+  // 구분별 합계
+  tbl+=`<tr class="mx-sub"><td class="sticky-col" style="font-weight:700">${label} 합계</td>`;
   allVideos.forEach(v=>{
-    const done=students.filter(n=>getStatus(rawP[n]?.[v.id])==='done').length;
-    const rt=students.length>0?Math.round(done/students.length*100):0;
+    const done=list.filter(n=>getStatus(rawP[n]?.[v.id])==='done').length;
+    const rt=list.length>0?Math.round(done/list.length*100):0;
     const c=rt>=70?'var(--green)':rt>=40?'var(--gold)':'var(--red)';
-    tbl+=`<td style="text-align:center;border-top:1px solid rgba(255,255,255,.1)"><div style="font-size:13px;font-weight:700;color:${c}">${done}/${students.length}</div><div style="font-size:10px;color:${c}">${rt}%</div></td>`;
+    tbl+=`<td style="text-align:center;border-top:1px solid rgba(255,255,255,.1)"><div style="font-size:13px;font-weight:700;color:${c}">${done}/${list.length}</div><div style="font-size:10px;color:${c}">${rt}%</div></td>`;
   });
-  tbl+=`<td></td></tr></tbody></table>`;
+  tbl+=`<td></td></tr></tbody>`;
+  });
+  tbl+=`</table>`;
   document.getElementById('matrix-area').innerHTML=tbl;
 }
 
@@ -3693,7 +3726,7 @@ window.addEventListener('keydown',e=>{if(e.key==='Escape')closePopup();});
 })();
 
 /* ─ 새 버전 안내: 사이트를 새로 올리면 열려 있는 화면에 '새 버전' 띠를 띄움 ─ */
-const APP_VER='2026.11.03-3';
+const APP_VER='2026.11.03-4';
 (function(){
   const PAGE=()=>location.pathname;
   let newVer=null, shown=false;
