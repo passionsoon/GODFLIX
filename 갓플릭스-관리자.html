@@ -101,6 +101,27 @@ input,textarea,select{font-family:var(--font);outline:none;}
 .do-t{font-size:15px;font-weight:800;color:#fff;}
 .do-meta{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;}
 .do-svg{width:100%;height:150px;display:block;}
+.do-tbl-wrap{overflow-x:auto;border:1px solid rgba(255,255,255,.08);border-radius:10px;}
+.do-tbl{width:100%;border-collapse:collapse;font-size:13px;min-width:640px;}
+.do-tbl th{position:sticky;top:0;background:#1d1d1d;color:var(--g3);font-weight:700;text-align:right;padding:9px 10px;cursor:pointer;white-space:nowrap;user-select:none;border-bottom:1px solid rgba(255,255,255,.1);}
+.do-tbl th:first-child,.do-tbl td.t{text-align:left;}
+.do-tbl th.on{color:#fff;}
+.do-tbl th:hover{color:#fff;}
+.do-tbl td{padding:9px 10px;text-align:right;border-bottom:1px solid rgba(255,255,255,.05);color:var(--g1);white-space:nowrap;}
+.do-tbl td small{color:var(--g3);font-size:11px;}
+.do-tbl td.t{max-width:260px;overflow:hidden;text-overflow:ellipsis;font-weight:700;color:#fff;}
+.do-tbl tbody tr{cursor:pointer;}
+.do-tbl tbody tr:hover{background:rgba(255,255,255,.04);}
+.do-click{cursor:pointer;}
+.do-click:hover{filter:brightness(1.25);}
+/* 수강생별: 구분별 묶음 */
+.stu-group{margin-bottom:18px;}
+.stu-group > summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;font-size:15px;font-weight:800;color:#fff;padding:10px 4px;border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:12px;}
+.stu-group > summary::-webkit-details-marker{display:none;}
+.stu-group > summary .cnt{font-size:12.5px;font-weight:700;color:var(--g3);}
+.stu-group > summary .arw{margin-left:auto;font-size:12px;color:var(--g3);transition:transform .15s;}
+.stu-group[open] > summary .arw{transform:rotate(180deg);}
+.stu-group.staff > summary{color:var(--g2);font-size:14px;}
 .do-hint{font-size:13px;color:var(--g2);margin-top:8px;line-height:1.5;}
 .do-hint b{color:#fff;}
 .sd-panel{margin-bottom:16px;}
@@ -844,7 +865,7 @@ table.matrix tbody tr:hover td.cell-ing{background:rgba(74,158,255,.14);}
       <button class="sub-tab"        id="st-mgmt-btn"   onclick="switchStudentSub('mgmt')">➕ 등록/관리</button>
       <button class="sub-tab"        id="st-detail-btn" onclick="switchStudentSub('detail')">🔍 상세 보기</button>
     </div>
-    <div id="st-view-all"><div class="stu-grid" id="stu-grid"><div class="spinner"></div></div></div>
+    <div id="st-view-all"><div id="stu-grid"><div class="spinner"></div></div></div>
     <div id="st-view-mgmt" style="display:none;">
       <div class="panel" style="margin-bottom:12px;">
         <div class="panel-title">➕ 새 수강생 등록</div>
@@ -980,9 +1001,11 @@ table.matrix tbody tr:hover td.cell-ing{background:rgba(74,158,255,.14);}
     <div class="sec-title">🎯 <em>강의 분석</em> · 어디서 멈추나</div>
     <div style="font-size:13px;color:var(--g3);margin:-10px 0 10px;line-height:1.6">강의마다 수강생이 <b style="color:var(--g1)">어느 지점까지 봤는지</b> 보여줘요. 빨간 선 = 그 지점까지 본 사람 비율, 아래 막대 = 그 구간에서 멈추고 3일 넘게 안 돌아온 사람 수, <b style="color:#7fb6ff">파란 띠 ⟲</b> = 뒤로 돌려 <b style="color:var(--g1)">다시 들은</b> 사람이 많은 구간(진할수록 많음 · 11월 1일부터 기록). (관리자·인섬교 제외, 최근 3일 안에 본 사람은 '보는 중')</div>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px;">
-      <select id="do-sort" onchange="renderDropoff()" style="font-family:var(--font);background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:6px;color:var(--white);padding:7px 10px;font-size:12.5px;">
-        <option value="order">강의 순서대로</option><option value="worst">완주율 낮은 순</option><option value="stopped">멈춘 사람 많은 순</option>
+      <span style="font-size:12.5px;color:var(--g3)">정렬</span>
+      <select id="do-sort" onchange="_doSort=this.value;renderDropoff()" style="font-family:var(--font);background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:6px;color:var(--white);padding:7px 10px;font-size:12.5px;">
+        <option value="order">강의 번호</option><option value="rate">완주율</option><option value="starters">시작한 사람</option><option value="none">아직 안 본 사람</option><option value="stopped">멈춘 사람</option><option value="avg">평균 진도</option><option value="rw">다시 들은 사람</option>
       </select>
+      <button class="adm-btn" id="do-dir" onclick="_doDesc=!_doDesc;renderDropoff()" title="오름차순·내림차순 바꾸기">⬇ 내림차순</button>
       <button class="adm-btn" onclick="loadDropoff(true)">🔄 새로고침</button>
     </div>
     <div id="do-body"><p class="empty">불러오는 중…</p></div>
@@ -1286,7 +1309,7 @@ function switchTab(t) {
   if (t==='notice')   loadCurrentNotice();
   if (t==='feedback') { loadFeedback(true); let v = 'in'; try { v = localStorage.getItem('gf_adm_comm') || 'in'; } catch(e){} if (v === 'out') commView('out'); }
   if (t==='daily')    loadDaily(_dlDate || '');
-  if (t==='range')    { if (_rg) renderRange(); else rgQuick(_rgQ || '4w'); }
+  if (t==='range')    { if (_rg) renderRange(); else rgQuick(_rgQ || 'thisweek'); }   // 처음 들어가면 이번 주
   if (t==='dropoff')  loadDropoff(false);
   if (t==='dashboard') { renderCare(); loadLive(false); }
   if (t==='settings') { initSettings(); loadClientErr(true); }
@@ -1980,18 +2003,46 @@ function rwStrip(v, W, L, R, iw, B){
   const cells = v.rw.bins.map((c, i) => `<rect x="${(L + iw * i / B + 0.5).toFixed(1)}" y="3" width="${(iw / B - 1).toFixed(1)}" height="${H - 6}" rx="2" fill="${c ? `rgba(74,158,255,${(0.15 + 0.85 * c / mx).toFixed(2)})` : 'rgba(255,255,255,.04)'}"><title>${mmss(v.dur * i / B)}~${mmss(v.dur * (i + 1) / B)}: ${c}명 다시 들음</title></rect>`).join('');
   return `<svg class="rw-strip" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="다시 들은 구간"><text x="${L - 6}" y="15" fill="#7fb6ff" font-size="11" text-anchor="end">⟲</text>${cells}</svg>`;
 }
+// 기본: 최신 강의(번호 큰 것)부터
+let _doSort = 'order', _doDesc = true;
+function doNo(v, i){ const m = String(v.title || '').match(/(\d+)\s*강/); return m ? Number(m[1]) : 1000 + i; }
+const DO_KEYS = {
+  order: v => v._no, rate: v => v.starters ? v.finished / v.starters : -1, starters: v => v.starters,
+  none: v => (v.notStarted || []).length, stopped: v => v.stopped, avg: v => v.avgPct || 0, rw: v => (v.rw && v.rw.students) || 0 };
+function doSortBy(k){ if (_doSort === k) _doDesc = !_doDesc; else { _doSort = k; _doDesc = k !== 'rate' && k !== 'avg'; } renderDropoff(); }
+function doNamesToast(id, kind){
+  const v = (_do && _do.videos || []).find(x => x.id === id); if (!v) return;
+  const L = kind === 'none' ? v.notStarted : kind === 'fin' ? v.finNames : v.watchNames;
+  const lbl = kind === 'none' ? '🙈 아직 안 본 분' : kind === 'fin' ? '🏁 완주한 분' : '👀 보는 중인 분';
+  showToast(L && L.length ? lbl + ' (' + L.length + '명): ' + L.join(', ') : lbl + ': 없음');
+}
 function renderDropoff(){
   const r = _do, el = document.getElementById('do-body'); if (!r || !el) return;
   const B = r.bins;
-  let vs = r.videos.filter(v => v.starters > 0 && v.dur > 0);
-  const empty = r.videos.filter(v => !(v.starters > 0 && v.dur > 0));
-  const sort = document.getElementById('do-sort').value;
+  const sel = document.getElementById('do-sort'); if (sel) sel.value = _doSort;
+  const dirBtn = document.getElementById('do-dir'); if (dirBtn) dirBtn.textContent = _doDesc ? '⬇ 내림차순' : '⬆ 오름차순';
+  const all = r.videos.map((v, i) => Object.assign(v, { _no: doNo(v, i) }));
+  const key = DO_KEYS[_doSort] || DO_KEYS.order;
+  // 아직 아무도 안 본 강의는 완주율·평균 진도로 줄 세울 때 항상 맨 아래로
+  const noVal = v => (_doSort === 'rate' || _doSort === 'avg') && !v.starters;
+  all.sort((a, b) => { if (noVal(a) !== noVal(b)) return noVal(a) ? 1 : -1; const d = key(a) - key(b); return (_doDesc ? -d : d) || (b._no - a._no); });
   const rate = v => v.finished / v.starters;
-  if (sort === 'worst') vs = vs.slice().sort((a, b) => rate(a) - rate(b));
-  if (sort === 'stopped') vs = vs.slice().sort((a, b) => b.stopped - a.stopped);
-  if (!vs.length) { el.innerHTML = '<p class="empty">아직 분석할 시청 기록이 없어요.</p>'; return; }
+  const vs = all.filter(v => v.starters > 0 && v.dur > 0);
+  const empty = all.filter(v => !(v.starters > 0 && v.dur > 0));
+  // 한눈에 보는 표 (머리글을 누르면 정렬, 한 번 더 누르면 반대로)
+  const th = (k, t) => `<th class="${_doSort === k ? 'on' : ''}" onclick="doSortBy('${k}')">${t}${_doSort === k ? (_doDesc ? ' ▼' : ' ▲') : ''}</th>`;
+  const pctTxt = (a, b) => b ? Math.round(a / b * 100) + '%' : '-';
+  const table = `<div class="do-tbl-wrap"><table class="do-tbl"><thead><tr>${th('order', '강의')}${th('starters', '시작')}${th('rate', '완주율')}<th>보는 중</th>${th('stopped', '멈춤')}${th('none', '안 봄')}${th('avg', '평균 진도')}${th('rw', '⟲ 다시 들음')}</tr></thead><tbody>${all.map(v => {
+      const total = v.total || 0, rt = v.starters ? v.finished / v.starters : 0;
+      return `<tr onclick="const c=document.getElementById('doc-${escHtml(v.id)}'); if(c) c.scrollIntoView({behavior:'smooth',block:'start'})"><td class="t">${escHtml(v.title)}</td>
+        <td>${v.starters}${total ? `<small>/${total}</small>` : ''}</td>
+        <td><b style="color:${!v.starters ? 'var(--g4)' : rt >= 0.7 ? 'var(--green)' : rt < 0.4 ? '#ff8a80' : 'var(--gold)'}">${pctTxt(v.finished, v.starters)}</b><small> ${v.finished}명</small></td>
+        <td>${v.watching || 0}</td><td>${v.stopped || 0}</td><td>${(v.notStarted || []).length}</td>
+        <td>${v.starters ? (v.avgPct || 0) + '%' : '-'}</td><td>${(v.rw && v.rw.students) || 0}</td></tr>`; }).join('')}</tbody></table></div>
+    <div style="font-size:12px;color:var(--g3);margin:6px 2px 16px">머리글을 누르면 그 기준으로 정렬돼요 (한 번 더 누르면 반대로). 줄을 누르면 아래 그래프로 이동해요. · 안 봄 = 수강생 중 아직 한 번도 안 연 분 (관리자·인섬교 제외)</div>`;
+  if (!vs.length) { el.innerHTML = table + '<p class="empty">아직 분석할 시청 기록이 없어요.</p>'; return; }
   window._doNames = {};
-  el.innerHTML = vs.map(v => {
+  el.innerHTML = table + vs.map(v => {
     const W = 600, H = 150, L = 34, R = 8, T = 10, Bt = 26, iw = W - L - R, ih = H - T - Bt;
     const x = i => L + iw * i / B, y = p => T + ih * (1 - p / 100);
     const pts = v.reach.map((p, i) => `${x(i).toFixed(1)},${y(p).toFixed(1)}`).join(' ');
@@ -2005,9 +2056,10 @@ function renderDropoff(){
     if (bi >= 0) window._doNames[v.id] = v.names[bi];
     const hl = dd >= 5 ? `<rect x="${x(di).toFixed(1)}" y="${T}" width="${(iw / B).toFixed(1)}" height="${ih}" fill="rgba(229,9,20,.12)"/>` : '';
     const half = v.reach.findIndex(p => p < 50);
-    return `<div class="do-card">
-      <div class="do-h"><span class="do-t">${escHtml(v.title)}</span><span style="font-size:12px;color:var(--g3)">${mmss(v.dur)} 강의</span></div>
-      <div class="do-meta"><span class="care-chip">▶ 시작 ${v.starters}명</span><span class="care-chip ${rate(v) >= 0.7 ? 'm' : rate(v) < 0.4 ? 'r' : 'y'}">🏁 완주 ${v.finished}명 (${Math.round(rate(v) * 100)}%)</span>${v.watching ? `<span class="care-chip">👀 보는 중 ${v.watching}명</span>` : ''}${v.stopped ? `<span class="care-chip y">⏸ 멈춤 ${v.stopped}명</span>` : ''}</div>
+    const nNone = (v.notStarted || []).length;
+    return `<div class="do-card" id="doc-${escHtml(v.id)}">
+      <div class="do-h"><span class="do-t">${escHtml(v.title)}</span><span style="font-size:12px;color:var(--g3)">${mmss(v.dur)} 강의${v.lastAt ? ' · 마지막 시청 ' + escHtml(String(v.lastAt).slice(5, 16)) : ''}</span></div>
+      <div class="do-meta"><span class="care-chip">▶ 시작 ${v.starters}명${v.total ? ' / ' + v.total + '명' : ''}</span><span class="care-chip ${rate(v) >= 0.7 ? 'm' : rate(v) < 0.4 ? 'r' : 'y'} do-click" data-v="${escHtml(v.id)}" onclick="doNamesToast(this.dataset.v,'fin')">🏁 완주 ${v.finished}명 (${Math.round(rate(v) * 100)}%)</span>${v.watching ? `<span class="care-chip do-click" data-v="${escHtml(v.id)}" onclick="doNamesToast(this.dataset.v,'watch')">👀 보는 중 ${v.watching}명</span>` : ''}${v.stopped ? `<span class="care-chip y">⏸ 멈춤 ${v.stopped}명</span>` : ''}${nNone ? `<span class="care-chip r do-click" data-v="${escHtml(v.id)}" onclick="doNamesToast(this.dataset.v,'none')">🙈 안 봄 ${nNone}명</span>` : ''}<span class="care-chip">📈 평균 ${v.avgPct || 0}%까지</span>${v.rw && v.rw.students ? `<span class="care-chip" style="color:#9fc8ff">⟲ 다시 들은 분 ${v.rw.students}명 · ${v.rw.events}번</span>` : ''}</div>
       <svg class="do-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="${escHtml(v.title)} 시청 지점 그래프">
         ${grid}${hl}${bars}
         <polygon points="${L},${y(0)} ${pts} ${x(B)},${y(0)}" fill="rgba(229,9,20,.12)"/>
@@ -3192,7 +3244,7 @@ function renderStudentCards() {
   const c=document.getElementById('stu-grid');
   if (!vdData){c.innerHTML='<p class="empty" style="grid-column:1/-1">출석 현황 탭에서 자동으로 불러옵니다.</p>';return;}
   const{students=[],studentStats:ss={},rawProgress:rawP={}}=vdData;
-  c.innerHTML=students.map((n,ni)=>{
+  const card=(n,ni)=>{
     const s=ss[n]||{};
     const pct=allVideos.length>0?Math.round((s.completed||0)/allVideos.length*100):0;
     const hasData=Object.keys(rawP[n]||{}).length>0;
@@ -3256,11 +3308,26 @@ function renderStudentCards() {
         <div class="stu-stat" onclick="showPopup('sn${ni}')"><div class="ss-val" style="color:var(--g3)">${none.length}</div><div class="ss-label">○ 미시청</div></div>
       </div>
     </div>`;
-  }).join('')||'<p class="empty" style="grid-column:1/-1">수강생 없음</p>';
+  };
+  // 수강생 · 인섬교 · 관리자 따로 묶어서 (인섬교·관리자는 접어 둠 — 눌러서 펼치기)
+  const groups = stuGroups(students);
+  const html = groups.map(([label, icon, list, staff]) => !list.length ? '' :
+    `<details class="stu-group${staff ? ' staff' : ''}" ${staff ? '' : 'open'}><summary>${icon} ${label} <span class="cnt">${list.length}명</span><span class="arw">▼</span></summary><div class="stu-grid">${list.map(n => card(n, students.indexOf(n))).join('')}</div></details>`).join('');
+  c.innerHTML = html || '<p class="empty">수강생 없음</p>';
+}
+// 구분별 나누기: [이름, 아이콘, 명단, 스태프 여부]
+function stuGroups(names, gradeOf){
+  const ins = new Set((vdData && vdData.insemGroup) || []), adm = new Set((vdData && vdData.adminGroup) || []);
+  const g = n => gradeOf ? gradeOf(n) : ins.has(n) ? '인섬교' : adm.has(n) ? '관리자' : '수강생';
+  return [['수강생', '👥', names.filter(n => g(n) === '수강생' || (g(n) !== '인섬교' && g(n) !== '관리자')), false],
+          ['인섬교', '⚡', names.filter(n => g(n) === '인섬교'), true],
+          ['관리자', '👑', names.filter(n => g(n) === '관리자'), true]];
 }
 
 /* ── STUDENT MANAGE ── */
-function updateStudentSelect(){const sel=document.getElementById('stu-select');const students=vdData?(vdData.students||[]):[];sel.innerHTML='<option value="">-- 선택 --</option>'+students.map(n=>`<option value="${n}">${n}</option>`).join('');}
+function updateStudentSelect(){const sel=document.getElementById('stu-select');const students=vdData?(vdData.students||[]):[];const cur=sel.value;
+  sel.innerHTML='<option value="">-- 선택 --</option>'+stuGroups(students).map(([label,icon,list])=>list.length?`<optgroup label="${icon} ${label} (${list.length}명)">${list.map(n=>`<option value="${escHtml(n)}">${escHtml(n)}</option>`).join('')}</optgroup>`:'').join('');
+  if(cur&&[...sel.options].some(o=>o.value===cur))sel.value=cur;}
 async function loadStudentList(){
   const c=document.getElementById('stu-list-admin');if(!c)return;c.innerHTML='<div class="spinner"></div>';
   try{const r=await api({action:'getAllUsers',pw:ADMIN_PW});const users=r.userObjects||r.users?.map(n=>({name:n,id:n,password:''}))|| [];
@@ -3269,14 +3336,17 @@ async function loadStudentList(){
   let dl=document.getElementById('mgr-dl'); if(!dl){dl=document.createElement('datalist');dl.id='mgr-dl';document.body.appendChild(dl);}
   dl.innerHTML=_mgrNames.map(m=>`<option value="${escHtml(m)}">`).join('');
   if(!users.length){c.innerHTML='<p class="empty">등록된 수강생이 없습니다.</p>';return;}
-  c.innerHTML=users.map(u=>`
+  const row=u=>`
     <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--surface);border:1px solid rgba(255,255,255,.07);border-radius:8px;margin-bottom:8px;">
       <div style="width:38px;height:38px;border-radius:8px;background:var(--red);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;flex-shrink:0">${(u.name||u).slice(0,1)}</div>
       <div style="flex:1"><div style="font-size:14px;font-weight:700">${u.name||u}</div><div style="font-size:12px;color:var(--g3)">ID: ${u.id||'-'} · PW: ${(u.hasPassword||u.password)?'••••':'-'}</div></div>
       <input class="mgr-in" list="mgr-dl" placeholder="담당자" value="${escHtml(u.mgr||'')}" data-n="${escHtml(u.name||u)}" data-v="${escHtml(u.mgr||'')}" onchange="saveMgr(this)" title="담당자 (전도사님·섬기는 분)">
       <button class="btn-icon" onclick="resetPassword('${(u.name||u).replace(/'/g,"\\'")}')">🔑 비번 초기화</button>
       <button class="btn-danger" onclick="deleteStudent('${(u.name||u).replace(/'/g,"\\'")}')">삭제</button>
-    </div>`).join('');}
+    </div>`;
+  const byName={}; users.forEach(u=>{ byName[u.name||u]=u; });
+  c.innerHTML=stuGroups(users.map(u=>u.name||u), n=>String((byName[n]||{}).grade||'수강생')).map(([label,icon,list,staff])=>!list.length?'':
+    `<details class="stu-group${staff?' staff':''}" open><summary>${icon} ${label} <span class="cnt">${list.length}명</span><span class="arw">▼</span></summary>${list.map(n=>row(byName[n])).join('')}</details>`).join('');}
   catch(e){c.innerHTML=`<p class="empty" style="color:var(--red)">로드 실패: ${e.message}</p>`;}
 }
 async function addStudent(){
@@ -3623,7 +3693,7 @@ window.addEventListener('keydown',e=>{if(e.key==='Escape')closePopup();});
 })();
 
 /* ─ 새 버전 안내: 사이트를 새로 올리면 열려 있는 화면에 '새 버전' 띠를 띄움 ─ */
-const APP_VER='2026.11.03-2';
+const APP_VER='2026.11.03-3';
 (function(){
   const PAGE=()=>location.pathname;
   let newVer=null, shown=false;
