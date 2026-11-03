@@ -1544,7 +1544,6 @@ html{-webkit-overflow-scrolling:touch;}
       <span class="user-name" id="header-name"></span>
       <span class="hdr-caret" aria-hidden="true">▾</span>
       <span class="lt-dot" id="lt-dot" style="display:none" aria-label="새 편지"></span>
-      <span id="header-role-badge" style="display:none;"></span>
     </div>
     <button class="btn-logout hdr-fb" id="hdr-fb-btn" onclick="openFeedback()" title="강의를 보고 느낀 점·궁금한 점 보내기">✍️ 질문·소감</button>
     <div class="hdr-menu" id="hdr-menu" role="menu">
@@ -1921,7 +1920,7 @@ const SHEET_URL = 'https://script.google.com/macros/s/AKfycbxygUx-v4SAwg_MSa6SmZ
 
 /* ─ STATE ─ */
 let VIDEOS=[],studentList=[],progressMap={};
-let userRole='수강생'; // '수강생' | '인섬교' | '관리자'
+let userRole='수강생';
 let userName='',currentVideo=null,currentIndex=-1;
 let authTok=''; // 서버가 발급한 로그인 토큰 (비밀번호 대신 사용)
 let startTime=null,maxReachedSec=0,lastPositionSec=0,videoDuration=0;
@@ -2093,19 +2092,15 @@ function hideAutoLoginOverlay() {
   document.getElementById('auto-login-overlay').classList.remove('show');
 }
 
-function applyRole(grade){
-  const g = String(grade || '');
-  userRole = g === '인섬교' ? '인섬교' : g === '관리자' ? '관리자' : '수강생';
-  const roleArea = document.getElementById('header-role-badge');
-  if (!roleArea) return;
-  if (userRole === '인섬교') {
-    roleArea.textContent = '⚡ 인섬교';
-    roleArea.style.cssText = 'display:inline-flex;align-items:center;background:rgba(74,158,255,.15);color:#4a9eff;border:1px solid rgba(74,158,255,.3);border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700;margin-left:6px;';
-  } else if (userRole === '관리자') {
-    roleArea.textContent = '👑 관리자';
-    roleArea.style.cssText = 'display:inline-flex;align-items:center;background:rgba(245,197,24,.15);color:#f5c518;border:1px solid rgba(245,197,24,.3);border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700;margin-left:6px;';
-  } else { roleArea.style.display = 'none'; roleArea.textContent = ''; }
-}
+// 🔒 수강생 화면에는 구분 표시를 하지 않음 (모두 같은 수강생으로 보임)
+function applyRole(){ userRole='수강생'; }
+// 예전 버전이 기기에 저장해 둔 구분 정보 지우기
+(function(){ ['gf_auto_login','gf_session'].concat(Object.keys(localStorage||{}).filter(k=>/^gf_/.test(k))).forEach(k=>{
+  [localStorage,sessionStorage].forEach(st=>{ try{ const raw=st.getItem(k); if(!raw||raw.indexOf('grade')<0)return; const o=JSON.parse(raw);
+    let ch=false; const strip=u=>{ if(u&&typeof u==='object'&&'grade' in u){ delete u.grade; ch=true; } };
+    strip(o); if(o&&o.user)strip(o.user);
+    if(ch)st.setItem(k,JSON.stringify(o)); }catch(e){} });
+}); })();
 
 /* ── 로그인이 무효가 됨 (비밀번호 초기화·삭제 등) → 저장 정보 지우고 로그인 화면 ── */
 function forceRelogin(){
@@ -2775,8 +2770,6 @@ function goToLogin(){
   userName='';authTok='';progressMap={};currentVideo=null;userRole='수강생';_mw=null;_mwAt=0;renderMyWeek();syncMyLearn();
   _bm=[];_bmDel=[];_rw=[];closeBmModal();
   _lts=null;_ltShown={};_ltQueue=[];document.getElementById('lt-pop').classList.remove('show');closeLtBox();renderLtBadge();
-  const roleArea=document.getElementById('header-role-badge');
-  if(roleArea){roleArea.style.display='none';roleArea.textContent='';}
 }
 document.getElementById('id-input').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('pw-input').focus();});
 document.getElementById('pw-input').addEventListener('keydown',e=>{if(e.key==='Enter')confirmLogin();});
@@ -4563,7 +4556,7 @@ function showIosInstallGuide() {
 init();
 
 /* ─ 새 버전 안내: 사이트를 새로 올리면 열려 있는 화면에 '새 버전' 띠를 띄움 ─ */
-const APP_VER='2026.11.03-1';
+const APP_VER='2026.11.03-2';
 (function(){
   const PAGE=()=>{ const p=location.pathname; return p.endsWith('/')?p+'index.html':p; };
   let newVer=null, shown=false;
