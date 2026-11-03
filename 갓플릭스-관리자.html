@@ -2055,7 +2055,7 @@ function renderLive(){
   const line = x => {
     const pct = x.dur > 0 ? Math.min(100, Math.round(x.pos / x.dur * 100)) : 0;
     const stTxt = x.st === 'on' ? '<b style="color:var(--green)">▶ 재생 중</b>' : x.st === 'paused' ? `<b style="color:var(--gold)">⏸ 멈춤</b>${agoTxt(x.age)}` : `<b style="color:var(--g3)">나감</b>${agoTxt(x.age)}`;
-    return `<div class="live-row ${x.st}"><div class="live-nm" data-n="${escHtml(x.name)}" onclick="openStudentDetail(this.dataset.n)" title="${escHtml(x.name)} 님 기록 보기">${escHtml(x.name)}<small>${x.mgr ? escHtml(x.mgr) + ' 담당 · ' : ''}${dev(x.dev)}</small></div>
+    return `<div class="live-row ${x.st}"><div class="live-nm" data-n="${escHtml(x.name)}" onclick="openStudentDetail(this.dataset.n)" title="${escHtml(x.name)} 님 기록 보기">${escHtml(x.name)}${x.g === '관리자' || x.g === '인섬교' ? ` <span class="care-chip" style="font-size:10.5px;padding:0 6px;vertical-align:1px">${escHtml(x.g)}</span>` : ''}<small>${x.mgr ? escHtml(x.mgr) + ' 담당 · ' : ''}${dev(x.dev)}</small></div>
       <div class="live-mid"><div class="live-ti">${escHtml(x.title || '(지운 강의)')}</div><div class="live-bar"><i style="width:${pct}%"></i></div><div style="font-size:11.5px;color:var(--g3);margin-top:3px">${clk(x.pos)}${x.dur ? ' / ' + clk(x.dur) + ` (${pct}%)` : ''}</div></div>
       <div class="live-st">${stTxt}</div></div>`;
   };
@@ -2326,7 +2326,8 @@ async function ltSend(){
   const lid = 'L' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   const scope = _ltScope === 'all' ? '전체' : _ltScope === 'mgr' ? (_ltMgr === '(미지정)' ? '담당 미지정' : _ltMgr + ' 담당') : (to.length === 1 ? '한 명' : '골라서');
   try {
-    await postApi({ type: 'letter_send', pw: ADMIN_PW, lid, title, from, body, to, scope });
+    const aud = _ltScope === 'pick' ? { type: 'pick' } : { type: _ltScope, staff: _ltStaff, mgr: _ltMgr };   // 전체·담당자별은 서버가 최신 명단으로 다시 정함
+    await postApi({ type: 'letter_send', pw: ADMIN_PW, lid, title, from, body, to, scope, aud });
     // POST는 응답을 못 읽어서 → 목록에 들어갔는지 확인
     let okSent = false;
     for (let i = 0; i < 6 && !okSent; i++) {
@@ -2335,7 +2336,8 @@ async function ltSend(){
       if (r && r.items) { _lt = r; okSent = r.items.some(x => x.lid === lid); }
     }
     if (okSent) {
-      showMsg(msg, `✅ ${to.length}명에게 보냈어요. 학생이 앱을 열면 편지 창이 떠요.`, 'ok'); showToast('💌 편지를 보냈어요');
+      const sent = (r => r ? r.to.length : to.length)(_lt.items.find(x => x.lid === lid));
+      showMsg(msg, `✅ ${sent}명에게 보냈어요. 학생이 앱을 열면 편지 창이 떠요.`, 'ok'); showToast('💌 편지를 보냈어요');
       document.getElementById('lt-body').value = ''; document.getElementById('lt-title').value = ''; ltCount();
       renderLetters();
     } else showMsg(msg, '⚠️ 보냈는지 확인이 안 돼요. 잠시 뒤 아래 "보낸 편지"를 새로고침해서 확인해 주세요. (내용은 그대로 남겨 뒀어요)', 'err');
@@ -3621,7 +3623,7 @@ window.addEventListener('keydown',e=>{if(e.key==='Escape')closePopup();});
 })();
 
 /* ─ 새 버전 안내: 사이트를 새로 올리면 열려 있는 화면에 '새 버전' 띠를 띄움 ─ */
-const APP_VER='2026.11.03-1';
+const APP_VER='2026.11.03-2';
 (function(){
   const PAGE=()=>location.pathname;
   let newVer=null, shown=false;
