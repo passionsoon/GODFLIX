@@ -173,6 +173,15 @@ table.rg-t tr.zero td{color:var(--g3);}
 .rg-bar{display:inline-block;height:6px;border-radius:3px;background:var(--red);vertical-align:middle;margin-left:6px;}
 .rg-spark{display:inline-flex;gap:2px;align-items:flex-end;height:18px;}
 .rg-spark i{width:6px;background:rgba(229,9,20,.85);border-radius:1px;min-height:1px;}
+/* 비어 있을 때 얇게 */
+.panel.slim{padding:12px 18px;}
+.panel.slim .p-desc{display:none;}
+.panel.slim .empty{padding:2px 0 0 !important;text-align:left;font-size:12.5px !important;}
+#live-panel.slim #live-list{display:none;}
+.dash-grp{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:4px 0 12px;}
+.dash-grp .lb{font-size:12.5px;color:var(--g3);margin-right:2px;}
+#kpi-today{cursor:pointer;}
+#kpi-today:hover{border-color:rgba(34,211,238,.45);}
 .mx-grp td{background:#232323 !important;cursor:pointer;user-select:none;font-size:14px;font-weight:800;color:#fff;padding:10px 12px !important;text-align:left !important;border-top:2px solid rgba(255,255,255,.12);}
 .mx-grp.staff td{color:var(--g2);font-size:13px;}
 .mx-grp td small{font-weight:600;color:var(--g3);font-size:12px;margin-left:6px;}
@@ -590,9 +599,14 @@ table.matrix tbody tr:hover td.cell-ing{background:rgba(74,158,255,.14);}
   .tab-section{padding:20px 3% 50px;}
 
   /* KPI 그리드: 2열 */
-  .kpi-grid{grid-template-columns:repeat(2,1fr);}
-  .kpi-num{font-size:30px;}
-  .kpi-card{padding:14px 12px;}
+  .kpi-grid{grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:14px;}
+  .kpi-num{font-size:25px;margin-bottom:1px;}
+  .kpi-card{padding:10px 9px;}
+  .kpi-top{margin-bottom:4px;}
+  .kpi-top .kpi-badge{display:none;}
+  .kpi-icon{font-size:15px;}
+  .kpi-label{font-size:11px;margin-bottom:4px;}
+  .kpi-sub{font-size:10.5px;line-height:1.35;padding-top:5px;}
 
   /* 영상 카드 */
   .vid-thumb-lg{width:110px;height:62px;}
@@ -703,7 +717,7 @@ table.matrix tbody tr:hover td.cell-ing{background:rgba(74,158,255,.14);}
         <span id="live-at" style="font-size:12px;color:var(--g3)"></span>
         <button class="adm-btn" onclick="loadLive(true)">🔄</button>
       </div>
-      <div style="font-size:12px;color:var(--g3);margin-bottom:4px;">강의를 틀어 둔 사람이 20초마다 신호를 보내요. 이 화면을 켜 두면 30초마다 저절로 새로 고쳐져요. (최근 30분)</div>
+      <div class="p-desc" style="font-size:12px;color:var(--g3);margin-bottom:4px;">강의를 틀어 둔 사람이 20초마다 신호를 보내요. 이 화면을 켜 두면 30초마다 저절로 새로 고쳐져요. (최근 30분)</div>
       <div id="live-list"><p class="empty" style="font-size:13px">불러오는 중…</p></div>
     </div>
     <div class="panel care" id="care-panel">
@@ -713,14 +727,22 @@ table.matrix tbody tr:hover td.cell-ing{background:rgba(74,158,255,.14);}
         <select id="care-mgr" onchange="renderCare()" style="font-family:var(--font);background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:6px;color:var(--white);padding:6px 8px;font-size:12.5px;"><option value="">담당자 전체</option></select>
         <button class="adm-btn" onclick="copyCare()">📋 이름 복사</button>
       </div>
-      <div style="font-size:12px;color:var(--g3);margin-bottom:6px;">7일 넘게 안 보신 분 · 지난주보다 크게 줄어든 분 · 중간에 멈춘 강의가 쌓인 분 · 아직 시작 안 한 분 (관리자·인섬교 제외)</div>
+      <div class="p-desc" style="font-size:12px;color:var(--g3);margin-bottom:6px;">7일 넘게 안 보신 분 · 지난주보다 크게 줄어든 분 · 중간에 멈춘 강의가 쌓인 분 · 아직 시작 안 한 분 (관리자·인섬교 제외)</div>
       <div id="care-list"><p class="empty" style="font-size:13px">불러오는 중…</p></div>
+    </div>
+    <div class="dash-grp">
+      <span class="lb">보기</span>
+      <button class="adm-btn active-btn" id="grp-btn-stu"   onclick="setGroupFilter('stu')"   >👥 수강생</button>
+      <button class="adm-btn"            id="grp-btn-insem" onclick="setGroupFilter('insem')" >⚡ 인섬교</button>
+      <button class="adm-btn"            id="grp-btn-admin" onclick="setGroupFilter('admin')" >👑 관리자</button>
+      <button class="adm-btn"            id="grp-btn-all"   onclick="setGroupFilter('all')"   >전체</button>
+      <span id="grp-label" style="font-size:12px;color:var(--g3);margin-left:4px;"></span>
     </div>
     <div class="kpi-grid" id="dash-kpi">
       <div class="kpi-card blue">
         <div class="kpi-top"><div class="kpi-icon">👥</div><span class="kpi-badge" id="dk-students-badge">-명</span></div>
         <div class="kpi-num" id="dk-students">-</div>
-        <div class="kpi-label">수강생</div>
+        <div class="kpi-label" id="dk-students-label">수강생</div>
         <div class="kpi-sub" id="dk-students-sub">데이터 로드 후 표시</div>
       </div>
       <div class="kpi-card red">
@@ -742,41 +764,32 @@ table.matrix tbody tr:hover td.cell-ing{background:rgba(74,158,255,.14);}
         <div class="kpi-sub" id="dk-rate-sub">전체 강의 평균</div>
       </div>
       <div class="kpi-card purple">
-        <div class="kpi-top"><div class="kpi-icon">🎯</div><span class="kpi-badge">90%↑ 기준</span></div>
+        <div class="kpi-top"><div class="kpi-icon">🎯</div><span class="kpi-badge">끝까지 본 것</span></div>
         <div class="kpi-num" id="dk-views">-</div>
         <div class="kpi-label">총 완주 횟수</div>
         <div class="kpi-sub" id="dk-views-sub">수강생별 완주 합산</div>
       </div>
-      <div class="kpi-card" style="--c:#22d3ee;" id="kpi-today">
+      <div class="kpi-card" style="--c:#22d3ee;" id="kpi-today" onclick="showTodayNames()" title="누가 봤는지 보기">
         <style>#kpi-today::before{background:#22d3ee;}</style>
         <div class="kpi-top"><div class="kpi-icon">📅</div><span class="kpi-badge" style="background:rgba(34,211,238,.2);color:#22d3ee;" id="dk-today-badge">오늘</span></div>
         <div class="kpi-num" id="dk-today" style="color:#22d3ee;">-</div>
-        <div class="kpi-label">오늘 시청</div>
+        <div class="kpi-label">오늘 시청 <span style="font-size:10.5px;color:var(--g3)">· 누르면 이름</span></div>
         <div class="kpi-sub" id="dk-today-sub">오늘 강의를 본 수강생</div>
       </div>
     </div>
-    <div class="summary-banner" id="dash-summary"></div>
-    <!-- 2단 레이아웃: 강의 현황 + 수강생 랭킹 나란히 -->
-    <!-- 그룹 필터 탭 -->
-    <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
-      <button class="adm-btn active-btn" id="grp-btn-all"   onclick="setGroupFilter('all')"   >전체</button>
-      <button class="adm-btn"            id="grp-btn-stu"   onclick="setGroupFilter('stu')"   >👤 수강생</button>
-      <button class="adm-btn"            id="grp-btn-insem" onclick="setGroupFilter('insem')" >⚡ 인섬교</button>
-      <button class="adm-btn"            id="grp-btn-admin" onclick="setGroupFilter('admin')" >👑 관리자</button>
-      <span id="grp-label" style="font-size:12px;color:var(--g3);align-self:center;margin-left:4px;"></span>
-    </div>
+    <!-- 2단 레이아웃: 강의 현황 + 랭킹 나란히 -->
     <div class="dash-grid">
       <div class="panel" style="margin-bottom:0;">
         <div class="panel-title">🎬 강의별 시청 현황 <span style="font-size:11px;color:var(--g3);font-weight:400;margin-left:6px;">클릭하면 수강생 확인</span></div>
         <div id="dash-vid-bars"><div class="spinner"></div></div>
       </div>
       <div class="panel" style="margin-bottom:0;">
-        <div class="panel-title">🏆 수강생 완료 랭킹</div>
+        <div class="panel-title" id="dash-rank-title">🏆 수강생 완료 랭킹</div>
         <div id="dash-ranking"></div>
       </div>
     </div>
     <div class="panel" style="margin-top:12px;">
-      <div class="panel-title">📊 수강생별 완료율 차트</div>
+      <div class="panel-title" id="dash-chart-title">📊 수강생별 완료율 차트</div>
       <div id="dash-chart"><p class="empty" style="font-size:13px;">출석 현황 탭에서 자동으로 불러옵니다.</p></div>
     </div>
   </div>
@@ -951,6 +964,7 @@ table.matrix tbody tr:hover td.cell-ing{background:rgba(74,158,255,.14);}
           style="background:var(--surface2);border:1px solid rgba(255,255,255,.1);color:var(--white);border-radius:6px;padding:7px 12px;font-size:13px;font-family:var(--font);">
           <option value="">전체 (구분별로 묶어 보기)</option>
         </select>
+        <select id="matrix-mgr" onchange="applyMatrixFilter()" style="display:none;background:var(--surface2);border:1px solid rgba(255,255,255,.1);color:var(--white);border-radius:6px;padding:7px 12px;font-size:13px;font-family:var(--font);"><option value="">담당자 전체</option></select>
         <select id="matrix-grade-filter" onchange="applyMatrixFilter()"
           style="background:var(--surface2);border:1px solid rgba(255,255,255,.1);color:var(--white);border-radius:6px;padding:7px 12px;font-size:13px;font-family:var(--font);">
           <option value="">전체 과정</option>
@@ -978,6 +992,7 @@ table.matrix tbody tr:hover td.cell-ing{background:rgba(74,158,255,.14);}
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px;">
       <input type="date" id="dl-date" onchange="loadDaily(this.value)" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:7px 10px;color:var(--white);font-family:var(--font);">
       <button class="adm-btn" onclick="loadDaily(_dlDate,true)">🔄 새로고침</button>
+      <select id="dl-mgr" onchange="renderDaily()" style="display:none;font-family:var(--font);background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:6px;color:var(--white);padding:7px 8px;font-size:12.5px;"><option value="">담당자 전체</option></select>
     </div>
     <div id="dl-body"><p class="empty">불러오는 중…</p></div>
   </div>
@@ -1315,10 +1330,10 @@ function switchTab(t) {
   document.getElementById('adm-subtabs').classList.toggle('show', ana);
   document.getElementById('ts-'+t).classList.add('active');
   if (t==='students') renderStudentCards();
-  if (t==='matrix')   loadVideoData();
+  if (t==='matrix')   { loadVideoData(); if (!_agg) loadCare(); }
   if (t==='notice')   loadCurrentNotice();
   if (t==='feedback') { loadFeedback(true); let v = 'in'; try { v = localStorage.getItem('gf_adm_comm') || 'in'; } catch(e){} if (v === 'out') commView('out'); }
-  if (t==='daily')    loadDaily(_dlDate || '');
+  if (t==='daily')    { loadDaily(_dlDate || ''); if (!_agg) loadCare(); }
   if (t==='range')    { if (_rg) renderRange(); else rgQuick(_rgQ || 'thisweek'); }   // 처음 들어가면 이번 주
   if (t==='dropoff')  loadDropoff(false);
   if (t==='dashboard') { renderCare(); loadLive(false); }
@@ -1429,33 +1444,19 @@ async function _confirmDeleteShort(id) {
 /* ════════════════════════════
    그룹 필터 (수강생/인섬교/관리자)
 ════════════════════════════ */
-let _currentGroup = 'all'; // 'all' | 'stu' | 'insem' | 'admin'
-
+let _currentGroup = 'stu'; // 'stu' | 'insem' | 'admin' | 'all' — 기본: 수강생만
+const GRP_IDX = { stu: 0, insem: 1, admin: 2 }, GRP_LABEL = { all: '전체', stu: '수강생', insem: '인섬교', admin: '관리자' };
 function setGroupFilter(group) {
   _currentGroup = group;
-  // 버튼 활성화
-  ['all','stu','insem','admin'].forEach(g => {
-    const btn = document.getElementById('grp-btn-'+g);
-    if (btn) btn.classList.toggle('active-btn', g === group);
-  });
-  // 라벨
-  const labelMap = { all:'전체', stu:'수강생', insem:'인섬교', admin:'관리자' };
+  ['all','stu','insem','admin'].forEach(g => { const btn = document.getElementById('grp-btn-'+g); if (btn) btn.classList.toggle('active-btn', g === group); });
   const lbl = document.getElementById('grp-label');
-  if (lbl) lbl.textContent = group === 'all' ? '' : labelMap[group]+' 그룹만 표시 중';
-
-  if (!vdData) return;
-
-  // 그룹별 students 선택
-  const groupedStudents = getGroupStudents(group);
-
-  // vdData.students를 임시 교체 후 렌더
-  const saved = vdData.students;
-  vdData.students = groupedStudents;
+  if (lbl) lbl.textContent = group === 'all' ? '인섬교·관리자까지 모두 센 숫자예요' : group === 'stu' ? '' : GRP_LABEL[group] + '만 센 숫자예요';
   renderDashboard();
-  renderStudentCards();
-  if (window.innerWidth <= 768) renderMatrixCards(vdData);
-  else renderMatrix(vdData);
-  vdData.students = saved;
+}
+// 대시보드에 보일 명단 (출석 현황·일자별과 같은 구분 기준)
+function dashStudents(){
+  const all = (vdData && vdData.students) || [];
+  return _currentGroup === 'all' ? all : stuGroups(all)[GRP_IDX[_currentGroup]][2];
 }
 
 function getGroupStudents(group) {
@@ -1487,6 +1488,9 @@ function applyMatrixFilter() {
   const savedStudents = vdData.students;
   if (grade)   allVideos      = allVideos.filter(v => detectGrade(v) === grade);
   if (student) vdData.students = [student];
+  fillMgrSelect(document.getElementById('matrix-mgr'), allMgrs());
+  const mg = document.getElementById('matrix-mgr').value;
+  if (mg) vdData.students = vdData.students.filter(n => mgrMatch(n, mg));
 
   // ③ 모바일이면 카드 뷰, 아니면 테이블
   if (window.innerWidth <= 768) renderMatrixCards(vdData);
@@ -1537,7 +1541,7 @@ function renderMatrixCards(r) {
   };
   mxSummary(r, students);
   area.innerHTML = stuGroups(students).map(([label, icon, list, staff], gi) => !list.length ? '' :
-    `<details class="stu-group${staff ? ' staff' : ''}" ${(_mxOpen[gi] ?? !staff) ? 'open' : ''} ontoggle="_mxOpen[${gi}]=this.open"><summary>${icon} ${label} <span class="cnt">${list.length}명 · 평균 완료율 ${mxRate(list, rawP)}%</span><span class="arw">▼</span></summary>${list.map(card).join('')}</details>`).join('');
+    `<details class="stu-group${staff ? ' staff' : ''}" ${(_mxSingle(students) || (_mxOpen[gi] ?? !staff)) ? 'open' : ''} ontoggle="_mxOpen[${gi}]=this.open"><summary>${icon} ${label} <span class="cnt">${list.length}명 · 평균 완료율 ${mxRate(list, rawP)}%</span><span class="arw">▼</span></summary>${list.map(card).join('')}</details>`).join('');
 }
 
 /* ════════════════════
@@ -1681,9 +1685,18 @@ function calcTodayWatchers() {
   loadTodayCount();
 }
 
-let _todayAt = 0, _todayP = null;
+let _todayAt = 0, _todayP = null, _todayR = null;
+function showTodayNames(){
+  const r = _todayR; if (!r) { showToast('잠시 후 다시 눌러 주세요.'); return; }
+  const names = Array.isArray(r.names) ? r.names : [];
+  const G = stuGroups(names);
+  const items = []; G.forEach(([label, icon, list]) => list.forEach(n => items.push({ icon: icon, name: n, sub: label })));
+  regPopup('today-names', '📅 오늘 본 분 ' + names.length + '명', items);
+  showPopup('today-names');
+}
 function showTodayCount(r){
   if (!r || r.count === undefined) return;
+  _todayR = r;
   document.getElementById('dk-today').textContent = r.count;
   // 수강생·인섬교·관리자 나눠서 (일자별 화면과 같은 숫자)
   const G = Array.isArray(r.names) && vdData ? stuGroups(r.names) : null;
@@ -1786,15 +1799,18 @@ function renderDaily(){
   const st = document.getElementById('dl-strip'); const on = st.querySelector('.on'); if (on) on.scrollIntoView({ inline: 'center', block: 'nearest' });
   document.getElementById('dl-date').value = r.date;
   // 사람별로 묶기
-  const by = {}; r.rows.forEach(x => (by[x.name] = by[x.name] || []).push(x));
+  fillMgrSelect(document.getElementById('dl-mgr'), allMgrs());
+  const dmg = document.getElementById('dl-mgr').value;
+  const by = {}; r.rows.filter(x => mgrMatch(x.name, dmg)).forEach(x => (by[x.name] = by[x.name] || []).push(x));
   const names = Object.keys(by);
   const DG = stuGroups(names);
-  const played = r.rows.reduce((a, x) => a + (x.played || 0), 0);
-  const doneN = r.rows.filter(x => x.done).length;
+  const shown = r.rows.filter(x => by[x.name]);
+  const played = shown.reduce((a, x) => a + (x.played || 0), 0);
+  const doneN = shown.filter(x => x.done).length;
   // 이날 안 본 수강생 (관리자·인섬교 제외)
   const staff = new Set([...((vdData && vdData.adminGroup) || []), ...((vdData && vdData.insemGroup) || [])]);
   const all = (vdData && vdData.students) || [];
-  const none = all.filter(n => !by[n] && !staff.has(n));
+  const none = all.filter(n => !by[n] && !staff.has(n) && mgrMatch(n, dmg));
   window._dlNone = none;
   const lt = v => (parseTitle(v.title || '').main || v.title || '(강의)');
   const tl = d => { const t = new Date(d + 'T00:00:00+09:00'); return (t.getMonth()+1) + '월 ' + t.getDate() + '일(' + DOW[t.getDay()] + ')'; };
@@ -1953,7 +1969,9 @@ function loadCare(fresh){
   if (_aggP) return _aggP;
   if (!fresh && !_agg) { const c = acGet('agg'); if (c && c.v) { _agg = c.v; renderCare(); } }
   _aggP = api({ action: 'stuagg', pw: ADMIN_PW, ...(fresh ? { fresh: 1 } : {}) }).then(r => {
-    if (r && !r.error && r.students) { _agg = r; acSet('agg', r); renderCare(); const ov = document.getElementById('cm-view-out'); if (ov && ov.style.display !== 'none') ltRenderScope(); }
+    if (r && !r.error && r.students) { _agg = r; acSet('agg', r); renderCare();
+      if (document.getElementById('ts-matrix').classList.contains('active')) renderMatrixNow();
+      if (_dl && document.getElementById('ts-daily').classList.contains('active')) renderDaily(); const ov = document.getElementById('cm-view-out'); if (ov && ov.style.display !== 'none') ltRenderScope(); }
     else if (!_agg) document.getElementById('care-list').innerHTML = '<p class="empty" style="font-size:13px">불러오지 못했습니다.</p>';
   }).catch(() => { if (!_agg) document.getElementById('care-list').innerHTML = '<p class="empty" style="font-size:13px">⚠️ 서버 연결 실패</p>'; })
     .finally(() => { _aggP = null; });
@@ -1989,6 +2007,7 @@ function renderCare(){
   _careList = list;
   const total = Object.values(_agg.students).filter(p => p.g === '수강생' && (!mg || (mg === '(미지정)' ? !p.mgr : p.mgr === mg))).length;
   document.getElementById('care-count').textContent = list.length ? list.length + '명 / ' + total + '명' : '';
+  document.getElementById('care-panel').classList.toggle('slim', !list.length);
   if (!list.length) { box.innerHTML = '<p class="empty" style="font-size:13px">👏 지금은 챙길 분이 없어요. 모두 잘 보고 계세요!</p>'; return; }
   const more = list.length > 8 && !box.dataset.all;
   box.innerHTML = list.slice(0, more ? 8 : list.length).map(x => `<div class="care-row">
@@ -2122,6 +2141,7 @@ function renderLive(){
   document.getElementById('live-dot').style.animationPlayState = on.length ? 'running' : 'paused';
   document.getElementById('live-dot').style.background = on.length ? 'var(--green)' : 'var(--g4)';
   document.getElementById('live-at').textContent = new Date(_live.got).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' 기준';
+  document.getElementById('live-panel').classList.toggle('slim', !rows.length);
   if (!rows.length) { el.innerHTML = '<p class="empty" style="font-size:13px;padding:10px 0">최근 30분 안에 강의를 본 사람이 없어요.</p>'; return; }
   const dev = d => d === 'iPhone' ? '📱 아이폰' : d === 'Android' ? '📱 안드로이드' : d === 'PC' ? '💻 컴퓨터' : '';
   const line = x => {
@@ -2529,7 +2549,7 @@ function acSet(k, v){
 }
 function acClear(){ try { Object.keys(localStorage).filter(k => k.indexOf(ACACHE) === 0).forEach(k => localStorage.removeItem(k)); } catch(e) {} }
 let _statsAt = 0, _statsP = null;
-function renderMatrixNow(){ if (!vdData) return; if (window.innerWidth <= 768) renderMatrixCards(vdData); else renderMatrix(vdData); }
+function renderMatrixNow(){ if (!vdData) return; applyMatrixFilter(); }   // 고른 조건(이름·과정·담당자) 그대로 다시 그림
 function renderStatsAll(){
   try { populateStudentFilter(); } catch(e) {}
   renderMatrixNow(); renderStudentCards(); renderDashboard(); updateStudentSelect(); renderVideoList();
@@ -2684,7 +2704,7 @@ function renderVideoList() {
       statHtml = `
         <div class="vid-stats-bar">
           <div class="vid-stat-item"><span class="val" style="color:var(--blue)">${viewRate}%</span><span class="lbl">시청률</span></div>
-          <div class="vid-stat-item"><span class="val" style="color:var(--green)">${doneRate}%</span><span class="lbl">완주율(90%↑)</span></div>
+          <div class="vid-stat-item"><span class="val" style="color:var(--green)">${doneRate}%</span><span class="lbl">완주율(끝까지)</span></div>
           <div class="vid-stat-item"><span class="val" style="color:var(--gold)">${doneCount}</span><span class="lbl">완주 인원</span></div>
           <div class="vid-stat-item"><span class="val">${avgMin}분</span><span class="lbl">평균 시청</span></div>
           <div class="vid-watch-bar"><div class="vid-watch-fill" style="width:${doneRate}%;background:${barColor}"></div></div>
@@ -3084,12 +3104,14 @@ function renderDashboard() {
     document.getElementById('dk-views').textContent='?';
     return;
   }
-  const {students=[],videoStats:vids=[],studentStats:ss={},rawProgress:rawP={}}=vdData;
-
-  // KPI
-  const totalDone=Object.values(ss).reduce((s,v)=>s+(v.completed||0),0);
-  const avgRate=vids.length>0?Math.round(vids.reduce((s,v)=>s+v.avgCompletionPct,0)/vids.length):0;
-  // 총 시청 횟수 (90% 이상)
+  const {videoStats:vids=[],rawProgress:rawP={}}=vdData;
+  const students=dashStudents(), gl=GRP_LABEL[_currentGroup];
+  // 완료·시청중·미시청 (출석 현황과 같은 기준)
+  let dc=0,ic=0,nc=0;
+  students.forEach(n=>allVideos.forEach(v=>{const st=getStatus(rawP[n]?.[v.id]);if(st==='done')dc++;else if(st==='ing')ic++;else nc++;}));
+  const totalDone=dc;
+  const avgRate=students.length&&allVideos.length?Math.round(dc/(students.length*allVideos.length)*100):0;
+  // 총 완주 횟수 (끝까지 본 것)
   let totalViews=0;
   students.forEach(n=>allVideos.forEach(v=>{
     const p=rawP[n]?.[v.id];
@@ -3099,17 +3121,18 @@ function renderDashboard() {
   }));
 
   document.getElementById('dk-students').textContent=students.length;
+  document.getElementById('dk-students-label').textContent=_currentGroup==='all'?'전체 인원':gl;
+  document.getElementById('dash-rank-title').textContent='🏆 '+(_currentGroup==='all'?'전체':gl)+' 완료 랭킹';
+  document.getElementById('dash-chart-title').textContent='📊 '+(_currentGroup==='all'?'전체':gl)+' 완료율 차트';
   document.getElementById('dk-videos').textContent=vids.length||allVideos.length;
   document.getElementById('dk-done').textContent=totalDone;
   document.getElementById('dk-rate').textContent=avgRate+'%';
   document.getElementById('dk-views').textContent=totalViews;
   // 서브텍스트 업데이트
-  const unwatched = students.filter(n=>!(ss[n]&&ss[n].completed>0)).length;
   document.getElementById('dk-students-badge').textContent=students.length+'명';
   // 그룹별 수 표시
-  const stuG   = (vdData.stuGroup||[]).length;
-  const insemG = (vdData.insemGroup||[]).length;
-  const adminG = (vdData.adminGroup||[]).length;
+  const _G = stuGroups(vdData.students||[]);
+  const stuG = _G[0][2].length, insemG = _G[1][2].length, adminG = _G[2][2].length;
   document.getElementById('dk-students-sub').innerHTML=
     `<span style="color:var(--g2)">수강생 <b>${stuG}</b></span> · ` +
     `<span style="color:#4a9eff">인섬교 <b>${insemG}</b></span> · ` +
@@ -3117,33 +3140,23 @@ function renderDashboard() {
   document.getElementById('dk-videos-badge').textContent=(vids.length||allVideos.length)+'개';
   document.getElementById('dk-videos-sub').innerHTML=`기초 ${allVideos.filter(v=>detectGrade(v)==='기초').length} · 응용 ${allVideos.filter(v=>detectGrade(v)==='응용').length} · 심화 ${allVideos.filter(v=>detectGrade(v)==='심화').length}`;
   document.getElementById('dk-done-badge').textContent=totalDone+'건';
-  document.getElementById('dk-done-sub').innerHTML=`전체 <strong>${students.length*allVideos.length}건</strong> 중 완료`;
+  document.getElementById('dk-done-sub').innerHTML=`전체 <strong>${students.length*allVideos.length}건</strong> 중 · <span style="color:var(--blue)">시청중 ${ic}</span> · 미시청 ${nc}`;
   document.getElementById('dk-rate-badge').textContent=avgRate>=80?'🟢 목표 달성':'목표 80%';
   document.getElementById('dk-rate-sub').innerHTML=avgRate>=80?`<strong style="color:var(--green)">목표 달성!</strong>`:`<strong>${80-avgRate}%p</strong> 부족`;
-  document.getElementById('dk-views-sub').innerHTML=`수강생 1인당 평균 <strong>${students.length>0?Math.round(totalViews/students.length*10)/10:0}개</strong>`;
+  document.getElementById('dk-views-sub').innerHTML=`1인당 평균 <strong>${students.length>0?Math.round(totalViews/students.length*10)/10:0}개</strong>`;
 
-  // Summary
-  let dc=0,ic=0,nc=0;
-  students.forEach(n=>allVideos.forEach(v=>{const st=getStatus(rawP[n]?.[v.id]);if(st==='done')dc++;else if(st==='ing')ic++;else nc++;}));
-  const tot=students.length*allVideos.length||1;
-  const dr=Math.round(dc/tot*100);
-  const rc=dr>=70?'var(--green)':dr>=40?'var(--gold)':'var(--red)';
-  document.getElementById('dash-summary').innerHTML=`
-    <div class="sum-card green"><div><div class="sc-val" style="color:var(--green)">${dc}</div><div class="sc-label">✅ 완료</div></div></div>
-    <div class="sum-card blue"><div><div class="sc-val" style="color:var(--blue)">${ic}</div><div class="sc-label">▶ 시청중</div></div></div>
-    <div class="sum-card gray"><div><div class="sc-val">${nc}</div><div class="sc-label">○ 미시청</div></div></div>
-    <div class="sum-card gold"><div><div class="sc-val" style="color:var(--gold)">${totalViews}</div><div class="sc-label">🎯 완주 횟수</div></div></div>
-    <div class="total-rate-card" style="margin-left:auto"><div class="tr-val" style="color:${rc}">${dr}%</div><div class="tr-label">전체 완료율</div></div>`;
+  // (위 숫자 카드와 겹치던 요약 줄은 없앰 — 시청중·미시청은 '완료 세션' 카드 아래에)
 
   // 강의별 바 (클릭하면 수강생 목록 팝업)
   document.getElementById('dash-vid-bars').innerHTML=allVideos.map(v=>{
-    const pct=vids.find(vv=>vv.videoId===v.id)?.avgCompletionPct||0;
+    // 완주율도 고른 구분 기준으로 (아래 doneList로 계산)
     const watchedCount=students.filter(n=>{const p=rawP[n]?.[v.id];return p&&p.maxReached>10;}).length;
     const watchRate=students.length>0?Math.round(watchedCount/students.length*100):0;
     const doneList=students.filter(n=>{const p=rawP[n]?.[v.id];if(!p)return false;return p.completed||isFullA(p);});
     const ingList=students.filter(n=>{const p=rawP[n]?.[v.id];return p&&p.maxReached>10&&!doneList.includes(n);});
     const noneList=students.filter(n=>!doneList.includes(n)&&!ingList.includes(n));
     const doneCount=doneList.length;
+    const pct=students.length?Math.round(doneCount/students.length*100):0;
     const col=pct>=80?'var(--green)':pct>=40?'var(--gold)':'var(--red)';
     const parsed=parseTitle(v.title);
     // 팝업 데이터 등록
@@ -3221,21 +3234,28 @@ async function loadVideoData() {
 /* ── MATRIX ── */
 // 펼침 상태 기억 (0 수강생, 1 인섬교, 2 관리자) — 기본: 수강생만 펼침
 const _mxOpen = {};
+function _mxSingle(students){ return stuGroups(students).filter(g => g[2].length).length === 1; }
+// 담당자: '챙겨야 할 분' 자료(_agg)에서 가져옴
+function mgrOf(n){ return (_agg && _agg.students && _agg.students[n] && _agg.students[n].mgr) || ''; }
+function mgrMatch(n, mg){ if (!mg) return true; const m = mgrOf(n); return mg === '(미지정)' ? !m : m === mg; }
+function allMgrs(){ return _agg && _agg.students ? Object.values(_agg.students).map(p => p.mgr) : []; }
 function mxRate(list, rawP){ const t = list.length * allVideos.length; if (!t) return 0; let d = 0; list.forEach(n => allVideos.forEach(v => { if (getStatus(rawP[n]?.[v.id]) === 'done') d++; })); return Math.round(d / t * 100); }
 // 위쪽 요약: 수강생만 센 숫자 + 인섬교·관리자는 따로 한 줄
 function mxSummary(r, students){
   const rawP = r.rawProgress || {};
-  const G = stuGroups(students), stu = G[0][2];
+  const G = stuGroups(students);
+  // 수강생이 없으면(예: 인섬교 한 분만 골랐을 때) 보이는 묶음 기준으로
+  const B = G[0][2].length ? G[0] : (G.find(g => g[2].length) || G[0]), stu = B[2];
   let dc=0,ic=0,nc=0;
   stu.forEach(n=>allVideos.forEach(v=>{const st=getStatus(rawP[n]?.[v.id]);if(st==='done')dc++;else if(st==='ing')ic++;else nc++;}));
   const dr=mxRate(stu,rawP),rc=dr>=70?'var(--green)':dr>=40?'var(--gold)':'var(--red)';
-  const staffTxt = G.slice(1).filter(g => g[2].length).map(([label, icon, list]) => `${icon} ${label} ${list.length}명 · 완료율 ${mxRate(list, rawP)}%`).join(' &nbsp;|&nbsp; ');
+  const staffTxt = G.filter(g => g !== B && g[2].length).map(([label, icon, list]) => `${icon} ${label} ${list.length}명 · 완료율 ${mxRate(list, rawP)}%`).join(' &nbsp;|&nbsp; ');
   document.getElementById('matrix-summary').innerHTML=`
     <div class="sum-card green"><div><div class="sc-val" style="color:var(--green)">${dc}</div><div class="sc-label">✅ 완료</div></div></div>
     <div class="sum-card blue"><div><div class="sc-val" style="color:var(--blue)">${ic}</div><div class="sc-label">▶ 시청중</div></div></div>
     <div class="sum-card gray"><div><div class="sc-val">${nc}</div><div class="sc-label">○ 미시청</div></div></div>
-    <div class="total-rate-card" style="margin-left:auto"><div class="tr-val" style="color:${rc}">${dr}%</div><div class="tr-label">👥 수강생 ${stu.length}명 완료율</div></div>
-    <div class="sum-note">위 숫자는 수강생만 센 거예요${staffTxt ? ' · ' + staffTxt : ''}</div>`;
+    <div class="total-rate-card" style="margin-left:auto"><div class="tr-val" style="color:${rc}">${dr}%</div><div class="tr-label">${B[1]} ${B[0]} ${stu.length}명 완료율</div></div>
+    <div class="sum-note">위 숫자는 ${B[0]}만 센 거예요${staffTxt ? ' · ' + staffTxt : ''}</div>`;
 }
 function renderMatrix(r) {
   const{students=[],videoStats:vids=[],rawProgress:rawP={}}=r;
@@ -3246,7 +3266,7 @@ function renderMatrix(r) {
   tbl+=`<th>완료율</th></tr></thead>`;
   const ncol=allVideos.length+2;
   stuGroups(students).forEach(([label,icon,list,staff],gi)=>{ if(!list.length) return;
-  const open=_mxOpen[gi] ?? !staff;
+  const open=_mxSingle(students) || (_mxOpen[gi] ?? !staff);
   tbl+=`<tbody><tr class="mx-grp${staff?' staff':''}${open?' open':''}" onclick="_mxOpen[${gi}]=!this.classList.contains('open');this.classList.toggle('open');this.closest('tbody').nextElementSibling.classList.toggle('mx-hide')"><td colspan="${ncol}"><span style="position:sticky;left:12px">${icon} ${label}<small>${list.length}명 · 평균 완료율 ${mxRate(list,rawP)}%</small><span class="arw">▼</span></span></td></tr></tbody><tbody class="${open?'':'mx-hide'}">`;
   list.forEach(n=>{
     let done=0;tbl+=`<tr><td class="sticky-col">${escHtml(n)}</td>`;
@@ -3467,7 +3487,7 @@ async function _confirmDeleteNotice(){
 
 /* ── POPUP ── */
 function regPopup(k,t,i){_popupData[k]={title:t,items:i};}
-function showPopup(k){const d=_popupData[k];if(!d)return;document.getElementById('popup-title').textContent=d.title;document.getElementById('popup-body').innerHTML=d.items?.length?d.items.map(item=>`<div class="popup-item"><div class="popup-avatar">${item.icon||item.name.slice(0,1)}</div><div><div style="font-size:14px;font-weight:700">${item.name}</div>${item.sub?`<div style="font-size:12px;color:var(--g3)">${item.sub}</div>`:''}</div></div>`).join(''):'<p style="text-align:center;color:var(--g3);padding:2rem;font-size:14px;">해당 항목 없음</p>';document.getElementById('popup-overlay').classList.add('show');}
+function showPopup(k){const d=_popupData[k];if(!d)return;document.getElementById('popup-title').textContent=d.title;document.getElementById('popup-body').innerHTML=d.items?.length?d.items.map(item=>`<div class="popup-item"><div class="popup-avatar">${item.icon||item.name.slice(0,1)}</div><div><div style="font-size:14px;font-weight:700">${escHtml(item.name)}</div>${item.sub?`<div style="font-size:12px;color:var(--g3)">${escHtml(item.sub)}</div>`:''}</div></div>`).join(''):'<p style="text-align:center;color:var(--g3);padding:2rem;font-size:14px;">해당 항목 없음</p>';document.getElementById('popup-overlay').classList.add('show');}
 async function copyNames(kind){
   const names = (window._copyNames && window._copyNames[kind]) || [];
   const text = names.join(', ');
@@ -3660,7 +3680,7 @@ function showVidDetailPopup(vidId, title) {
 ════════════════════════ */
 function renderChart() {
   if (!vdData || !allVideos.length) return;
-  const { students=[], rawProgress:rawP={} } = vdData;
+  const { rawProgress:rawP={} } = vdData; const students = dashStudents();
   const data = students.map(n => {
     const done = allVideos.filter(v => {
       const p = rawP[n]?.[v.id]; if (!p) return false;
@@ -3730,7 +3750,7 @@ window.addEventListener('keydown',e=>{if(e.key==='Escape')closePopup();});
 })();
 
 /* ─ 새 버전 안내: 사이트를 새로 올리면 열려 있는 화면에 '새 버전' 띠를 띄움 ─ */
-const APP_VER='2026.11.06-1';
+const APP_VER='2026.11.06-2';
 (function(){
   const PAGE=()=>location.pathname;
   let newVer=null, shown=false;
