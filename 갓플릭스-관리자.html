@@ -1685,7 +1685,11 @@ let _todayAt = 0, _todayP = null;
 function showTodayCount(r){
   if (!r || r.count === undefined) return;
   document.getElementById('dk-today').textContent = r.count;
-  document.getElementById('dk-today-sub').innerHTML = `오늘 <strong>${r.count}명</strong>이 강의 시청`;
+  // 수강생·인섬교·관리자 나눠서 (일자별 화면과 같은 숫자)
+  const G = Array.isArray(r.names) && vdData ? stuGroups(r.names) : null;
+  document.getElementById('dk-today-sub').innerHTML = G
+    ? G.filter(g => g[2].length).map(([label, icon, list]) => `${icon} ${label} <strong>${list.length}명</strong>`).join(' · ') || '아직 본 사람 없음'
+    : `오늘 <strong>${r.count}명</strong>이 강의 시청`;
   document.getElementById('dk-today-badge').textContent = new Date().toLocaleDateString('ko-KR',{month:'numeric',day:'numeric'});
 }
 async function loadTodayCount(force) {
@@ -1795,7 +1799,7 @@ function renderDaily(){
   const lt = v => (parseTitle(v.title || '').main || v.title || '(강의)');
   const tl = d => { const t = new Date(d + 'T00:00:00+09:00'); return (t.getMonth()+1) + '월 ' + t.getDate() + '일(' + DOW[t.getDay()] + ')'; };
   document.getElementById('dl-body').innerHTML = `
-    <div class="dl-sum"><span><b>${tl(r.date)}</b></span><span>👥 수강생 <b>${DG[0][2].length}</b>명 시청${DG[1][2].length || DG[2][2].length ? ` <small style="color:var(--g3)">(${[DG[1], DG[2]].filter(g => g[2].length).map(g => g[1] + ' ' + g[0] + ' ' + g[2].length + '명').join(' · ')})</small>` : ''}</span><span>⏱ 실제 재생 <b>${Math.round(played)}</b>분</span><span>✅ 완료 <b>${doneN}</b>건</span>
+    <div class="dl-sum"><span><b>${tl(r.date)}</b></span><span>👀 모두 <b>${names.length}</b>명 시청 <small style="color:var(--g3)">(${DG.filter(g => g[2].length).map(g => g[1] + ' ' + g[0] + ' ' + g[2].length + '명').join(' · ') || '없음'})</small></span><span>⏱ 실제 재생 <b>${Math.round(played)}</b>분</span><span>✅ 완료 <b>${doneN}</b>건</span>
       ${all.length ? `<span>😴 안 본 수강생 <b>${none.length}</b>명 ${none.length ? '<button class="adm-btn" style="padding:4px 10px;font-size:12px" onclick="copyDlNone()">📋 이름 복사</button>' : ''}</span>` : '<span style="font-size:12px;color:var(--g3)">(출석 현황을 한 번 불러오면 안 본 수강생도 보여요)</span>'}</div>
     ${names.length ? DG.map(([label, icon, list, staff]) => !list.length ? '' : `<details class="stu-group${staff ? ' staff' : ''}" open><summary>${icon} ${label} <span class="cnt">${list.length}명 시청</span><span class="arw">▼</span></summary>${list.map(n => `<div class="dl-stu"><div class="dl-stu-h" style="cursor:pointer" data-n="${escHtml(n)}" onclick="openStudentDetail(this.dataset.n)" title="일자별 기록 보기">${escHtml(n)} <span style="font-size:12px;color:var(--g3);font-weight:500">${by[n].length}개 강의</span></div>
       ${by[n].map(x => `<div class="dl-row"><span class="dl-t">${escHtml(lt(x))}</span>
@@ -3726,7 +3730,7 @@ window.addEventListener('keydown',e=>{if(e.key==='Escape')closePopup();});
 })();
 
 /* ─ 새 버전 안내: 사이트를 새로 올리면 열려 있는 화면에 '새 버전' 띠를 띄움 ─ */
-const APP_VER='2026.11.03-4';
+const APP_VER='2026.11.06-1';
 (function(){
   const PAGE=()=>location.pathname;
   let newVer=null, shown=false;
