@@ -1689,7 +1689,7 @@ let _todayAt = 0, _todayP = null, _todayR = null;
 function showTodayNames(){
   const r = _todayR; if (!r) { showToast('잠시 후 다시 눌러 주세요.'); return; }
   const names = Array.isArray(r.names) ? r.names : [];
-  const G = stuGroups(names);
+  const G = stuGroups(names, n => (r.groups && r.groups[n]) || dlGroupOf(n));
   const items = []; G.forEach(([label, icon, list]) => list.forEach(n => items.push({ icon: icon, name: n, sub: label })));
   regPopup('today-names', '📅 오늘 본 분 ' + names.length + '명', items);
   showPopup('today-names');
@@ -1699,7 +1699,7 @@ function showTodayCount(r){
   _todayR = r;
   document.getElementById('dk-today').textContent = r.count;
   // 수강생·인섬교·관리자 나눠서 (일자별 화면과 같은 숫자)
-  const G = Array.isArray(r.names) && vdData ? stuGroups(r.names) : null;
+  const G = Array.isArray(r.names) && (vdData || r.groups) ? stuGroups(r.names, n => (r.groups && r.groups[n]) || dlGroupOf(n)) : null;
   document.getElementById('dk-today-sub').innerHTML = G
     ? G.filter(g => g[2].length).map(([label, icon, list]) => `${icon} ${label} <strong>${list.length}명</strong>`).join(' · ') || '아직 본 사람 없음'
     : `오늘 <strong>${r.count}명</strong>이 강의 시청`;
@@ -1782,7 +1782,7 @@ async function loadDaily(date, fresh){
   else body.innerHTML = '<p class="empty">불러오는 중…</p>';
   try {
     // 안 본 수강생 계산용 명단(출석 통계)도 동시에 요청
-    const sp = vdData ? null : fetchStats(false).catch(() => null);
+    const sp = (!vdData || Date.now() - (_statsAt || 0) > 60000) ? fetchStats(false).catch(() => null) : null;
     const r = await api({ action: 'daily', pw: ADMIN_PW, days: 14, date: date || '', ...(fresh ? { fresh: 1 } : {}) });
     if (!r || r.error) { if (!cached) body.innerHTML = '<p class="empty">불러오지 못했습니다.</p>'; return; }
     _dl = r; _dlDate = r.date; acSet(ck, r);
@@ -1790,6 +1790,7 @@ async function loadDaily(date, fresh){
     renderDaily();
   } catch(e) { if (!cached) body.innerHTML = '<p class="empty">⚠️ 서버 연결 실패 — 새로고침을 눌러 주세요.</p>'; }
 }
+function dlGroupOf(n){ const ins = (vdData && vdData.insemGroup) || [], adm = (vdData && vdData.adminGroup) || []; return ins.includes(n) ? '인섬교' : adm.includes(n) ? '관리자' : '수강생'; }
 function renderDaily(){
   const r = _dl; if (!r) return;
   const max = Math.max(1, ...r.days.map(d => d.viewers));
@@ -1803,7 +1804,8 @@ function renderDaily(){
   const dmg = document.getElementById('dl-mgr').value;
   const by = {}; r.rows.filter(x => mgrMatch(x.name, dmg)).forEach(x => (by[x.name] = by[x.name] || []).push(x));
   const names = Object.keys(by);
-  const DG = stuGroups(names);
+  // 구분은 서버가 이 줄에 실어 보낸 '지금 명단' 기준 (관리자 화면이 옛 명단을 들고 있어도 맞게)
+  const DG = stuGroups(names, n => (by[n][0] && by[n][0].g) || dlGroupOf(n));
   const shown = r.rows.filter(x => by[x.name]);
   const played = shown.reduce((a, x) => a + (x.played || 0), 0);
   const doneN = shown.filter(x => x.done).length;
@@ -3750,7 +3752,7 @@ window.addEventListener('keydown',e=>{if(e.key==='Escape')closePopup();});
 })();
 
 /* ─ 새 버전 안내: 사이트를 새로 올리면 열려 있는 화면에 '새 버전' 띠를 띄움 ─ */
-const APP_VER='2026.11.06-2';
+const APP_VER='2026.11.13-1';
 (function(){
   const PAGE=()=>location.pathname;
   let newVer=null, shown=false;
