@@ -182,6 +182,22 @@ table.rg-t tr.zero td{color:var(--g3);}
 .dash-grp .lb{font-size:12.5px;color:var(--g3);margin-right:2px;}
 #kpi-today{cursor:pointer;}
 #kpi-today:hover{border-color:rgba(34,211,238,.45);}
+/* 등록/관리 목록: 폰에서는 이름 줄 + 버튼 줄로 나눠 보기 */
+@media (max-width:600px){
+  .stu-row{flex-wrap:wrap;gap:8px 8px !important;padding:12px !important;}
+  .stu-row > div:nth-child(2){flex:1 1 calc(100% - 50px) !important;}
+  .stu-row .grade-sel{flex:0 0 auto;}
+  .stu-row .mgr-in{flex:1 1 90px;min-width:0;}
+  .stu-row .btn-icon,.stu-row .btn-danger{flex:0 0 auto;white-space:nowrap;}
+}
+/* 🩺 명단 점검 */
+.rc-item{border-radius:8px;padding:10px 12px;margin-top:8px;font-size:13px;line-height:1.55;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03);}
+.rc-item.err{border-color:rgba(229,9,20,.45);background:rgba(229,9,20,.08);}
+.rc-item.warn{border-color:rgba(245,197,24,.4);background:rgba(245,197,24,.07);}
+.rc-item b{color:#fff;}
+.rc-item .d{color:var(--g2);margin-top:2px;word-break:keep-all;}
+.rc-item .t{color:var(--g3);font-size:12px;margin-top:3px;}
+.grade-sel{font-family:var(--font);background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);border-radius:6px;color:var(--white);padding:6px 6px;font-size:12.5px;}
 .mx-grp td{background:#232323 !important;cursor:pointer;user-select:none;font-size:14px;font-weight:800;color:#fff;padding:10px 12px !important;text-align:left !important;border-top:2px solid rgba(255,255,255,.12);}
 .mx-grp.staff td{color:var(--g2);font-size:13px;}
 .mx-grp td small{font-weight:600;color:var(--g3);font-size:12px;margin-left:6px;}
@@ -355,6 +371,7 @@ textarea.lt-in{width:100%;resize:vertical;min-height:140px;line-height:1.7;displ
 .msg{font-size:13px;margin-top:10px;padding:10px 14px;border-radius:6px;display:none;}
 .msg.ok{background:rgba(70,211,105,.12);border:1px solid rgba(70,211,105,.2);color:#a5f3c4;}
 .msg.err{background:rgba(229,9,20,.12);border:1px solid rgba(229,9,20,.2);color:#ff8a80;}
+.msg.warn{background:rgba(245,197,24,.1);border:1px solid rgba(245,197,24,.3);color:#ffe08a;}
 
 /* ── KPI CARDS ── */
 .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:24px;}
@@ -890,6 +907,15 @@ table.matrix tbody tr:hover td.cell-ing{background:rgba(74,158,255,.14);}
     </div>
     <div id="st-view-all"><div id="stu-grid"><div class="spinner"></div></div></div>
     <div id="st-view-mgmt" style="display:none;">
+      <div class="panel" id="roster-panel" style="margin-bottom:12px;">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <div class="panel-title" style="margin:0">🩺 명단 점검 <span id="rc-sum" style="font-size:13px;color:var(--g3);font-weight:600"></span></div>
+          <span style="flex:1"></span>
+          <button class="adm-btn" onclick="loadRosterCheck(true)">🔄 다시 점검</button>
+        </div>
+        <div style="font-size:12px;color:var(--g3);margin-top:4px;">아이디·이름 겹침, 구분 오타, 앞뒤 빈칸, 명단에 없는 이름의 기록을 찾아 알려 줘요. (시트는 건드리지 않아요)</div>
+        <div id="rc-list"></div>
+      </div>
       <div class="panel" style="margin-bottom:12px;">
         <div class="panel-title">➕ 새 수강생 등록</div>
         <div class="form-row cols2">
@@ -899,6 +925,10 @@ table.matrix tbody tr:hover td.cell-ing{background:rgba(74,158,255,.14);}
         <div class="form-row cols2">
           <div class="field"><label>비밀번호</label><input type="text" id="stu-pw" placeholder="초기 비밀번호"></div>
           <div class="field"><label>메모 (선택)</label><input type="text" id="stu-memo" placeholder="반 이름 등"></div>
+        </div>
+        <div class="form-row cols2">
+          <div class="field"><label>구분</label><select id="stu-grade" class="grade-sel" style="padding:9px 8px;font-size:14px;"><option value="수강생">👥 수강생</option><option value="인섬교">⚡ 인섬교</option><option value="관리자">👑 관리자</option></select></div>
+          <div class="field" style="font-size:12px;color:var(--g3);align-self:end;padding-bottom:8px;">구분은 관리자 화면에서만 보여요. 학생 화면에는 나오지 않아요.</div>
         </div>
         <div style="display:flex;gap:10px;align-items:center;">
           <button class="btn-primary" onclick="addStudent()">👤 등록</button>
@@ -911,7 +941,7 @@ table.matrix tbody tr:hover td.cell-ing{background:rgba(74,158,255,.14);}
         <div class="panel-title">📂 수강생 일괄 등록 <span style="font-size:12px;color:var(--g3);font-weight:400;">(CSV 파일 업로드)</span></div>
         <div style="font-size:12px;color:var(--g3);line-height:1.7;margin-bottom:14px;">
           CSV 형식: <code style="background:rgba(255,255,255,.08);padding:2px 8px;border-radius:4px;font-size:12px;">이름,아이디,비밀번호,메모</code><br>
-          첫 줄이 헤더이면 자동으로 건너뜁니다. 중복 아이디는 자동 제외됩니다.
+          첫 줄이 헤더이면 자동으로 건너뜁니다. 이미 있는 이름이나 아이디는 자동 제외됩니다. (모두 수강생으로 등록돼요 — 구분은 아래 목록에서 바꿀 수 있어요)
         </div>
         <!-- 드래그 앤 드롭 영역 -->
         <div id="csv-drop-zone"
@@ -1529,8 +1559,8 @@ function renderMatrixCards(r) {
     }).join('');
     return `<div style="background:var(--surface);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:16px;margin-bottom:10px;">
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
-        <div style="width:40px;height:40px;border-radius:8px;background:var(--red);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;flex-shrink:0">${n.slice(0,1)}</div>
-        <div style="flex:1"><div style="font-size:15px;font-weight:700">${n}</div><div style="font-size:12px;color:var(--g3)">${done}개 완료 · ${ing}개 시청중</div></div>
+        <div style="width:40px;height:40px;border-radius:8px;background:var(--red);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;flex-shrink:0">${escHtml(n.slice(0,1))}</div>
+        <div style="flex:1"><div style="font-size:15px;font-weight:700">${escHtml(n)}</div><div style="font-size:12px;color:var(--g3)">${done}개 완료 · ${ing}개 시청중</div></div>
         <div style="font-size:22px;font-weight:700;color:${col}">${pct}%</div>
       </div>
       <div style="height:5px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden;margin-bottom:14px">
@@ -1631,7 +1661,8 @@ async function bulkRegisterStudents() {
       data: JSON.stringify(_csvParsed)
     });
     if (r && r.success) {
-      showMsg(msg, `✅ ${r.added}명 등록 완료! (${r.skipped}명 중복 제외)`, 'ok');
+      showMsg(msg, `✅ ${r.added}명 등록 완료!` + (r.skipped ? ` (${r.skipped}명 건너뜀: ${(r.skippedList || []).join(' · ')})` : ''), r.skipped ? 'warn' : 'ok');
+      loadRosterCheck(true); afterRosterChange();
       _csvParsed = [];
       document.getElementById('csv-preview').style.display = 'none';
       loadStudentList();
@@ -3396,24 +3427,64 @@ async function loadStudentList(){
   dl.innerHTML=_mgrNames.map(m=>`<option value="${escHtml(m)}">`).join('');
   if(!users.length){c.innerHTML='<p class="empty">등록된 수강생이 없습니다.</p>';return;}
   const row=u=>`
-    <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--surface);border:1px solid rgba(255,255,255,.07);border-radius:8px;margin-bottom:8px;">
-      <div style="width:38px;height:38px;border-radius:8px;background:var(--red);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;flex-shrink:0">${(u.name||u).slice(0,1)}</div>
-      <div style="flex:1"><div style="font-size:14px;font-weight:700">${u.name||u}</div><div style="font-size:12px;color:var(--g3)">ID: ${u.id||'-'} · PW: ${(u.hasPassword||u.password)?'••••':'-'}</div></div>
+    <div class="stu-row" style="display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--surface);border:1px solid rgba(255,255,255,.07);border-radius:8px;margin-bottom:8px;">
+      <div style="width:38px;height:38px;border-radius:8px;background:var(--red);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;flex-shrink:0">${escHtml((u.name||u).slice(0,1))}</div>
+      <div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700">${escHtml(u.name||u)}</div><div style="font-size:12px;color:var(--g3)">ID: ${escHtml(u.id||'-')} · PW: ${(u.hasPassword||u.password)?'••••':'-'}</div></div>
+      <select class="grade-sel" data-n="${escHtml(u.name||u)}" data-v="${escHtml(gradeOf3(u.grade))}" onchange="saveGrade(this)" title="구분 바꾸기 (관리자 화면에만 보여요)">${['수강생','인섬교','관리자'].map(gv=>`<option value="${gv}" ${gradeOf3(u.grade)===gv?'selected':''}>${gv==='수강생'?'👥':gv==='인섬교'?'⚡':'👑'} ${gv}</option>`).join('')}</select>
       <input class="mgr-in" list="mgr-dl" placeholder="담당자" value="${escHtml(u.mgr||'')}" data-n="${escHtml(u.name||u)}" data-v="${escHtml(u.mgr||'')}" onchange="saveMgr(this)" title="담당자 (전도사님·섬기는 분)">
       <button class="btn-icon" onclick="resetPassword('${(u.name||u).replace(/'/g,"\\'")}')">🔑 비번 초기화</button>
       <button class="btn-danger" onclick="deleteStudent('${(u.name||u).replace(/'/g,"\\'")}')">삭제</button>
     </div>`;
   const byName={}; users.forEach(u=>{ byName[u.name||u]=u; });
-  c.innerHTML=stuGroups(users.map(u=>u.name||u), n=>String((byName[n]||{}).grade||'수강생')).map(([label,icon,list,staff])=>!list.length?'':
+  c.innerHTML=stuGroups(users.map(u=>u.name||u), n=>gradeOf3((byName[n]||{}).grade)).map(([label,icon,list,staff])=>!list.length?'':
     `<details class="stu-group${staff?' staff':''}" open><summary>${icon} ${label} <span class="cnt">${list.length}명</span><span class="arw">▼</span></summary>${list.map(n=>row(byName[n])).join('')}</details>`).join('');}
   catch(e){c.innerHTML=`<p class="empty" style="color:var(--red)">로드 실패: ${e.message}</p>`;}
+}
+// 구분 글자 정리: 앞뒤 빈칸 무시, 정해진 말이 아니면 수강생
+function gradeOf3(g){ g = String(g || '').trim(); return g === '인섬교' || g === '관리자' ? g : '수강생'; }
+async function saveGrade(sel){
+  const name = sel.dataset.n, grade = sel.value, prev = sel.dataset.v;
+  if (grade === prev) return;
+  sel.disabled = true;
+  try {
+    const r = await api({ action: 'set_grade', pw: ADMIN_PW, name, grade });
+    if (r && r.success) { sel.dataset.v = grade; showToast(`✅ ${name} 님을 ${grade}(으)로 바꿨어요`); loadStudentList(); loadRosterCheck(true); afterRosterChange(); }
+    else { sel.value = prev; showToast('❌ ' + ((r && r.error) || '바꾸지 못했어요')); }
+  } catch (e) { sel.value = prev; showToast('❌ 서버 연결 실패 — 다시 해 주세요'); }
+  finally { sel.disabled = false; }
+}
+// 명단이 바뀌면 구분을 쓰는 화면(대시보드·출석·일자별·챙길 분)을 새로 받아 옴
+function afterRosterChange(){
+  try { fetchStats(true).catch(() => {}); } catch (e) {}
+  try { loadCare(true); } catch (e) {}
+  try { if (document.getElementById('ts-daily').classList.contains('active')) loadDaily(_dlDate, true); } catch (e) {}
+}
+/* 🩺 명단 점검 */
+let _rcAt = 0, _rcP = null;
+async function loadRosterCheck(force){
+  const box = document.getElementById('rc-list'), sum = document.getElementById('rc-sum'); if (!box) return;
+  if (_rcP) return _rcP;
+  if (!force && Date.now() - _rcAt < 60000 && box.innerHTML) return;
+  if (!box.innerHTML) box.innerHTML = '<p class="empty" style="font-size:13px;padding:10px 0">점검하는 중…</p>';
+  _rcP = api({ action: 'roster_check', pw: ADMIN_PW }).then(r => {
+    if (!r || r.error) { box.innerHTML = '<p class="empty" style="font-size:13px;padding:10px 0">점검하지 못했어요.</p>'; return; }
+    _rcAt = Date.now();
+    const bad = r.issues.filter(x => x.level !== 'info').length;
+    sum.textContent = r.issues.length ? `· 확인할 곳 ${r.issues.length}개` : '· 문제 없어요 👍';
+    sum.style.color = bad ? '#ff8a80' : 'var(--g3)';
+    box.innerHTML = r.issues.length ? r.issues.map(x => `<div class="rc-item ${x.level}"><b>${x.level === 'err' ? '⛔' : x.level === 'warn' ? '⚠️' : 'ℹ️'} ${escHtml(x.title)}</b><div class="d">${escHtml(x.detail)}</div><div class="t">${escHtml(x.tip)}</div></div>`).join('')
+      : `<p class="empty" style="font-size:13px;padding:10px 0;text-align:left">✅ 등록된 ${r.total}명 모두 아이디·이름·구분이 바르게 적혀 있어요.</p>`;
+  }).catch(() => { box.innerHTML = '<p class="empty" style="font-size:13px;padding:10px 0">⚠️ 서버 연결 실패</p>'; })
+    .finally(() => { _rcP = null; });
+  return _rcP;
 }
 async function addStudent(){
   const name=document.getElementById('stu-name').value.trim(),id=document.getElementById('stu-id').value.trim(),pw=document.getElementById('stu-pw').value.trim(),memo=document.getElementById('stu-memo').value.trim(),msg=document.getElementById('stu-msg');
   if(!name||!id||!pw){showMsg(msg,'이름, 아이디, 비밀번호를 모두 입력하세요.','err');return;}
   showMsg(msg,'⏳ 등록 중…','ok');
-  try{const r=await api({action:'add_student',pw:ADMIN_PW,data:JSON.stringify({name,id,password:pw,memo})});
-  if(r&&r.success){showMsg(msg,'✅ '+name+' 님이 등록됐습니다!','ok');['stu-name','stu-id','stu-pw','stu-memo'].forEach(i=>document.getElementById(i).value='');loadStudentList();}
+  const grade=document.getElementById('stu-grade').value||'수강생';
+  try{const r=await api({action:'add_student',pw:ADMIN_PW,data:JSON.stringify({name,id,password:pw,memo,grade})});
+  if(r&&r.success){showMsg(msg,'✅ '+name+' 님('+grade+')이 등록됐습니다!','ok');['stu-name','stu-id','stu-pw','stu-memo'].forEach(i=>document.getElementById(i).value='');document.getElementById('stu-grade').value='수강생';loadStudentList();loadRosterCheck(true);afterRosterChange();}
   else{showMsg(msg,'❌ '+(r&&r.error||'오류'),'err');}}
   catch(e){showMsg(msg,'❌ '+e.message,'err');}
 }
@@ -3440,8 +3511,8 @@ function renderStudentDetail(){
   const col=pct>=80?'var(--green)':pct>=40?'var(--gold)':'var(--red)';
   c.innerHTML=`<div class="panel">
     <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px">
-      <div style="width:52px;height:52px;border-radius:10px;background:var(--red);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;">${name.slice(0,1)}</div>
-      <div><div style="font-size:20px;font-weight:700">${name}</div><div style="font-size:13px;color:var(--g3)">총 ${allVideos.length}개 강의 · 완료율 ${pct}%</div><button class="adm-btn" style="margin-top:6px" data-n="${escHtml(name)}" onclick="ltWriteTo(this.dataset.n)">💌 편지 쓰기</button></div>
+      <div style="width:52px;height:52px;border-radius:10px;background:var(--red);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;">${escHtml(name.slice(0,1))}</div>
+      <div><div style="font-size:20px;font-weight:700">${escHtml(name)}</div><div style="font-size:13px;color:var(--g3)">총 ${allVideos.length}개 강의 · 완료율 ${pct}%</div><button class="adm-btn" style="margin-top:6px" data-n="${escHtml(name)}" onclick="ltWriteTo(this.dataset.n)">💌 편지 쓰기</button></div>
       <div style="margin-left:auto;font-size:36px;font-weight:700;color:${col}">${pct}%</div>
     </div>
     <div style="height:7px;background:rgba(255,255,255,.08);border-radius:4px;overflow:hidden;margin-bottom:22px">
@@ -3508,7 +3579,7 @@ function openStudentDetail(name){
   if (sel) sel.value=name;
   renderStudentDetail();
 }
-function switchStudentSub(s){['all','mgmt','detail'].forEach(m=>{const b=document.getElementById('st-'+m+'-btn');if(b)b.classList.toggle('active',m===s);const v=document.getElementById('st-view-'+m);if(v)v.style.display=m===s?'block':'none';});if(s==='all')renderStudentCards();if(s==='mgmt')loadStudentList();}
+function switchStudentSub(s){['all','mgmt','detail'].forEach(m=>{const b=document.getElementById('st-'+m+'-btn');if(b)b.classList.toggle('active',m===s);const v=document.getElementById('st-view-'+m);if(v)v.style.display=m===s?'block':'none';});if(s==='all')renderStudentCards();if(s==='mgmt'){loadStudentList();loadRosterCheck();}}
 
 /* ── CSV EXPORT ── */
 function exportCSV(){
@@ -3752,7 +3823,7 @@ window.addEventListener('keydown',e=>{if(e.key==='Escape')closePopup();});
 })();
 
 /* ─ 새 버전 안내: 사이트를 새로 올리면 열려 있는 화면에 '새 버전' 띠를 띄움 ─ */
-const APP_VER='2026.11.13-1';
+const APP_VER='2026.11.13-2';
 (function(){
   const PAGE=()=>location.pathname;
   let newVer=null, shown=false;
