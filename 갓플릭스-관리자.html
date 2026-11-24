@@ -1458,7 +1458,7 @@ async function saveShort() {
 async function deleteShort(id, title) {
   const toast = document.getElementById('toast');
   const safeTitle = title.replace(/'/g, "\\'");
-  toast.innerHTML = `⚡ "<b>${title}</b>" 쇼츠를 삭제하시겠습니까? &nbsp;<button onclick="_confirmDeleteShort('${id}');this.closest('[id=toast]').classList.remove('show')" style="background:var(--red);color:#fff;border:none;border-radius:4px;padding:3px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);">삭제</button>&nbsp;<button onclick="this.closest('[id=toast]').classList.remove('show')" style="background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:4px;padding:3px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);">취소</button>`;
+  toast.innerHTML = `⚡ "<b>${title}</b>" 쇼츠를 삭제하시겠습니까? &nbsp;<button onclick="this.closest('[id=toast]')?.classList.remove('show');_confirmDeleteShort('${id}')" style="background:var(--red);color:#fff;border:none;border-radius:4px;padding:3px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);">삭제</button>&nbsp;<button onclick="this.closest('[id=toast]')?.classList.remove('show')" style="background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:4px;padding:3px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);">취소</button>`;
   toast.classList.add('show');
   setTimeout(() => { toast.classList.remove('show'); toast.innerHTML = ''; }, 6000);
 }
@@ -1681,7 +1681,7 @@ function cancelCsvUpload() {
 async function resetStudentProgress(name, videoId, videoTitle) {
   const toast = document.getElementById('toast');
   const safeN = name.replace(/'/g, "\\'"), safeV = videoId.replace(/'/g, "\\'"), safeT = videoTitle.replace(/'/g, "\\'");
-  toast.innerHTML = `📊 "<b>${name}</b>"의 "${videoTitle}" 진도를 초기화할까요? &nbsp;<button onclick="_confirmResetProgress('${safeN}','${safeV}','${safeT}');this.closest('[id=toast]').classList.remove('show')" style="background:var(--red);color:#fff;border:none;border-radius:4px;padding:3px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);">초기화</button>&nbsp;<button onclick="this.closest('[id=toast]').classList.remove('show')" style="background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:4px;padding:3px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);">취소</button>`;
+  toast.innerHTML = `📊 "<b>${name}</b>"의 "${videoTitle}" 진도를 초기화할까요? &nbsp;<button onclick="this.closest('[id=toast]')?.classList.remove('show');_confirmResetProgress('${safeN}','${safeV}','${safeT}')" style="background:var(--red);color:#fff;border:none;border-radius:4px;padding:3px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);">초기화</button>&nbsp;<button onclick="this.closest('[id=toast]')?.classList.remove('show')" style="background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:4px;padding:3px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);">취소</button>`;
   toast.classList.add('show');
   setTimeout(() => { toast.classList.remove('show'); toast.innerHTML = ''; }, 6000);
 }
@@ -2204,6 +2204,8 @@ function loadClientErr(show){
   }).catch(() => { if (show && !_ce) document.getElementById('ce-list').innerHTML = '<p class="empty">⚠️ 서버 연결 실패</p>'; }).finally(() => { _ceP = null; });
   return _ceP;
 }
+// '%EA%B0%93…html:1:66' 같은 위치를 읽을 수 있게 (1번째 줄 = 버튼 등에 붙은 짧은 코드)
+function ceWhere(w){ let t = String(w || ''); try { t = decodeURIComponent(t); } catch (e) {} return t.replace(/^(.+\.html):1:(\d+)$/, '$1 · 버튼 등에 붙은 코드 ($2번째 글자)'); }
 function renderClientErr(){
   const r = _ce; if (!r) return;
   const dot = document.getElementById('ce-dot');
@@ -2213,11 +2215,11 @@ function renderClientErr(){
   if (!r.items.length) { el.innerHTML = '<p class="empty" style="padding:18px 0">👍 기록된 오류가 없어요.</p>'; return; }
   // 같은 오류끼리 묶어서 (많이 난 것 먼저)
   const g = {};
-  r.items.forEach(x => { const k = x.msg + '|' + x.where; (g[k] = g[k] || { x: x, n: 0, who: {}, env: {}, last: x.at }).n++; g[k].who[x.who] = 1; if (x.env) g[k].env[x.env] = 1; });
+  r.items.forEach(x => { const k = x.msg + '|' + x.where; (g[k] = g[k] || { x: x, n: 0, who: {}, env: {}, last: x.at }).n++; g[k].who[x.page === 'admin' && x.who === '(로그인 전)' ? '관리자' : x.who] = 1; if (x.env) g[k].env[x.env] = 1; });
   el.innerHTML = Object.values(g).sort((a, b) => b.n - a.n || String(b.last).localeCompare(String(a.last))).slice(0, 50).map(o => {
     const who = Object.keys(o.who), env = Object.keys(o.env);
     return `<div class="ce-item"><div class="ce-top"><span class="care-chip ${o.n >= 3 ? 'r' : 'y'}">${o.n}번</span><span>🕒 ${escHtml(o.last)}</span><span>👤 ${escHtml(who.slice(0, 4).join(', '))}${who.length > 4 ? ' 외 ' + (who.length - 4) + '명' : ''}</span>${env.length ? `<span>📱 ${escHtml(env.slice(0, 3).join(' / '))}</span>` : ''}<span>${o.x.page === 'admin' ? '관리자 화면' : '수강생 화면'} · v${escHtml(o.x.ver || '?')}</span></div>
-      <div class="ce-msg">${escHtml(o.x.msg)}</div>${o.x.where ? `<div class="ce-where">${escHtml(o.x.where)}</div>` : ''}</div>`;
+      <div class="ce-msg">${escHtml(o.x.msg)}</div>${o.x.where ? `<div class="ce-where">${escHtml(ceWhere(o.x.where))}</div>` : ''}</div>`;
   }).join('');
 }
 let _ceClearArm = 0;
@@ -2932,7 +2934,7 @@ async function deleteVideo(id) {
   const v = allVideos.find(v => v.id === id);
   const titleLabel = v ? (v.title.length > 20 ? v.title.slice(0, 20) + '…' : v.title) : '이 영상';
   const toast = document.getElementById('toast');
-  toast.innerHTML = `🗑 "<b>${titleLabel}</b>"을 삭제하시겠습니까? &nbsp;<button onclick="_confirmDeleteVideo('${id}');this.closest('[id=toast]').classList.remove('show')" style="background:var(--red);color:#fff;border:none;border-radius:4px;padding:3px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);">삭제</button>&nbsp;<button onclick="this.closest('[id=toast]').classList.remove('show')" style="background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:4px;padding:3px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);">취소</button>`;
+  toast.innerHTML = `🗑 "<b>${titleLabel}</b>"을 삭제하시겠습니까? &nbsp;<button onclick="this.closest('[id=toast]')?.classList.remove('show');_confirmDeleteVideo('${id}')" style="background:var(--red);color:#fff;border:none;border-radius:4px;padding:3px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);">삭제</button>&nbsp;<button onclick="this.closest('[id=toast]')?.classList.remove('show')" style="background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:4px;padding:3px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);">취소</button>`;
   toast.classList.add('show');
   setTimeout(() => { toast.classList.remove('show'); toast.innerHTML = ''; }, 6000);
 }
@@ -3491,7 +3493,7 @@ async function addStudent(){
 async function deleteStudent(name){
   const toast=document.getElementById('toast');
   const safeName=name.replace(/'/g,"\\'");
-  toast.innerHTML=`👥 "<b>${name}</b>" 수강생을 삭제하시겠습니까? &nbsp;<button onclick="_confirmDeleteStudent('${safeName}');this.closest('[id=toast]').classList.remove('show')" style="background:var(--red);color:#fff;border:none;border-radius:4px;padding:3px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);">삭제</button>&nbsp;<button onclick="this.closest('[id=toast]').classList.remove('show')" style="background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:4px;padding:3px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);">취소</button>`;
+  toast.innerHTML=`👥 "<b>${name}</b>" 수강생을 삭제하시겠습니까? &nbsp;<button onclick="this.closest('[id=toast]')?.classList.remove('show');_confirmDeleteStudent('${safeName}')" style="background:var(--red);color:#fff;border:none;border-radius:4px;padding:3px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);">삭제</button>&nbsp;<button onclick="this.closest('[id=toast]')?.classList.remove('show')" style="background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:4px;padding:3px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);">취소</button>`;
   toast.classList.add('show');
   setTimeout(()=>{toast.classList.remove('show');toast.innerHTML='';},6000);
 }
@@ -3549,7 +3551,7 @@ async function deleteNotice(){
   const msg=document.getElementById('notice-msg');
   // confirm() 대신 토스트 확인 방식
   const toast=document.getElementById('toast');
-  toast.innerHTML='📢 공지를 삭제하시겠습니까? &nbsp;<button onclick="_confirmDeleteNotice();this.closest(\'[id=toast]\').classList.remove(\'show\')" style="background:var(--red);color:#fff;border:none;border-radius:4px;padding:3px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);">삭제</button>&nbsp;<button onclick="this.closest(\'[id=toast]\').classList.remove(\'show\')" style="background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:4px;padding:3px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);">취소</button>';
+  toast.innerHTML='📢 공지를 삭제하시겠습니까? &nbsp;<button onclick="this.closest(\'[id=toast]\')?.classList.remove(\'show\');_confirmDeleteNotice()" style="background:var(--red);color:#fff;border:none;border-radius:4px;padding:3px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);">삭제</button>&nbsp;<button onclick="this.closest(\'[id=toast]\')?.classList.remove(\'show\')" style="background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:4px;padding:3px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);">취소</button>';
   toast.classList.add('show');
   setTimeout(()=>{toast.classList.remove('show');toast.textContent='';},6000);
 }
@@ -3823,7 +3825,7 @@ window.addEventListener('keydown',e=>{if(e.key==='Escape')closePopup();});
 })();
 
 /* ─ 새 버전 안내: 사이트를 새로 올리면 열려 있는 화면에 '새 버전' 띠를 띄움 ─ */
-const APP_VER='2026.11.13-2';
+const APP_VER='2026.11.24-1';
 (function(){
   const PAGE=()=>location.pathname;
   let newVer=null, shown=false;
